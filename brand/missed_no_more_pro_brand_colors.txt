@@ -1,0 +1,14 @@
+Missed No More Pro - Brand Color Hex Values
+
+Primary Deep Navy: #0A1B3D
+Primary Electric Cyan: #00E5FF
+Logo White: #FFFFFF
+Dark Background / Midnight Navy: #020817
+Supporting Bright Blue Gradient: #006BFF
+
+Recommended Usage:
+- Use #0A1B3D for dark brand backgrounds, headers, cards, and premium sections.
+- Use #00E5FF for CTAs, highlights, icons, links, and the "Pro" accent.
+- Use #FFFFFF for main text and the phone/check elements.
+- Use #020817 for extra-dark website/app backgrounds.
+- Use #006BFF as a supporting gradient partner with #00E5FF.
