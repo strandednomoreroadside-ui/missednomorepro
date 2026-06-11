@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/*
+ * Missed No More Pro — dark-first brand theme.
+ * Palette source of truth: brand/missed_no_more_pro_brand_colors.txt
+ *   Deep Navy #0A1B3D · Electric Cyan #00E5FF · Midnight #020817 · Bright Blue #006BFF
+ */
+:root {
+  --background: #020817;
+  --foreground: #f8f8f8;
+  --card: #0a1b3d;
+  --card-foreground: #f8f8f8;
+  --popover: #081530;
+  --popover-foreground: #f8f8f8;
+  --primary: #00e5ff;
+  --primary-foreground: #021320;
+  --secondary: #0e2249;
+  --secondary-foreground: #f8f8f8;
+  --muted: #0b1b38;
+  --muted-foreground: #a7b0c0;
+  --accent: #11305e;
+  --accent-foreground: #f8f8f8;
+  --destructive: #ff4d5e;
+  --destructive-foreground: #f8f8f8;
+  --border: #1b2f55;
+  --input: #1b2f55;
+  --ring: #00e5ff;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand shortcuts */
+  --color-night: #020817;
+  --color-navy: #0a1b3d;
+  --color-cyan: #00e5ff;
+  --color-blue: #006bff;
+  --color-steel: #a7b0c0;
+  --color-success: #21d07a;
+  --color-alert: #ffb020;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --animate-fade-up: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pulse-dot: pulse-dot 2.2s ease-in-out infinite;
+  --animate-ring-wave: ring-wave 2.6s ease-out infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes ring-wave {
+    0% {
+      transform: scale(1);
+      opacity: 0.45;
+    }
+    100% {
+      transform: scale(2.1);
+      opacity: 0;
+    }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #00e5ff;
+  color: #021320;
+}
+
+/* ── Atmosphere helpers ──────────────────────────────────────── */
+
+/* Soft signal-glow used behind hero and CTA sections */
+.glow-field {
+  background:
+    radial-gradient(42rem 26rem at 18% 8%, rgba(0, 107, 255, 0.16), transparent 60%),
+    radial-gradient(36rem 24rem at 85% 18%, rgba(0, 229, 255, 0.1), transparent 65%),
+    radial-gradient(50rem 32rem at 50% 110%, rgba(0, 107, 255, 0.08), transparent 70%);
+}
+
+/* Faint dispatch-board grid lines */
+.grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(167, 176, 192, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(167, 176, 192, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(60rem 40rem at 50% 0%, black 30%, transparent 75%);
+}
+
+/* Brand gradient text (bright blue → electric cyan, like the logo M) */
+.text-gradient {
+  background: linear-gradient(100deg, #006bff 0%, #00e5ff 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Gradient hairline border for premium cards */
+.border-glow {
+  position: relative;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(140deg, rgba(0, 229, 255, 0.55), rgba(0, 107, 255, 0.25) 45%, rgba(27, 47, 85, 0.6)) border-box;
+  border: 1px solid transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
