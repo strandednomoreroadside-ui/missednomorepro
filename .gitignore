@@ -28,3 +28,9 @@ Thumbs.db
 # Editor
 .idea/
 .vscode/
+
+.vercel
+
+# Saved browser pages — may contain account identifiers/secrets
+Account home*.html
+Account home*_files/

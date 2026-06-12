@@ -44,6 +44,11 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   SENTRY_DSN: z.string().min(1).optional(),
 
+  // Platform admin (M2): comma-separated emails allowed into /admin
+  ADMIN_EMAILS: z.string().optional(),
+  // Used by the Supabase CLI for migrations, never by the app itself
+  SUPABASE_DB_PASSWORD: z.string().min(1).optional(),
+
   // Shared secret for internal service-to-service calls (e.g. voice tools)
   INTERNAL_API_SECRET: z.string().min(16).optional(),
 });
@@ -51,7 +56,13 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 function loadEnv(): Env {
-  const parsed = envSchema.safeParse(process.env);
+  // Treat empty strings as "not set" — .env.local templates keep blank
+  // placeholders for keys that arrive at later milestones.
+  const raw: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    raw[key] = value === "" ? undefined : value;
+  }
+  const parsed = envSchema.safeParse(raw);
   if (parsed.success) return parsed.data;
 
   // Invalid values (bad URL, wrong enum) are configuration mistakes worth
@@ -60,7 +71,7 @@ function loadEnv(): Env {
     "[env] Some environment variables are invalid and will be ignored:",
     parsed.error.flatten().fieldErrors
   );
-  const cleaned = { ...process.env } as Record<string, string | undefined>;
+  const cleaned = { ...raw };
   for (const issue of parsed.error.issues) {
     const key = issue.path[0];
     if (typeof key === "string") delete cleaned[key];
