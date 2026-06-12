@@ -24,17 +24,40 @@ export default async function AdminPage() {
   // bypassed, gated by the ADMIN_EMAILS check in the layout.
   const admin = createAdminClient();
 
-  const [{ data: orgs, error: orgErr }, { data: members, error: memErr }] =
-    await Promise.all([
-      admin
-        .from("organizations")
-        .select("id, name, plan, status, created_at")
-        .order("created_at", { ascending: false }),
-      admin.from("organization_members").select("organization_id"),
-    ]);
+  const [
+    { data: orgs, error: orgErr },
+    { data: members, error: memErr },
+    { data: businesses, error: bizErr },
+  ] = await Promise.all([
+    admin
+      .from("organizations")
+      .select("id, name, plan, status, created_at")
+      .order("created_at", { ascending: false }),
+    admin.from("organization_members").select("organization_id"),
+    admin
+      .from("businesses")
+      .select("tenant_id, status, setup_states ( current_step, launched_at )"),
+  ]);
 
-  if (orgErr || memErr) {
-    throw new Error(orgErr?.message ?? memErr?.message ?? "Admin query failed");
+  if (orgErr || memErr || bizErr) {
+    throw new Error(
+      orgErr?.message ?? memErr?.message ?? bizErr?.message ?? "Admin query failed"
+    );
+  }
+
+  // Setup status per org: launched, in-progress (with bookmark), or
+  // not started — incomplete setups are the ones to chase (Phase 3).
+  const setupByOrg = new Map<string, string>();
+  for (const b of businesses ?? []) {
+    const state = Array.isArray(b.setup_states) ? b.setup_states[0] : b.setup_states;
+    setupByOrg.set(
+      b.tenant_id,
+      b.status === "live"
+        ? "live"
+        : state?.current_step
+          ? `at “${state.current_step}”`
+          : "started"
+    );
   }
 
   const memberCounts = new Map<string, number>();
@@ -76,6 +99,7 @@ export default async function AdminPage() {
                     <th className="pb-2 pr-4">Name</th>
                     <th className="pb-2 pr-4">Plan</th>
                     <th className="pb-2 pr-4">Status</th>
+                    <th className="pb-2 pr-4">Setup</th>
                     <th className="pb-2 pr-4">Members</th>
                     <th className="pb-2">Created</th>
                   </tr>
@@ -91,6 +115,19 @@ export default async function AdminPage() {
                         <span className="rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs text-success">
                           {org.status}
                         </span>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {setupByOrg.get(org.id) === "live" ? (
+                          <span className="rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs text-success">
+                            live
+                          </span>
+                        ) : setupByOrg.has(org.id) ? (
+                          <span className="rounded-full border border-alert/40 bg-alert/10 px-2 py-0.5 text-xs text-alert">
+                            incomplete — {setupByOrg.get(org.id)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-steel">not started</span>
+                        )}
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-muted-foreground">
                         {memberCounts.get(org.id) ?? 0}
