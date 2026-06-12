@@ -26,7 +26,6 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Dashboard" };
 
 const STATS = [
-  { label: "Calls answered", value: "0", hint: "arrives at M7 — AI receptionist" },
   { label: "Jobs booked", value: "0", hint: "arrives at M9 — booking" },
   { label: "Revenue recovered", value: "$0", hint: "arrives at M7+" },
 ];
@@ -55,19 +54,24 @@ export default async function DashboardPage() {
   // Setup status for the callout card (business may not exist until
   // the wizard is opened for the first time) + live lead count.
   const supabase = await createClient();
-  const [{ data: business }, { count: leadCount }] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select("id, name, status, setup_states ( current_step )")
-      .eq("tenant_id", active.organization_id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("leads")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", active.organization_id),
-  ]);
+  const [{ data: business }, { count: leadCount }, { count: callCount }] =
+    await Promise.all([
+      supabase
+        .from("businesses")
+        .select("id, name, status, setup_states ( current_step )")
+        .eq("tenant_id", active.organization_id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", active.organization_id),
+      supabase
+        .from("calls")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", active.organization_id),
+    ]);
   const setupState = Array.isArray(business?.setup_states)
     ? business.setup_states[0]
     : business?.setup_states;
@@ -150,6 +154,21 @@ export default async function DashboardPage() {
       </Card>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-card/60">
+          <CardHeader className="pb-2">
+            <CardDescription>Calls received</CardDescription>
+            <CardTitle className="font-mono text-3xl text-cyan">
+              {callCount ?? 0}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-steel">
+              <Link href="/dashboard/calls" className="hover:text-cyan">
+                open call log →
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
         <Card className="bg-card/60">
           <CardHeader className="pb-2">
             <CardDescription>Leads captured</CardDescription>

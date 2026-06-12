@@ -240,6 +240,44 @@ try {
       summary: "Forged call record",
     });
   assert("Timeline events cannot be written directly", !!directTimelineErr);
+
+  // ── M6: phone tables ──────────────────────────────────────────
+
+  // Server (service role) logs a call + number for A.
+  const { error: numErr } = await admin.from("phone_numbers").insert({
+    tenant_id: a.orgId,
+    phone_number: "+15555550111",
+  });
+  if (numErr) throw new Error(`seed phone number: ${numErr.message}`);
+  const { error: callSeedErr } = await admin.from("calls").insert({
+    tenant_id: a.orgId,
+    provider_call_id: `CAleaktest${ts}`,
+    from_number: "+15555550123",
+    to_number: "+15555550111",
+    status: "voicemail",
+  });
+  if (callSeedErr) throw new Error(`seed call: ${callSeedErr.message}`);
+
+  // 15. B sees none of A's numbers or calls.
+  const { data: bNumbers } = await b.client.from("phone_numbers").select("tenant_id");
+  const { data: bCalls } = await b.client.from("calls").select("tenant_id");
+  const phoneLeak = [...(bNumbers ?? []), ...(bCalls ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's phone numbers or calls", phoneLeak.length === 0);
+
+  // 16. Call logs are server-written history — members can't forge them.
+  const { error: forgeCallErr } = await a.client.from("calls").insert({
+    tenant_id: a.orgId,
+    provider_call_id: `CAforged${ts}`,
+    status: "completed",
+  });
+  assert("Members cannot write call logs directly", !!forgeCallErr);
+  const { error: claimErr } = await a.client.from("phone_numbers").insert({
+    tenant_id: a.orgId,
+    phone_number: "+15555550112",
+  });
+  assert("Members cannot claim phone numbers directly", !!claimErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

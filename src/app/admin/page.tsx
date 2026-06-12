@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { FormBanner } from "@/components/form-banner";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,11 +9,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { env } from "@/lib/env";
+import { formatUsPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+import { assignPhoneNumber } from "./actions";
 
 export const metadata: Metadata = { title: "Platform admin" };
 // Live service-role reads — never prerender at build time.
 export const dynamic = "force-dynamic";
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 type OrgRow = {
   id: string;
@@ -21,7 +32,15 @@ type OrgRow = {
   created_at: string;
 };
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const sp = await searchParams;
+  const error = typeof sp.error === "string" ? sp.error : null;
+  const assigned = sp.assigned === "1";
+
   // Service-role reads: this is the one place RLS is intentionally
   // bypassed, gated by the ADMIN_EMAILS check in the layout.
   const admin = createAdminClient();
@@ -30,6 +49,7 @@ export default async function AdminPage() {
     { data: orgs, error: orgErr },
     { data: members, error: memErr },
     { data: businesses, error: bizErr },
+    { data: numbers, error: numErr },
   ] = await Promise.all([
     admin
       .from("organizations")
@@ -39,13 +59,18 @@ export default async function AdminPage() {
     admin
       .from("businesses")
       .select("tenant_id, status, setup_states ( current_step, launched_at )"),
+    admin.from("phone_numbers").select("tenant_id, phone_number"),
   ]);
 
-  if (orgErr || memErr || bizErr) {
+  if (orgErr || memErr || bizErr || numErr) {
     throw new Error(
-      orgErr?.message ?? memErr?.message ?? bizErr?.message ?? "Admin query failed"
+      orgErr?.message ?? memErr?.message ?? bizErr?.message ?? numErr?.message ??
+        "Admin query failed"
     );
   }
+
+  const numberByOrg = new Map<string, string>();
+  for (const n of numbers ?? []) numberByOrg.set(n.tenant_id, n.phone_number);
 
   // Setup status per org: launched, in-progress (with bookmark), or
   // not started — incomplete setups are the ones to chase (Phase 3).
@@ -81,6 +106,13 @@ export default async function AdminPage() {
         Every organization on the platform. {rows.length} total.
       </p>
 
+      {error && <div className="mt-5"><FormBanner kind="error">{error}</FormBanner></div>}
+      {assigned && (
+        <div className="mt-5">
+          <FormBanner kind="success">Number assigned.</FormBanner>
+        </div>
+      )}
+
       <Card className="mt-6 bg-card/60">
         <CardHeader>
           <CardTitle className="font-display text-lg">Organizations</CardTitle>
@@ -102,6 +134,7 @@ export default async function AdminPage() {
                     <th className="pb-2 pr-4">Plan</th>
                     <th className="pb-2 pr-4">Status</th>
                     <th className="pb-2 pr-4">Setup</th>
+                    <th className="pb-2 pr-4">Phone</th>
                     <th className="pb-2 pr-4">Members</th>
                     <th className="pb-2">Created</th>
                   </tr>
@@ -131,6 +164,11 @@ export default async function AdminPage() {
                           <span className="text-xs text-steel">not started</span>
                         )}
                       </td>
+                      <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">
+                        {numberByOrg.has(org.id)
+                          ? formatUsPhone(numberByOrg.get(org.id) ?? null)
+                          : "—"}
+                      </td>
                       <td className="py-2.5 pr-4 font-mono text-muted-foreground">
                         {memberCounts.get(org.id) ?? 0}
                       </td>
@@ -143,6 +181,52 @@ export default async function AdminPage() {
               </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 bg-card/60">
+        <CardHeader>
+          <CardTitle className="font-display text-lg">
+            Assign a phone number
+          </CardTitle>
+          <CardDescription>
+            Attaches a platform-owned Twilio number to a tenant — its calls
+            route to that tenant&rsquo;s greeting and call log. Make sure the
+            number&rsquo;s voice webhook points at this app (run{" "}
+            <code className="font-mono text-xs text-cyan">
+              node scripts/twilio-setup.mjs
+            </code>
+            ).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={assignPhoneNumber} className="flex flex-wrap items-end gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="assign-tenant">Tenant</Label>
+              <Select id="assign-tenant" name="tenant_id" className="w-64" required>
+                {rows.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assign-number">Number</Label>
+              <Input
+                id="assign-number"
+                name="phone_number"
+                type="tel"
+                defaultValue={env.TWILIO_PHONE_NUMBER ?? ""}
+                placeholder="+14406442423"
+                className="w-48"
+                required
+              />
+            </div>
+            <Button type="submit" variant="outline">
+              Assign
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
