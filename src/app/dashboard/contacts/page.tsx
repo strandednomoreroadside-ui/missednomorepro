@@ -184,7 +184,8 @@ export default async function ContactsPage({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={createContact} className="grid gap-4 sm:grid-cols-2">
+          {/* Customer data, not the signed-in user's — keep autofill out */}
+          <form action={createContact} autoComplete="off" className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="new-name">Name *</Label>
               <Input id="new-name" name="name" required maxLength={160} />

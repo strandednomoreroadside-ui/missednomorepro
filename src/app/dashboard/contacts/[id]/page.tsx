@@ -154,7 +154,8 @@ export default async function ContactDetailPage({
               <CardTitle className="font-display text-base">Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <form action={updateContact} className="space-y-4">
+              {/* Customer data, not the signed-in user's — keep autofill out */}
+              <form action={updateContact} autoComplete="off" className="space-y-4">
                 <input type="hidden" name="id" value={c.id} />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">

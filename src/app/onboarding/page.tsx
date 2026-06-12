@@ -55,6 +55,7 @@ export default async function OnboardingPage({
                   type="text"
                   maxLength={120}
                   placeholder={`e.g. "Summit Towing & Roadside"`}
+                  autoComplete="organization"
                   required
                 />
               </div>

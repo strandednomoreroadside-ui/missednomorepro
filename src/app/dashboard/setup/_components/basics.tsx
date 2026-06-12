@@ -17,7 +17,14 @@ export function ProfileStep({ data }: { data: SetupData }) {
         <form action={saveProfile} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="name">Business name *</Label>
-            <Input id="name" name="name" defaultValue={b.name} required maxLength={120} />
+            <Input
+              id="name"
+              name="name"
+              defaultValue={b.name}
+              required
+              maxLength={120}
+              autoComplete="organization"
+            />
             <p className="text-xs text-steel">
               Exactly how the AI should say it when answering calls.
             </p>
