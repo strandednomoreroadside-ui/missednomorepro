@@ -18,11 +18,9 @@ import { signOut } from "@/app/(auth)/actions";
 import { switchOrganization } from "./actions";
 
 const UPCOMING = [
-  { label: "Setup wizard", icon: Wand2, milestone: "M4" },
-  { label: "Contacts", icon: Users, milestone: "M5" },
+  { label: "Settings", icon: Settings, milestone: "M6" },
   { label: "Calls", icon: PhoneCall, milestone: "M7" },
   { label: "Jobs", icon: CalendarCheck, milestone: "M9" },
-  { label: "Settings", icon: Settings, milestone: "M4" },
 ];
 
 export default async function DashboardLayout({
@@ -47,6 +45,20 @@ export default async function DashboardLayout({
           >
             <LayoutDashboard className="size-4 text-cyan" aria-hidden />
             Dashboard
+          </Link>
+          <Link
+            href="/dashboard/setup"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Wand2 className="size-4" aria-hidden />
+            Setup wizard
+          </Link>
+          <Link
+            href="/dashboard/contacts"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Users className="size-4" aria-hidden />
+            Contacts
           </Link>
           <Link
             href="/dashboard/billing"

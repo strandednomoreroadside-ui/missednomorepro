@@ -116,6 +116,130 @@ try {
     "Signed-out visitor sees zero organizations",
     (anonOrgs ?? []).length === 0 || !!anonErr
   );
+
+  // ── M4: setup wizard tables + launch gate ─────────────────────
+
+  // A creates a business with one service and one FAQ.
+  const { data: aBiz, error: aBizErr } = await a.client
+    .from("businesses")
+    .insert({ tenant_id: a.orgId, organization_id: a.orgId, name: "Leak Test Biz A" })
+    .select("id")
+    .single();
+  if (aBizErr) throw new Error(`A create business: ${aBizErr.message}`);
+  await a.client.from("services").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    name: "Secret Service",
+  });
+  await a.client.from("faqs").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    question: "Secret question?",
+    answer: "Secret answer.",
+  });
+
+  // 7. B sees none of A's wizard data.
+  const { data: bSvcs } = await b.client.from("services").select("id, tenant_id");
+  const { data: bFaqs } = await b.client.from("faqs").select("id, tenant_id");
+  const { data: bSetup } = await b.client.from("setup_states").select("id, tenant_id");
+  const wizardLeak = [...(bSvcs ?? []), ...(bFaqs ?? []), ...(bSetup ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's services/FAQs/setup state", wizardLeak.length === 0);
+
+  // 8. B cannot plant data inside A's tenant.
+  const { error: plantErr } = await b.client.from("services").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    name: "HACKED SERVICE",
+  });
+  assert("B cannot insert a service into A's tenant", !!plantErr);
+
+  // 9. Launch gate: even the OWNER cannot go live with incomplete setup.
+  const { data: liveTry, error: liveErr } = await a.client
+    .from("businesses")
+    .update({ status: "live" })
+    .eq("id", aBiz.id)
+    .select();
+  assert(
+    "Owner cannot set status='live' while setup is incomplete",
+    !!liveErr || (liveTry ?? []).length === 0,
+    liveErr?.message?.slice(0, 60)
+  );
+  const { error: rpcLaunchErr } = await a.client.rpc("launch_business", {
+    biz: aBiz.id,
+  });
+  assert("launch_business RPC refuses incomplete setup", !!rpcLaunchErr);
+
+  // 10. Approval stamps cannot be forged with a direct table write.
+  const { data: forge, error: forgeErr } = await a.client
+    .from("setup_states")
+    .update({ pricing_approved_at: new Date().toISOString() })
+    .eq("business_id", aBiz.id)
+    .select();
+  assert(
+    "Approval stamps cannot be written directly",
+    !!forgeErr || (forge ?? []).length === 0
+  );
+
+  // 11. B cannot approve or launch A's business via the RPCs.
+  const { error: crossApproveErr } = await b.client.rpc("approve_setup_section", {
+    biz: aBiz.id,
+    section: "pricing",
+  });
+  assert("B cannot approve A's setup sections", !!crossApproveErr);
+  const { error: crossLaunchErr } = await b.client.rpc("launch_business", {
+    biz: aBiz.id,
+  });
+  assert("B cannot launch A's business", !!crossLaunchErr);
+
+  // ── M5: CRM tables ────────────────────────────────────────────
+
+  // A creates a contact with a note (note also lands on the timeline).
+  const { data: aContact, error: aContactErr } = await a.client
+    .from("contacts")
+    .insert({ tenant_id: a.orgId, name: "Secret Customer", phone: "+15555550100" })
+    .select("id")
+    .single();
+  if (aContactErr) throw new Error(`A create contact: ${aContactErr.message}`);
+  await a.client.from("customer_notes").insert({
+    tenant_id: a.orgId,
+    contact_id: aContact.id,
+    note: "Secret note about the secret customer.",
+  });
+
+  // 12. B sees none of A's CRM data — including a phone-number search.
+  const { data: bContacts } = await b.client
+    .from("contacts")
+    .select("id, tenant_id")
+    .eq("phone", "+15555550100");
+  const { data: bNotes } = await b.client.from("customer_notes").select("tenant_id");
+  const { data: bEvents } = await b.client
+    .from("customer_timeline_events")
+    .select("tenant_id");
+  const crmLeak = [...(bContacts ?? []), ...(bNotes ?? []), ...(bEvents ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's contacts/notes/timeline", crmLeak.length === 0);
+
+  // 13. B cannot modify A's contact.
+  const { data: bEdit } = await b.client
+    .from("contacts")
+    .update({ name: "HACKED" })
+    .eq("id", aContact.id)
+    .select();
+  assert("B cannot update A's contact", (bEdit ?? []).length === 0);
+
+  // 14. The timeline is history — even members can't write it directly.
+  const { error: directTimelineErr } = await a.client
+    .from("customer_timeline_events")
+    .insert({
+      tenant_id: a.orgId,
+      contact_id: aContact.id,
+      event_type: "call",
+      summary: "Forged call record",
+    });
+  assert("Timeline events cannot be written directly", !!directTimelineErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {
