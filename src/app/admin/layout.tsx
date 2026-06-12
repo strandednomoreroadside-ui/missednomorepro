@@ -25,13 +25,27 @@ export default async function AdminLayout({
             Platform admin
           </span>
         </div>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          Back to dashboard
-        </Link>
+        <nav className="flex items-center gap-4 text-sm">
+          <Link
+            href="/admin"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Tenants
+          </Link>
+          <Link
+            href="/admin/billing-setup"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Billing setup
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            Dashboard
+          </Link>
+        </nav>
       </header>
       <main className="mx-auto max-w-5xl p-6 lg:p-8">{children}</main>
     </div>

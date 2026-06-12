@@ -103,9 +103,16 @@ export async function openBillingPortal() {
   try {
     const stripe = getStripe();
     const origin = await getOrigin();
+    // Configs created via the API (admin billing-setup) aren't Stripe's
+    // dashboard default, so pass one explicitly when it exists.
+    const configs = await stripe.billingPortal.configurations.list({
+      active: true,
+      limit: 1,
+    });
     const session = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
       return_url: `${origin}/dashboard/billing`,
+      configuration: configs.data[0]?.id,
     });
     portalUrl = session.url;
 
@@ -117,7 +124,7 @@ export async function openBillingPortal() {
   } catch (err) {
     console.error("[billing] portal failed:", err);
     billingError(
-      "Could not open the billing portal. (First time? Enable the Customer Portal once in Stripe: Settings → Billing → Customer portal → Save.)"
+      "Could not open the billing portal. (First time? Run Stripe setup on the admin Billing setup page.)"
     );
   }
 

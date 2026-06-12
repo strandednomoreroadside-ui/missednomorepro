@@ -202,6 +202,8 @@ Nothing to set up — Supabase is ready from M0. Your job is testing at the end.
 **Goal:** businesses can subscribe to your 5 plans (Answer $99 / Book $199 / Revenue $349 / Scale $599 / Agency $899), manage billing themselves, and features unlock by plan. All in test mode.
 *(Master plan: Phase 2, Tickets 8–13, §6.1, §7.)*
 
+> **✔ Status update (June 2026):** code is built, including a phone-friendly path — no PC needed. Two steps from your phone's browser: **(1)** paste `supabase/migrations/20260612090000_billing.sql` into the Supabase SQL editor (same clipboard flow as M2 — open the file on github.com → Raw → select all → copy), **(2)** open `missednomorepro.com/admin/billing-setup` (signed in as the admin email) → tap **Run Stripe setup** → copy the webhook signing secret it shows into Vercel (Settings → Environment Variables → `STRIPE_WEBHOOK_SECRET`) → Redeploy. The status checks on that page tell you exactly what's done and what's left. `scripts/stripe-setup.mjs` does the same job from a PC if you ever prefer it.
+
 ### 🧑 You do
 
 Nothing up front. Testing at the end uses Stripe's magic fake card: **4242 4242 4242 4242**, any future expiry, any CVC.

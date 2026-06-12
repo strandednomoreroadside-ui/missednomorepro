@@ -10,6 +10,8 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Platform admin" };
+// Live service-role reads — never prerender at build time.
+export const dynamic = "force-dynamic";
 
 type OrgRow = {
   id: string;
