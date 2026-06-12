@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { env, reportEnvStatus } from "@/lib/env";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
         className={`${display.variable} ${sans.variable} ${mono.variable} min-h-dvh bg-background font-sans text-foreground`}
       >
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
