@@ -221,3 +221,20 @@ $$;
 revoke all on function public.create_organization(text) from public;
 revoke all on function public.create_organization(text) from anon;
 grant execute on function public.create_organization(text) to authenticated;
+grant execute on function public.create_organization(text) to service_role;
+
+-- ── Table-level grants ─────────────────────────────────────────
+-- RLS controls which ROWS are visible; these control whether the
+-- role may touch the table at all. Explicit > default privileges.
+
+grant usage on schema public to authenticated, service_role;
+
+grant select, insert, update, delete
+  on public.organizations, public.organization_members,
+     public.businesses, public.audit_logs
+  to service_role;
+
+grant select, update on public.organizations to authenticated;
+grant select on public.organization_members to authenticated;
+grant select, insert, update on public.businesses to authenticated;
+grant select on public.audit_logs to authenticated;

@@ -13,8 +13,10 @@ Multi-tenant SaaS: AI receptionist + field-service OS for local service business
 - ✅ M0 accounts: Vercel/Supabase/Stripe/Twilio/OpenAI all exist (user, June 2026). Remaining: domain (confirm), fill `.env.local`
 - ✅ A2P 10DLC: **already approved** on the Twilio brand — no SMS-registration wait; attach number to the approved campaign at M6
 - ✅ Voice engine: **decided — Retell (Path A)**, June 2026. Still build the §3.1 provider adapter so OpenAI Realtime direct stays swappable. `VOICE_PROVIDER=retell`, key in `RETELL_API_KEY`
-- ⬜ M1 (user): push to GitHub (remote exists), deploy to Vercel, connect domain, buy Twilio number
-- ⬜ M2 next: Supabase auth + orgs + RLS
+- ✅ M1 complete: deployed on Vercel (git auto-deploy connected), domain `missednomorepro.com` live, all env vars in Vercel, Twilio number owned (+14406442423), `.env.local` filled
+- ✅ M2 complete (June 2026): auth + orgs + RLS live in prod; migration applied via SQL-editor paste (table grants included — SQL editor didn't apply default privileges, explicit grants required); **leak test passed 8/8** (`scripts/leak-test.mjs` — rerun before beta)
+- 🔶 M3 in progress: Stripe billing (test mode), plan limits, feature gates
+- ℹ️ DB migrations: applied by pasting the migration file into the Supabase SQL editor (clipboard flow). Supabase CLI not authenticated; `SUPABASE_DB_PASSWORD` in .env.local still empty
 
 ## Hard rules (from master plan §5.1, §9, §10 — never violate)
 
