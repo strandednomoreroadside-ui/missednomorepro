@@ -1,6 +1,8 @@
 // Creates the §6.1 plans as Stripe TEST-mode products/prices and the
 // production webhook endpoint. Idempotent — safe to run again.
 // Run: node scripts/stripe-setup.mjs
+// No PC handy? /admin/billing-setup on the deployed site does the same
+// (plus the Customer Portal config) from any browser.
 import { readFileSync, writeFileSync } from "node:fs";
 import Stripe from "stripe";
 

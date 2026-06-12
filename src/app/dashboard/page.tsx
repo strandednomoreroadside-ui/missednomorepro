@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check, CircleDashed, Rocket, Wand2 } from "lucide-react";
+import { unstable_rethrow } from "next/navigation";
+import { Check, CircleDashed, Lock, Rocket, Wand2 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -11,6 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { requireActiveOrg } from "@/lib/auth";
+import { PLAN_META } from "@/lib/billing/plans";
+import {
+  effectivePlan,
+  getPlanLimits,
+  getSubscription,
+  hasFeature,
+  type PlanLimits,
+} from "@/lib/billing/subscription";
 import { STEP_META, isStepId } from "@/lib/setup/steps";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,6 +29,15 @@ const STATS = [
   { label: "Calls answered", value: "0", hint: "arrives at M7 — AI receptionist" },
   { label: "Jobs booked", value: "0", hint: "arrives at M9 — booking" },
   { label: "Revenue recovered", value: "$0", hint: "arrives at M7+" },
+];
+
+/** Plan-gated modules (master plan §6.1/§7) and the plan that unlocks each. */
+const GATED_FEATURES: { flag: string; label: string; unlockedBy: string }[] = [
+  { flag: "booking", label: "Calendar booking", unlockedBy: "Book" },
+  { flag: "quotes", label: "Quotes & estimates", unlockedBy: "Revenue" },
+  { flag: "jobs", label: "Job tracking", unlockedBy: "Revenue" },
+  { flag: "multi_location", label: "Multi-location", unlockedBy: "Scale" },
+  { flag: "api_access", label: "API access", unlockedBy: "Scale" },
 ];
 
 const PROGRESS: { label: string; done: boolean }[] = [
@@ -58,6 +76,20 @@ export default async function DashboardPage() {
     setupState?.current_step && isStepId(setupState.current_step)
       ? STEP_META[setupState.current_step].title
       : null;
+
+  // Billing data is absent until the M3 migration runs — degrade to
+  // "no plan" rather than taking the dashboard down.
+  let planName: string | null = null;
+  let limits: PlanLimits | null = null;
+  try {
+    const sub = await getSubscription(active.organization_id);
+    const plan = effectivePlan(sub);
+    limits = await getPlanLimits(plan);
+    planName = plan === "none" ? null : PLAN_META[plan].name;
+  } catch (err) {
+    unstable_rethrow(err); // never swallow Next.js control-flow errors
+    console.error("[dashboard] billing lookup failed:", err);
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -147,6 +179,59 @@ export default async function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="mt-8 bg-card/60">
+        <CardHeader>
+          <CardTitle className="font-display text-lg">Plan features</CardTitle>
+          <CardDescription>
+            {planName ? (
+              <>
+                You&rsquo;re on the <span className="text-cyan">{planName}</span>{" "}
+                plan. Locked features unlock on higher plans.
+              </>
+            ) : (
+              <>
+                No plan yet — everything below is locked until you{" "}
+                <Link href="/dashboard/billing" className="text-cyan underline-offset-2 hover:underline">
+                  choose a plan
+                </Link>
+                .
+              </>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="grid gap-2.5 sm:grid-cols-2">
+            {GATED_FEATURES.map((feature) => {
+              const unlocked = limits ? hasFeature(limits, feature.flag) : false;
+              return (
+                <li key={feature.flag} className="flex items-center gap-2.5 text-sm">
+                  {unlocked ? (
+                    <span className="inline-flex size-5 items-center justify-center rounded-full border border-success/40 bg-success/10">
+                      <Check className="size-3 text-success" strokeWidth={3} aria-hidden />
+                    </span>
+                  ) : (
+                    <span className="inline-flex size-5 items-center justify-center rounded-full border border-border/70 bg-night/40">
+                      <Lock className="size-3 text-steel/70" aria-hidden />
+                    </span>
+                  )}
+                  <span className={unlocked ? "text-foreground" : "text-muted-foreground"}>
+                    {feature.label}
+                  </span>
+                  {!unlocked && (
+                    <Link
+                      href="/dashboard/billing"
+                      className="ml-auto rounded-full border border-cyan/30 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/10"
+                    >
+                      {feature.unlockedBy}+
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      </Card>
 
       <Card className="mt-8 bg-card/60">
         <CardHeader>

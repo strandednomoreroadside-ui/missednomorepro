@@ -17,6 +17,7 @@ import {
   getPlanLimits,
   getSubscription,
 } from "@/lib/billing/subscription";
+import { getUsageSummary, type UsageStatus } from "@/lib/billing/usage";
 
 import { openBillingPortal, startCheckout } from "./actions";
 
@@ -37,6 +38,14 @@ export default async function BillingPage({
   const plan = effectivePlan(sub);
   const limits = await getPlanLimits(plan);
   const currentMeta = plan !== "none" ? PLAN_META[plan] : null;
+  const usage: UsageStatus[] =
+    plan !== "none"
+      ? await getUsageSummary(active.organization_id, { sub, limits })
+      : [];
+  const usageLabel: Record<UsageStatus["kind"], string> = {
+    voice_minutes: "AI minutes",
+    sms: "texts",
+  };
 
   const error = typeof sp.error === "string" ? sp.error : undefined;
   const success = sp.success === "1";
@@ -108,6 +117,21 @@ export default async function BillingPage({
                   renews {new Date(sub.current_period_end).toLocaleDateString()}
                 </span>
               )}
+            </div>
+          )}
+          {usage.length > 0 && (
+            <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-border/60 pt-3 text-sm text-muted-foreground">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-steel">
+                Used this period
+              </span>
+              {usage.map((u) => (
+                <span key={u.kind}>
+                  <span className="font-mono text-cyan">
+                    {u.used.toLocaleString()}
+                  </span>{" "}
+                  / {u.limit.toLocaleString()} {usageLabel[u.kind]}
+                </span>
+              ))}
             </div>
           )}
           {canManage && sub?.stripe_customer_id && (
