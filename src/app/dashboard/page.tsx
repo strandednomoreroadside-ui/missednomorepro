@@ -41,7 +41,7 @@ const GATED_FEATURES: { flag: string; label: string; unlockedBy: string }[] = [
 const PROGRESS: { label: string; done: boolean }[] = [
   { label: "M1 — Branded site live", done: true },
   { label: "M2 — Accounts & secure workspaces", done: true },
-  { label: "M3 — Billing & plans", done: false },
+  { label: "M3 — Billing & plans", done: true },
   { label: "M4 — Setup wizard", done: false },
   { label: "M5 — CRM", done: false },
   { label: "M6/M7 — Phone + AI receptionist", done: false },
