@@ -84,6 +84,28 @@ export async function POST(request: Request) {
     try {
       const synced = await ensureAgentSynced(admin, business);
       if (synced && !synced.disabled) {
+        // Returning-caller opening: greet by name + reference their last need,
+        // so recognition happens in the AI's very first sentence.
+        let lastNeed = "";
+        if (contact) {
+          const { data: lead } = await admin
+            .from("leads")
+            .select("service_needed")
+            .eq("tenant_id", business.tenant_id)
+            .eq("contact_id", contact.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          lastNeed = lead?.service_needed ?? "";
+        }
+        const firstName = (contact?.name ?? "").trim().split(" ")[0] ?? "";
+        const openingLine = contact
+          ? `Welcome back${firstName ? ", " + firstName : ""}! Thanks for calling ${businessName}.` +
+            (lastNeed
+              ? ` Are you calling about your ${lastNeed.slice(0, 80)}, or is it something new today?`
+              : " How can I help you today?")
+          : `Thanks for calling ${businessName}. You've reached our virtual assistant — how can I help you today?`;
+
         const reg = await getVoiceProvider().registerInboundCall({
           agent: synced.ref,
           tenantId: business.tenant_id,
@@ -97,6 +119,8 @@ export async function POST(request: Request) {
             caller_phone: from,
             caller_name: contact?.name ?? "",
             is_returning: contact ? "true" : "false",
+            last_need: lastNeed,
+            opening_line: openingLine,
           },
         });
 

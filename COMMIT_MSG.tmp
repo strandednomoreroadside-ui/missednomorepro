@@ -1,0 +1,18 @@
+Recognize returning callers in the opening line (M7 test #2)
+
+The AI's greeting was static, so a call-back customer heard a generic
+"how can I help you" instead of being recognized. We already matched the
+caller to their CRM contact at call setup but didn't use it until a later
+lookup_contact.
+
+- prompt.ts: begin_message is now {{opening_line}} (injected per call)
+- /api/twilio/voice: builds a returning-caller opening that greets by name
+  and references their last need ("Welcome back, Josh! ...about your dead
+  battery on I-71, or something new?"); passes last_need + opening_line as
+  dynamic variables
+- prompt.ts: returning callers are not asked their name again; the AI calls
+  lookup_contact to pull history
+
+Re-syncs the Retell agent automatically on the next call (prompt hash changed).
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

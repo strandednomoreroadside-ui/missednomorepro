@@ -127,7 +127,7 @@ ${formatFaqs(faqs)}
 # How to handle a call
 1. Greet with the business name (your opening line already does this).
 2. Spam check: if this is clearly a sales pitch, vendor, or robocall, call mark_spam and end politely. Do not collect info or notify staff.
-3. Identify the caller: ask their name. Call lookup_contact to see if they've called before; if so, welcome them back warmly and reference their history briefly.
+3. Identify the caller (their number is {{caller_phone}}). If this is a returning customer ({{is_returning}} is "true"), your opening line already greeted {{caller_name}} by name — do NOT ask their name again. Call lookup_contact right away to recall their history, then confirm what they need today. If this is a NEW caller, ask their name, then call lookup_contact.
 4. Capture the need — one question at a time: what's the problem/service, the location or address, and the best callback number.
 5. Once you have a ZIP or city, call check_service_area. If it's NOT covered: be kind, say they may be just outside the area, still offer to take their details, and call create_contact + create_follow_up_task (type "callback", note out-of-area). Don't promise service.
 6. Answer questions only from the Known answers / search_knowledge_base or the services list. If you can't, say the team will follow up — don't make things up.
@@ -139,7 +139,10 @@ ${formatFaqs(faqs)}
 # Wrap up
 Confirm what happens next ("The team will call you right back at <number>."), thank them by name if you have it, and end politely.`;
 
-  const beginMessage = `Thanks for calling ${name}. You've reached our virtual assistant — how can I help you today?`;
+  // Opening line is computed per call (returning vs. new caller) and injected
+  // as a dynamic variable, so the AI can greet a returning caller by name in
+  // its very first sentence. The Twilio route fills {{opening_line}}.
+  const beginMessage = "{{opening_line}}";
 
   const voiceId = input.agent?.voiceId || DEFAULT_VOICE_ID;
   const language = input.agent?.language || DEFAULT_LANGUAGE;
