@@ -50,7 +50,6 @@ async function loadCall(
 /** Disposition from the AI's actions when a tool didn't already set one. */
 function deriveDisposition(
   toolCalls: { tool_name: string; result: Record<string, unknown> | null }[],
-  hasContact: boolean,
   durationSeconds: number | null
 ): string {
   const names = toolCalls.map((t) => t.tool_name);
@@ -62,7 +61,10 @@ function deriveDisposition(
   const anyCovered = areaChecks.some((a) => a.result?.covered === true);
   const anyNotCovered = areaChecks.some((a) => a.result?.covered === false);
   if (anyNotCovered && !anyCovered) return "out_of_area";
-  if (names.includes("notify_staff") || names.includes("create_contact") || hasContact) {
+  // "lead" requires actual lead activity on THIS call — not merely that we
+  // recognized a returning caller (contact_id is linked at call setup, so a
+  // wrong number from a known caller must not count as a lead).
+  if (names.includes("notify_staff") || names.includes("create_contact")) {
     return "lead";
   }
   if ((durationSeconds ?? 0) < 15) return "abandoned";
@@ -158,7 +160,6 @@ export async function applyCallAnalysis(
     call.disposition ??
     deriveDisposition(
       (toolCalls as { tool_name: string; result: Record<string, unknown> | null }[]) ?? [],
-      Boolean(call.contact_id),
       durationSeconds
     );
 
