@@ -212,6 +212,23 @@ const createContact = defineTool(
 
     await linkCallToContact(ctx, contactId);
 
+    // Keep the STOP suppression list in sync with an explicit voice opt-out/
+    // opt-in, so even transactional sends (the missed-call text-back) honor it.
+    if (args.sms_consent === false) {
+      await ctx.admin
+        .from("sms_suppressions")
+        .upsert(
+          { tenant_id: ctx.tenantId, phone, reason: "manual" },
+          { onConflict: "tenant_id,phone", ignoreDuplicates: true }
+        );
+    } else if (args.sms_consent === true) {
+      await ctx.admin
+        .from("sms_suppressions")
+        .delete()
+        .eq("tenant_id", ctx.tenantId)
+        .eq("phone", phone);
+    }
+
     let leadId: string | null = null;
     if (args.need) {
       const { data: lead } = await ctx.admin
