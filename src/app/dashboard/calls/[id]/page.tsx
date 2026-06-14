@@ -101,7 +101,7 @@ function describeToolCall(tc: ToolCall): string {
         : "Checked service area — covered";
     case "notify_staff":
       return r.notified
-        ? `Alerted staff (${Number(r.calls_placed ?? 0)} call placed)`
+        ? `Texted staff (${Number(r.sent ?? 0)} sent)`
         : "Tried to alert staff — none configured";
     case "escalate_to_human":
       return "Escalated to a human";

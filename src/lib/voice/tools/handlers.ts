@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
-import { placeStaffVoiceCall } from "@/lib/twilio/calls";
+import { sendSms } from "@/lib/twilio/sms";
 
 import type { VoiceToolName } from "./registry";
 
@@ -167,7 +167,13 @@ const createContact = defineTool(
             consent_source: "voice_call",
             consent_timestamp: new Date().toISOString(),
           }
-        : {};
+        : args.sms_consent === false
+          ? {
+              consent_sms: false,
+              consent_source: "voice_call_optout",
+              consent_timestamp: new Date().toISOString(),
+            }
+          : {};
 
     const { data: existing } = await ctx.admin
       .from("contacts")
@@ -339,18 +345,18 @@ const notifyStaff = defineTool(
       return { status: "ok", data: { notified: false, reason: "no staff configured" } };
     }
 
-    const prefix = urgency === "emergency" ? "Urgent new lead" : "New lead";
-    const message =
-      `${prefix} for ${ctx.businessName}. ${args.summary}. ` +
-      `Call them back at ${formatUsPhone(callback)}.`;
+    const prefix = urgency === "emergency" ? "URGENT lead" : "New lead";
+    const body =
+      `${prefix} - ${ctx.businessName}. ${args.summary} ` +
+      `Call back: ${formatUsPhone(callback)}`;
 
-    let placed = 0;
+    let sent = 0;
     for (const s of staff) {
-      if (await placeStaffVoiceCall({ to: s.phone, message })) placed += 1;
+      if (await sendSms({ to: s.phone, body })) sent += 1;
     }
     return {
       status: "ok",
-      data: { notified: placed > 0, staff_count: staff.length, calls_placed: placed },
+      data: { notified: sent > 0, staff_count: staff.length, sent },
     };
   }
 );
@@ -382,12 +388,12 @@ const escalateToHuman = defineTool(
     await setDisposition(ctx, "escalated");
 
     const staff = await notifyOnLeadStaff(ctx);
-    const message =
-      `Urgent: a caller to ${ctx.businessName} needs a person. ${summary}. ` +
-      `Call them at ${formatUsPhone(ctx.fromNumber)}.`;
-    let placed = 0;
+    const body =
+      `URGENT - ${ctx.businessName}: a caller needs a person. ${summary} ` +
+      `Call: ${formatUsPhone(ctx.fromNumber)}`;
+    let sent = 0;
     for (const s of staff) {
-      if (await placeStaffVoiceCall({ to: s.phone, message })) placed += 1;
+      if (await sendSms({ to: s.phone, body })) sent += 1;
     }
 
     await logAudit({
@@ -400,7 +406,7 @@ const escalateToHuman = defineTool(
 
     return {
       status: "ok",
-      data: { escalated: true, task_id: task?.id ?? null, calls_placed: placed },
+      data: { escalated: true, task_id: task?.id ?? null, sent },
     };
   }
 );

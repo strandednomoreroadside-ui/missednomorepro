@@ -117,6 +117,8 @@ STRIPE_WEBHOOK_SECRET=
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
+# Optional: A2P Messaging Service SID (MG…) for staff-alert texts (M7+)
+TWILIO_MESSAGING_SERVICE_SID=
 
 # ── OpenAI (M0) ────────────────────────────────────────
 OPENAI_API_KEY=

@@ -27,6 +27,9 @@ const envSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
   TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
   TWILIO_PHONE_NUMBER: z.string().min(1).optional(),
+  // Optional A2P Messaging Service SID (MG…) — best deliverability for
+  // 10DLC. Used for staff alert texts (M7); falls back to the number.
+  TWILIO_MESSAGING_SERVICE_SID: z.string().min(1).optional(),
 
   // OpenAI (Milestone M7)
   OPENAI_API_KEY: z.string().min(1).optional(),

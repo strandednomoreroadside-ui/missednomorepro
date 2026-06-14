@@ -56,11 +56,15 @@ function deriveDisposition(
   const names = toolCalls.map((t) => t.tool_name);
   if (names.includes("mark_spam")) return "spam";
   if (names.includes("escalate_to_human")) return "escalated";
+  // Out of area: a service-area check failed and none succeeded — even if we
+  // took the caller's info, the call's outcome is "outside our area".
+  const areaChecks = toolCalls.filter((t) => t.tool_name === "check_service_area");
+  const anyCovered = areaChecks.some((a) => a.result?.covered === true);
+  const anyNotCovered = areaChecks.some((a) => a.result?.covered === false);
+  if (anyNotCovered && !anyCovered) return "out_of_area";
   if (names.includes("notify_staff") || names.includes("create_contact") || hasContact) {
     return "lead";
   }
-  const area = toolCalls.find((t) => t.tool_name === "check_service_area");
-  if (area && area.result && area.result.covered === false) return "out_of_area";
   if ((durationSeconds ?? 0) < 15) return "abandoned";
   return "no_action";
 }
