@@ -39,9 +39,9 @@ const envSchema = z.object({
   RETELL_API_KEY: z.string().min(1).optional(),
   VAPI_API_KEY: z.string().min(1).optional(),
 
-  // Google Calendar (Milestone M9)
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  // Google Calendar (Milestone M9) — base64-encoded OAuth credentials file
+  // (contains client_id, client_secret, auth_uri, token_uri, etc.)
+  GOOGLE_OAUTH_CREDENTIALS: z.string().min(1).optional(),
 
   // Email + monitoring (Milestone M10)
   RESEND_API_KEY: z.string().min(1).optional(),
@@ -104,7 +104,7 @@ const milestoneKeys: Record<string, (keyof Env)[]> = {
     "INTERNAL_API_SECRET",
     "TRANSCRIPT_ENCRYPTION_KEY",
   ],
-  "M9 (calendar)": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+  "M9 (calendar)": ["GOOGLE_OAUTH_CREDENTIALS"],
 };
 
 declare global {
