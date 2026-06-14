@@ -1,12 +1,26 @@
+import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { greetingTwiml, twimlResponse, unconfiguredTwiml } from "@/lib/twilio/twiml";
+import {
+  connectStreamTwiml,
+  greetingTwiml,
+  twimlResponse,
+  unconfiguredTwiml,
+} from "@/lib/twilio/twiml";
+import { getVoiceProvider } from "@/lib/voice";
+import { ensureAgentSynced, type AgentBusiness } from "@/lib/voice/agent-sync";
 
 import { forbidden, parseValidTwilioRequest } from "./shared";
 
 /**
- * Twilio inbound-voice webhook (master plan Ticket 29, BUILD_GUIDE M6).
- * Answers with the branded placeholder greeting + voicemail, and logs
- * the call. The AI takes over this route at M7.
+ * Twilio inbound-voice webhook. The entry point for every call (master
+ * plan Ticket 29, §8.2).
+ *
+ * M7: when the dialed number's business is LIVE and its AI is on, we
+ * register the call with the voice provider and bridge the caller to it
+ * (the AI receptionist answers). Otherwise — not live, AI disabled, or any
+ * setup error — we fall back to the M6 branded greeting + voicemail so a
+ * call is never dropped. Our webhook stays the entry point either way, so
+ * the provider stays swappable (§3.1).
  */
 export async function POST(request: Request) {
   const params = await parseValidTwilioRequest(request);
@@ -19,7 +33,7 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // Route the call: which tenant owns the dialed number?
+  // Which tenant owns the dialed number?
   const { data: number } = await admin
     .from("phone_numbers")
     .select("tenant_id, business_id, voice_enabled")
@@ -30,50 +44,101 @@ export async function POST(request: Request) {
     return twimlResponse(unconfiguredTwiml());
   }
 
-  // Greet with the business name (fall back to the org name).
-  let businessName: string | null = null;
+  // Resolve the business (the dialed number's, else the tenant's first).
+  let business: AgentBusiness | null = null;
   if (number.business_id) {
-    const { data: biz } = await admin
+    const { data } = await admin
       .from("businesses")
-      .select("name")
+      .select("id, tenant_id, name, industry, timezone, status")
       .eq("id", number.business_id)
       .maybeSingle();
-    businessName = biz?.name ?? null;
+    business = (data as AgentBusiness | null) ?? null;
   }
-  if (!businessName) {
-    const { data: biz } = await admin
+  if (!business) {
+    const { data } = await admin
       .from("businesses")
-      .select("name")
+      .select("id, tenant_id, name, industry, timezone, status")
       .eq("tenant_id", number.tenant_id)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    businessName = biz?.name ?? null;
+    business = (data as AgentBusiness | null) ?? null;
   }
-  if (!businessName) {
-    const { data: org } = await admin
-      .from("organizations")
-      .select("name")
-      .eq("id", number.tenant_id)
-      .maybeSingle();
-    businessName = org?.name ?? "our team";
-  }
+  const businessName = business?.name ?? "our team";
 
   // Known caller? (M5 keeps phone unique per tenant for exactly this.)
   const { data: contact } = await admin
     .from("contacts")
-    .select("id")
+    .select("id, name")
     .eq("tenant_id", number.tenant_id)
     .eq("phone", from)
     .maybeSingle();
 
-  // Log the call. Webhook retries are idempotent via the unique CallSid.
+  // ── AI path: live business + configured provider ──────────────
+  if (
+    business &&
+    business.status === "live" &&
+    env.RETELL_API_KEY &&
+    env.INTERNAL_API_SECRET
+  ) {
+    try {
+      const synced = await ensureAgentSynced(admin, business);
+      if (synced && !synced.disabled) {
+        const reg = await getVoiceProvider().registerInboundCall({
+          agent: synced.ref,
+          tenantId: business.tenant_id,
+          businessId: business.id,
+          fromNumber: from,
+          toNumber: to,
+          twilioCallSid: callSid,
+          metadata: { tenant_id: business.tenant_id, business_id: business.id },
+          dynamicVariables: {
+            business_name: businessName,
+            caller_phone: from,
+            caller_name: contact?.name ?? "",
+            is_returning: contact ? "true" : "false",
+          },
+        });
+
+        // Log the AI call (idempotent on the provider's call id).
+        await admin.from("calls").upsert(
+          {
+            tenant_id: business.tenant_id,
+            business_id: business.id,
+            agent_id: synced.agentId,
+            contact_id: contact?.id ?? null,
+            provider: "retell",
+            provider_call_id: reg.providerCallId,
+            twilio_call_sid: callSid,
+            direction: "inbound",
+            from_number: from,
+            to_number: to,
+            status: "in-progress",
+            ai_handled: true,
+          },
+          { onConflict: "provider_call_id", ignoreDuplicates: true }
+        );
+
+        if (reg.bridge.kind === "stream") {
+          return twimlResponse(connectStreamTwiml(reg.bridge.url));
+        }
+        console.warn(`[twilio] unsupported bridge kind "${reg.bridge.kind}" — greeting`);
+      }
+    } catch (err) {
+      // A provisioning/registration hiccup must never drop the call.
+      console.error("[twilio] AI path failed, falling back to greeting:", err);
+    }
+  }
+
+  // ── Fallback: M6 branded greeting + voicemail-to-log ──────────
   const { error: callErr } = await admin.from("calls").upsert(
     {
       tenant_id: number.tenant_id,
+      business_id: business?.id ?? null,
       contact_id: contact?.id ?? null,
       provider: "twilio",
       provider_call_id: callSid,
+      twilio_call_sid: callSid,
       direction: "inbound",
       from_number: from,
       to_number: to,
@@ -85,7 +150,7 @@ export async function POST(request: Request) {
 
   return twimlResponse(
     greetingTwiml({
-      businessName: businessName ?? "our team",
+      businessName,
       recordDonePath: "/api/twilio/voice/recording-done",
       recordingStatusPath: "/api/twilio/voice/recording",
     })

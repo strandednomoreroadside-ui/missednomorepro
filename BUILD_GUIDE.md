@@ -134,8 +134,10 @@ GOOGLE_CLIENT_SECRET=
 RESEND_API_KEY=
 SENTRY_DSN=
 
-# ── Internal (Claude generates this) ───────────────────
+# ── Internal (Claude generates these) ──────────────────
 INTERNAL_API_SECRET=
+# AES-256-GCM key (32 bytes, base64) — encrypts raw call transcripts (M7)
+TRANSCRIPT_ENCRYPTION_KEY=
 ```
 
 ### ✅ Done when

@@ -51,6 +51,8 @@ const envSchema = z.object({
 
   // Shared secret for internal service-to-service calls (e.g. voice tools)
   INTERNAL_API_SECRET: z.string().min(16).optional(),
+  // AES-256-GCM key (32 bytes, base64) for encrypting raw transcripts (§9, M7)
+  TRANSCRIPT_ENCRYPTION_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -94,7 +96,11 @@ const milestoneKeys: Record<string, (keyof Env)[]> = {
     "STRIPE_WEBHOOK_SECRET",
   ],
   "M6 (phone)": ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_PHONE_NUMBER"],
-  "M7 (AI voice)": ["OPENAI_API_KEY"],
+  "M7 (AI voice)": [
+    "RETELL_API_KEY",
+    "INTERNAL_API_SECRET",
+    "TRANSCRIPT_ENCRYPTION_KEY",
+  ],
   "M9 (calendar)": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
 };
 

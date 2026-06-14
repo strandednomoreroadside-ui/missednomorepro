@@ -46,6 +46,13 @@ export function voicemailThanksTwiml(): string {
   return `<Say ${VOICE}>Got it — thank you. The team will call you back shortly. Goodbye.</Say><Hangup/>`;
 }
 
+/** Bridge the caller's media to the voice provider (M7). Twilio streams
+ *  audio straight to the provider's websocket — our server isn't in the
+ *  audio path. <Connect> keeps the call alive for the whole conversation. */
+export function connectStreamTwiml(streamUrl: string): string {
+  return `<Connect><Stream url="${xmlEscape(streamUrl)}"/></Connect>`;
+}
+
 /** Response for an unrecognized number — never reveal tenant details. */
 export function unconfiguredTwiml(): string {
   return (

@@ -11,7 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
-"@vercel/analytics": "^2.0.1",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -19,6 +19,7 @@
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "retell-sdk": "^5.36.0",
     "server-only": "^0.0.1",
     "stripe": "^22.2.0",
     "tailwind-merge": "^3.3.0",

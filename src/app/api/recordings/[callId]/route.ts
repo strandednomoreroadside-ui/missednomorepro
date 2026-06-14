@@ -2,10 +2,11 @@ import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Voicemail playback proxy. Twilio recordings require account auth, so
- * the browser can't fetch them directly. This route checks the signed-in
- * user can see the call (RLS), then streams the audio with our creds —
- * the Twilio URL and credentials never reach the client.
+ * Recording playback proxy. The browser can't fetch a Twilio recording
+ * directly (it needs account auth) and shouldn't see the raw provider URL.
+ * This route checks the signed-in user can see the call (RLS), then streams
+ * the audio with our creds. Twilio voicemails (M6) need Basic auth; AI-call
+ * recordings (M7/Retell) are signed URLs we just pass through.
  */
 export async function GET(
   request: Request,
@@ -23,21 +24,25 @@ export async function GET(
 
   const { data: call } = await supabase
     .from("calls")
-    .select("recording_url")
+    .select("provider, recording_url")
     .eq("id", callId)
     .maybeSingle();
   if (!call?.recording_url) return new Response("Not found", { status: 404 });
 
-  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
-    return new Response("Twilio not configured", { status: 503 });
+  // Twilio recordings need our account auth; provider (Retell) recordings
+  // are signed URLs fetched as-is.
+  const isTwilio =
+    call.provider === "twilio" || call.recording_url.includes("twilio.com");
+  const headers: Record<string, string> = {};
+  if (isTwilio) {
+    if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
+      return new Response("Twilio not configured", { status: 503 });
+    }
+    headers.Authorization = `Basic ${Buffer.from(
+      `${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`
+    ).toString("base64")}`;
   }
-
-  const auth = Buffer.from(
-    `${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`
-  ).toString("base64");
-  const upstream = await fetch(call.recording_url, {
-    headers: { Authorization: `Basic ${auth}` },
-  });
+  const upstream = await fetch(call.recording_url, { headers });
   if (!upstream.ok || !upstream.body) {
     return new Response("Recording unavailable", { status: 502 });
   }
