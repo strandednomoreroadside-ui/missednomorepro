@@ -46,9 +46,16 @@ export function voicemailThanksTwiml(): string {
   return `<Say ${VOICE}>Got it — thank you. The team will call you back shortly. Goodbye.</Say><Hangup/>`;
 }
 
-/** Bridge the caller's media to the voice provider (M7). Twilio streams
- *  audio straight to the provider's websocket — our server isn't in the
- *  audio path. <Connect> keeps the call alive for the whole conversation. */
+/** Bridge the caller to the voice provider over SIP (M7). After the
+ *  provider registers the call, Twilio dials its SIP URI; the provider
+ *  matches the call by the id embedded in the URI and runs the AI. This
+ *  is Retell's "dial to SIP URI" custom-telephony method. */
+export function dialSipTwiml(sipUri: string): string {
+  return `<Dial><Sip>${xmlEscape(sipUri)}</Sip></Dial>`;
+}
+
+/** Media-stream bridge (kept for stream-based providers / Path B). Twilio
+ *  streams audio straight to the provider's websocket. */
 export function connectStreamTwiml(streamUrl: string): string {
   return `<Connect><Stream url="${xmlEscape(streamUrl)}"/></Connect>`;
 }

@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  connectStreamTwiml,
+  dialSipTwiml,
   greetingTwiml,
   twimlResponse,
   unconfiguredTwiml,
@@ -119,8 +119,8 @@ export async function POST(request: Request) {
           { onConflict: "provider_call_id", ignoreDuplicates: true }
         );
 
-        if (reg.bridge.kind === "stream") {
-          return twimlResponse(connectStreamTwiml(reg.bridge.url));
+        if (reg.bridge.kind === "sip") {
+          return twimlResponse(dialSipTwiml(reg.bridge.uri));
         }
         console.warn(`[twilio] unsupported bridge kind "${reg.bridge.kind}" — greeting`);
       }

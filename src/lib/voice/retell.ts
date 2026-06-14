@@ -33,10 +33,11 @@ import type {
 /** Retell LLM model. Balanced for instruction-following vs. call latency
  *  and cost; tune from the 10-call test if a hard rule ever slips. */
 const MODEL = "gpt-4.1";
-/** Retell's Twilio media-stream endpoint. call_id authenticates the
- *  socket (see PhoneCallResponse.call_id docs). Confirm here first if a
- *  bridged call connects but stays silent. */
-const AUDIO_WS_BASE = "wss://api.retellai.com/audio-websocket";
+/** Retell custom-telephony SIP host. After registerPhoneCall we dial the
+ *  caller to sip:{call_id}@<host> — Retell's "Method 2: Dial to SIP URI"
+ *  (docs.retellai.com/deploy/custom-telephony). Twilio must connect within
+ *  5 minutes of register or Retell ends it with registered_call_timeout. */
+const SIP_HOST = "sip.retellai.com";
 /** Tools that do slow work (place outbound calls) — let the agent speak a
  *  filler line so the caller isn't met with silence. */
 const SLOW_TOOLS = new Set(["notify_staff", "escalate_to_human"]);
@@ -164,7 +165,7 @@ export class RetellVoiceProvider implements VoiceProvider {
     });
     return {
       providerCallId: res.call_id,
-      bridge: { kind: "stream", url: `${AUDIO_WS_BASE}/${res.call_id}` },
+      bridge: { kind: "sip", uri: `sip:${res.call_id}@${SIP_HOST}` },
     };
   }
 
