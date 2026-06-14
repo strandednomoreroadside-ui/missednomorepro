@@ -2,25 +2,29 @@ import "server-only";
 
 import { env } from "@/lib/env";
 
+export interface TwilioSmsResult {
+  ok: boolean;
+  sid: string | null;
+  error: string | null;
+}
+
 /**
- * Send an SMS via Twilio. Prefers the A2P Messaging Service (best 10DLC
- * deliverability) when TWILIO_MESSAGING_SERVICE_SID is set, else sends
- * from the business number.
+ * Low-level Twilio SMS send. Prefers the A2P Messaging Service (best
+ * 10DLC deliverability) when TWILIO_MESSAGING_SERVICE_SID is set, else
+ * sends from the business number. Returns the MessageSid so the caller
+ * can correlate delivery-status callbacks.
  *
- * Scope: this is the STAFF-alert channel for M7 (notifying the business's
- * own people). The full CUSTOMER SMS system — per-contact consent, STOP/
- * HELP, suppression list, missed-call text-back, message log — is M8.
- *
- * Returns true on accepted, false on any failure — an alert must never
- * throw into the AI tool call.
+ * This is the raw transport — gating (consent/suppression) and logging
+ * live in src/lib/sms/outbound.ts. Never call this directly for customer
+ * messages; go through sendCustomerSms so the compliance gate runs.
  */
-export async function sendSms(opts: { to: string; body: string }): Promise<boolean> {
+export async function sendTwilioSms(opts: {
+  to: string;
+  body: string;
+}): Promise<TwilioSmsResult> {
   const sid = env.TWILIO_ACCOUNT_SID;
   const token = env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) {
-    console.error("[twilio] sms skipped — Twilio env not configured");
-    return false;
-  }
+  if (!sid || !token) return { ok: false, sid: null, error: "twilio_not_configured" };
 
   const params = new URLSearchParams({ To: opts.to, Body: opts.body });
   if (env.TWILIO_MESSAGING_SERVICE_SID) {
@@ -28,8 +32,7 @@ export async function sendSms(opts: { to: string; body: string }): Promise<boole
   } else if (env.TWILIO_PHONE_NUMBER) {
     params.set("From", env.TWILIO_PHONE_NUMBER);
   } else {
-    console.error("[twilio] sms skipped — no Messaging Service or From number");
-    return false;
+    return { ok: false, sid: null, error: "no_from_or_service" };
   }
 
   try {
@@ -44,14 +47,18 @@ export async function sendSms(opts: { to: string; body: string }): Promise<boole
         body: params,
       }
     );
+    const json = (await res.json().catch(() => ({}))) as {
+      sid?: string;
+      message?: string;
+    };
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      console.error(`[twilio] sms failed (${res.status}): ${text}`);
-      return false;
+      const error = json?.message ?? `http_${res.status}`;
+      console.error(`[twilio] sms failed (${res.status}): ${error}`);
+      return { ok: false, sid: null, error: String(error) };
     }
-    return true;
+    return { ok: true, sid: json?.sid ?? null, error: null };
   } catch (err) {
     console.error("[twilio] sms error:", err);
-    return false;
+    return { ok: false, sid: null, error: String(err) };
   }
 }

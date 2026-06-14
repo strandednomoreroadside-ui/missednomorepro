@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
-import { sendSms } from "@/lib/twilio/sms";
+import { sendCustomerSms, sendStaffSms } from "@/lib/sms/outbound";
 
 import type { VoiceToolName } from "./registry";
 
@@ -352,7 +352,13 @@ const notifyStaff = defineTool(
 
     let sent = 0;
     for (const s of staff) {
-      if (await sendSms({ to: s.phone, body })) sent += 1;
+      const r = await sendStaffSms(ctx.admin, {
+        tenantId: ctx.tenantId,
+        businessId: ctx.businessId,
+        toPhone: s.phone,
+        body,
+      });
+      if (r.sent) sent += 1;
     }
     return {
       status: "ok",
@@ -393,7 +399,13 @@ const escalateToHuman = defineTool(
       `Call: ${formatUsPhone(ctx.fromNumber)}`;
     let sent = 0;
     for (const s of staff) {
-      if (await sendSms({ to: s.phone, body })) sent += 1;
+      const r = await sendStaffSms(ctx.admin, {
+        tenantId: ctx.tenantId,
+        businessId: ctx.businessId,
+        toPhone: s.phone,
+        body,
+      });
+      if (r.sent) sent += 1;
     }
 
     await logAudit({
@@ -460,6 +472,40 @@ const createFollowUpTask = defineTool(
   }
 );
 
+const sendSmsTool = defineTool(
+  z.object({ message: z.string().min(1).max(600) }),
+  async (ctx, args) => {
+    const res = await sendCustomerSms(ctx.admin, {
+      tenantId: ctx.tenantId,
+      businessId: ctx.businessId,
+      contactId: ctx.contactId,
+      toPhone: ctx.fromNumber,
+      body: args.message,
+      kind: "reply",
+      requireConsent: true,
+    });
+    await logAudit({
+      tenantId: ctx.tenantId,
+      action: "voice.tool.send_sms",
+      entityType: "contact",
+      entityId: ctx.contactId ?? undefined,
+      metadata: { sent: res.sent, blocked: res.blocked, reason: res.reason ?? null },
+    });
+    if (res.blocked) {
+      const why =
+        res.reason === "suppressed"
+          ? "the caller has opted out of texts"
+          : "the caller hasn't agreed to texts";
+      return { status: "blocked", data: { sent: false }, error: why };
+    }
+    return {
+      status: res.sent ? "ok" : "error",
+      data: { sent: res.sent },
+      error: res.sent ? undefined : res.reason,
+    };
+  }
+);
+
 export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   lookup_contact: lookupContact,
   create_contact: createContact,
@@ -469,4 +515,5 @@ export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   escalate_to_human: escalateToHuman,
   mark_spam: markSpam,
   create_follow_up_task: createFollowUpTask,
+  send_sms: sendSmsTool,
 };

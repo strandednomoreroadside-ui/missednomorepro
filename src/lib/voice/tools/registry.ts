@@ -22,6 +22,7 @@ export const VOICE_TOOL_NAMES = [
   "escalate_to_human",
   "mark_spam",
   "create_follow_up_task",
+  "send_sms",
 ] as const;
 
 export type VoiceToolName = (typeof VOICE_TOOL_NAMES)[number];
@@ -167,6 +168,20 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         details: { type: "string", description: "Any specifics the team needs." },
       },
       required: ["type", "title"],
+    },
+  },
+  {
+    name: "send_sms",
+    description:
+      "Send a short text message to the CALLER — only when they've agreed to receive texts. Useful for a " +
+      "quick follow-up they asked for. This is hard-blocked if the caller hasn't consented or has opted " +
+      "out, so confirm they're OK with a text first.",
+    parameters: {
+      type: "object",
+      properties: {
+        message: { type: "string", description: "The text to send. Keep it short and clear." },
+      },
+      required: ["message"],
     },
   },
 ];

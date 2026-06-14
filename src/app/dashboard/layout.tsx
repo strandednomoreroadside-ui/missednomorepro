@@ -3,6 +3,7 @@ import {
   CalendarCheck,
   CreditCard,
   LayoutDashboard,
+  MessageSquare,
   PhoneCall,
   Settings,
   ShieldCheck,
@@ -62,6 +63,13 @@ export default async function DashboardLayout({
           >
             <PhoneCall className="size-4" aria-hidden />
             Calls
+          </Link>
+          <Link
+            href="/dashboard/messages"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <MessageSquare className="size-4" aria-hidden />
+            Messages
           </Link>
           <Link
             href="/dashboard/billing"

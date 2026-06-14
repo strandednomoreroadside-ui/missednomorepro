@@ -46,6 +46,11 @@ export function voicemailThanksTwiml(): string {
   return `<Say ${VOICE}>Got it — thank you. The team will call you back shortly. Goodbye.</Say><Hangup/>`;
 }
 
+/** A TwiML SMS reply (M8 inbound STOP/HELP/START). Wrap in twimlResponse. */
+export function messageTwiml(text: string): string {
+  return `<Message>${xmlEscape(text)}</Message>`;
+}
+
 /** Bridge the caller to the voice provider over SIP (M7). After the
  *  provider registers the call, Twilio dials its SIP URI; the provider
  *  matches the call by the id embedded in the URI and runs the AI. This
