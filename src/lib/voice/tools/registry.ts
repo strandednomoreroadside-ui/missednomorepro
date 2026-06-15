@@ -26,6 +26,7 @@ export const VOICE_TOOL_NAMES = [
   "send_sms",
   "check_calendar_availability",
   "book_appointment",
+  "calculate_quote",
 ] as const;
 
 export type VoiceToolName = (typeof VOICE_TOOL_NAMES)[number];
@@ -235,6 +236,34 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         notes: { type: "string", description: "Any extra details for the team." },
       },
       required: ["start", "title"],
+    },
+  },
+  {
+    name: "calculate_quote",
+    description:
+      "Get an EXACT price for a service. You must call this BEFORE saying any price, and read back ONLY the " +
+      "total it returns — never invent, estimate, round, or adjust a number yourself. Provide the service and " +
+      "the caller's location (for the distance-based dispatch fee). For a tow, also provide the drop-off " +
+      "location. If it returns ok=false, follow the 'say' guidance (e.g. ask for the drop-off, or that they're " +
+      "out of area).",
+    parameters: {
+      type: "object",
+      properties: {
+        service: {
+          type: "string",
+          description: "The service requested, e.g. 'Jump Start', 'Vehicle Lockout', 'Local Towing'.",
+        },
+        location: {
+          type: "string",
+          description:
+            "The caller's current location — a full street address, or nearest cross-street + city.",
+        },
+        destination: {
+          type: "string",
+          description: "Drop-off location (TOWS ONLY) — where the vehicle is being towed to.",
+        },
+      },
+      required: ["service", "location"],
     },
   },
 ];

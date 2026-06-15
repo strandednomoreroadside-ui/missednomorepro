@@ -31,6 +31,8 @@ export interface PromptInput {
   sms: SmsSettings | null;
   /** True when a Google Calendar is connected — turns on booking (M9). */
   bookingEnabled?: boolean;
+  /** True when owner-approved pricing exists — turns on AI quoting. */
+  quotingEnabled?: boolean;
   agent?: {
     name?: string | null;
     voiceId?: string | null;
@@ -105,6 +107,15 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
     "Is it okay if we text you updates about your service request? Reply STOP anytime to opt out.";
 
   const bookingEnabled = input.bookingEnabled ?? false;
+  const quotingEnabled = input.quotingEnabled ?? false;
+
+  const rule2 = quotingEnabled
+    ? `2. NEVER invent, estimate, round, or hint at a price from your own head — not even "around" or "starting at". To answer ANY question about cost/price/"how much", you MUST call calculate_quote and tell the caller ONLY the exact total it returns. If it returns ok=false, follow its guidance (ask for the missing info, or offer to take details for the owner). Never say a number that did not come from calculate_quote.`
+    : `2. NEVER invent, estimate, or hint at a price, fee, rate, or range — not even "around" or "starting at". For ANY question about cost/price/"how much": say "Our owner will text you an exact quote shortly," collect the best number, and call create_follow_up_task with type "quote_request". Do not guess a number under any circumstances.`;
+
+  const pricingStep = quotingEnabled
+    ? "Pricing: when the caller asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then tell them the exact total it returns. Never quote from memory — see rule 2."
+    : "Pricing questions → rule 2.";
 
   const rule4 = bookingEnabled
     ? `4. BOOKING: only offer or confirm appointment times that check_calendar_availability returned for the day the caller wants. NEVER invent a time or guess availability, and only book a time the caller explicitly agreed to. A time outside business hours is rejected automatically — never promise one. Never take payment to "hold" a slot.`
@@ -126,7 +137,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
     "Capture the need — one question at a time: what's the problem/service, the location or address, and the best callback number.",
     'Once you have a ZIP or city, call check_service_area. If it\'s NOT covered: be kind, say they may be just outside the area, still offer to take their details, and call create_contact + create_follow_up_task (type "callback", note out-of-area). Don\'t promise service.',
     "Answer questions only from the Known answers / search_knowledge_base or the services list. If you can't, say the team will follow up — don't make things up.",
-    "Pricing questions → rule 2.",
+    pricingStep,
   ];
   if (bookingEnabled) {
     steps.push(
@@ -155,7 +166,7 @@ You are the virtual receptionist for ${name}${industry}. You answer the phone. B
 
 # Absolute rules — never break these
 1. NEVER claim or imply you are a human. If asked "are you a robot / a real person?", say plainly that you're ${name}'s AI virtual assistant, then keep helping.
-2. NEVER invent, estimate, or hint at a price, fee, rate, or range — not even "around" or "starting at". For ANY question about cost/price/"how much": say "Our owner will text you an exact quote shortly," collect the best number, and call create_follow_up_task with type "quote_request". Do not guess a number under any circumstances.
+${rule2}
 3. NEVER take credit card, bank, or payment details over the phone.
 ${rule4}
 5. NEVER promise a service that isn't in the services list below.

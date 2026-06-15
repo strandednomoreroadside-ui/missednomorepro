@@ -43,6 +43,11 @@ const envSchema = z.object({
   // (contains client_id, client_secret, auth_uri, token_uri, etc.)
   GOOGLE_OAUTH_CREDENTIALS: z.string().min(1).optional(),
 
+  // Google Maps Platform (pricing engine) — API key for Geocoding +
+  // Distance Matrix, used to turn a caller's address into driving miles
+  // from the business's home base for zone/tow pricing.
+  GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
+
   // Email + monitoring (Milestone M10)
   RESEND_API_KEY: z.string().min(1).optional(),
   SENTRY_DSN: z.string().min(1).optional(),
@@ -105,6 +110,7 @@ const milestoneKeys: Record<string, (keyof Env)[]> = {
     "TRANSCRIPT_ENCRYPTION_KEY",
   ],
   "M9 (calendar)": ["GOOGLE_OAUTH_CREDENTIALS"],
+  "Pricing (maps)": ["GOOGLE_MAPS_API_KEY"],
 };
 
 declare global {

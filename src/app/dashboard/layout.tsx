@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   CalendarCheck,
   CreditCard,
+  DollarSign,
   LayoutDashboard,
   MessageSquare,
   PhoneCall,
@@ -75,6 +76,13 @@ export default async function DashboardLayout({
           >
             <CalendarCheck className="size-4" aria-hidden />
             Jobs
+          </Link>
+          <Link
+            href="/dashboard/pricing"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <DollarSign className="size-4" aria-hidden />
+            Pricing
           </Link>
           <Link
             href="/dashboard/billing"

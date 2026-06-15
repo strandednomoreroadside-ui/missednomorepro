@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { isQuotingEnabled } from "@/lib/pricing/loader";
+
 import { getVoiceProvider } from "./index";
 import { buildAgentConfig, type PromptInput } from "./prompt";
 import type { ProviderAgentRef } from "./types";
@@ -21,7 +23,7 @@ export async function loadPromptInput(
   admin: SupabaseClient,
   business: AgentBusiness
 ): Promise<PromptInput> {
-  const [services, hours, areas, faqs, sms, agent, conn] = await Promise.all([
+  const [services, hours, areas, faqs, sms, agent, conn, quoting] = await Promise.all([
     admin
       .from("services")
       .select("id, name, description, active")
@@ -60,6 +62,7 @@ export async function loadPromptInput(
       .eq("tenant_id", business.tenant_id)
       .eq("business_id", business.id)
       .maybeSingle(),
+    isQuotingEnabled(admin, business.tenant_id, business.id),
   ]);
 
   const language =
@@ -77,6 +80,7 @@ export async function loadPromptInput(
     faqs: (faqs.data ?? []) as PromptInput["faqs"],
     sms: (sms.data ?? null) as PromptInput["sms"],
     bookingEnabled: (conn.data as { status?: string } | null)?.status === "connected",
+    quotingEnabled: quoting === true,
     agent: {
       name: agent.data?.name ?? null,
       voiceId: agent.data?.voice_id ?? null,

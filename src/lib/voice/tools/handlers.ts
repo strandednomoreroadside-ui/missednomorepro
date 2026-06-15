@@ -14,6 +14,7 @@ import {
 import {
   addDays,
   formatSlotLabel,
+  getZonedParts,
   parseDateString,
   parseTimeString,
   todayInZone,
@@ -21,7 +22,10 @@ import {
 } from "@/lib/calendar/timezone";
 import { freeBusy, insertEvent } from "@/lib/google/calendar";
 import { getConnection, getValidAccessToken, isConnected } from "@/lib/google/connection";
+import { drivingDistanceMiles } from "@/lib/maps/client";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
+import { calculateQuote, type QuoteResult, type ServicePrice } from "@/lib/pricing/engine";
+import { bundleQuotingEnabled, loadPricing } from "@/lib/pricing/loader";
 import { sendCustomerSms, sendStaffSms } from "@/lib/sms/outbound";
 
 import type { VoiceToolName } from "./registry";
@@ -917,6 +921,177 @@ const bookAppointment = defineTool(
   }
 );
 
+// ── calculate_quote (deterministic pricing) ────────────────────
+
+function matchService(services: ServicePrice[], name: string): ServicePrice | null {
+  const n = name.trim().toLowerCase();
+  const exact = services.find((s) => s.name.toLowerCase() === n);
+  if (exact) return exact;
+  return (
+    services.find(
+      (s) => s.name.toLowerCase().includes(n) || n.includes(s.name.toLowerCase())
+    ) ?? null
+  );
+}
+
+/** "$75", "$112.50" — drop the cents when whole. */
+function dollars(n: number): string {
+  return `$${n % 1 === 0 ? n.toFixed(0) : n.toFixed(2)}`;
+}
+
+/** "09:00:00" -> "9 AM" (spoken availability windows). */
+function clock(t: string): string {
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  if (!m) return t;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return min === 0 ? `${h12} ${period}` : `${h12}:${String(min).padStart(2, "0")} ${period}`;
+}
+
+function formatQuote(r: QuoteResult): Record<string, unknown> {
+  if (!r.ok) {
+    if (r.reason === "out_of_area") {
+      return {
+        ok: false,
+        reason: r.reason,
+        miles: r.miles,
+        say: `That spot is about ${Math.round(r.miles)} miles from us, past our service area — I can't price it, but I can take your details for the owner to follow up.`,
+      };
+    }
+    if (r.reason === "service_unavailable" && r.availabilityWindow) {
+      return {
+        ok: false,
+        reason: r.reason,
+        window: r.availabilityWindow,
+        say: `${r.service} is only available between ${clock(r.availabilityWindow.start)} and ${clock(r.availabilityWindow.end)}.`,
+      };
+    }
+    if (r.reason === "need_destination") {
+      return {
+        ok: false,
+        reason: r.reason,
+        say: "Where are we towing the vehicle to? I need the drop-off location to price the tow.",
+      };
+    }
+    return {
+      ok: false,
+      reason: r.reason ?? "unavailable",
+      say: "I can't price that one right now — let me take your details and the owner will text you an exact quote.",
+    };
+  }
+
+  let say =
+    `Your total comes to ${dollars(r.total)} — ` +
+    r.lines.map((l) => `${dollars(l.amount)} for ${l.label.toLowerCase()}`).join(", ") +
+    ".";
+  if (r.variablePart) {
+    say += ` Plus the cost of the ${r.variablePart}, which we confirm before dispatch.`;
+  }
+  if (r.possibleSurcharges.length) {
+    const names = r.possibleSurcharges.map((s) => s.name.toLowerCase()).join(", ");
+    say += ` Depending on conditions there may be a small extra charge for ${names}.`;
+  }
+  return {
+    ok: true,
+    service: r.service,
+    total: r.total,
+    currency: r.currency,
+    breakdown: r.lines,
+    variable_part: r.variablePart ?? null,
+    possible_surcharges: r.possibleSurcharges,
+    miles: r.miles,
+    tow_miles: r.towMiles ?? null,
+    say,
+  };
+}
+
+const calculateQuoteTool = defineTool(
+  z.object({
+    service: z.string().min(1).max(160),
+    location: z.string().min(1).max(300),
+    destination: z.string().max(300).optional(),
+  }),
+  async (ctx, args) => {
+    const business = await resolveBusiness(ctx);
+    if (!business) return { status: "error", data: {}, error: "no business configured" };
+
+    const bundle = await loadPricing(ctx.admin, ctx.tenantId, business.id);
+    if (!bundleQuotingEnabled(bundle) || !bundle.settings) {
+      return {
+        status: "blocked",
+        data: { ok: false, reason: "not_configured" },
+        error: "pricing is not set up for this business",
+      };
+    }
+
+    const svc = matchService(bundle.services, args.service);
+    if (!svc) {
+      const names = bundle.services.map((s) => s.name);
+      return {
+        status: "ok",
+        data: {
+          ok: false,
+          reason: "unknown_service",
+          available_services: names,
+          say: `I can price these: ${names.join(", ")}. Which one do you need?`,
+        },
+      };
+    }
+
+    const base = {
+      lat: bundle.settings.base_lat as number,
+      lng: bundle.settings.base_lng as number,
+      formatted: bundle.settings.base_address ?? "",
+    };
+    const distanceMiles = await drivingDistanceMiles(base, args.location);
+    if (distanceMiles == null) {
+      return {
+        status: "ok",
+        data: {
+          ok: false,
+          reason: "location_unclear",
+          say: "I couldn't pin down that location — what's the street address or nearest cross-street and city?",
+        },
+      };
+    }
+
+    let towMiles: number | null = null;
+    if (svc.pricing_type === "tow" && args.destination) {
+      towMiles = await drivingDistanceMiles(args.location, args.destination);
+    }
+
+    const parts = getZonedParts(new Date(), business.timezone);
+    const result = calculateQuote({
+      service: svc,
+      zones: bundle.zones,
+      surcharges: bundle.surcharges,
+      distanceMiles,
+      towMiles,
+      maxServiceMiles: bundle.settings.max_service_miles,
+      localTime: { hour: parts.hour, minute: parts.minute },
+      currency: bundle.settings.currency,
+    });
+
+    await logAudit({
+      tenantId: ctx.tenantId,
+      action: "voice.tool.calculate_quote",
+      entityType: "call",
+      entityId: ctx.callId,
+      metadata: {
+        service: svc.name,
+        ok: result.ok,
+        reason: result.reason ?? null,
+        total: result.total,
+        miles: result.miles,
+      },
+    });
+
+    return { status: "ok", data: formatQuote(result) };
+  }
+);
+
 export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   lookup_contact: lookupContact,
   create_contact: createContact,
@@ -929,4 +1104,5 @@ export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   send_sms: sendSmsTool,
   check_calendar_availability: checkCalendarAvailability,
   book_appointment: bookAppointment,
+  calculate_quote: calculateQuoteTool,
 };
