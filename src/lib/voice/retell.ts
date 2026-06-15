@@ -53,6 +53,28 @@ const END_CALL_TOOL = {
 /** Auto-hang-up after this much dead air (caller stopped responding). */
 const END_CALL_AFTER_SILENCE_MS = 15000;
 
+/** Warm-transfer tool: the agent privately briefs the teammate (who's
+ *  calling + why), THEN bridges the caller — so the human doesn't make the
+ *  caller re-explain. Only added when the business has a transfer number. */
+function transferTool(number: string): Record<string, unknown> {
+  return {
+    type: "transfer_call",
+    name: "transfer_to_human",
+    description:
+      "Bridge the caller to a human teammate live. Use when the caller is upset or distressed, asks for a person, has a complaint, or the situation is beyond you. The teammate is briefed before the caller is connected.",
+    transfer_destination: { type: "predefined", number },
+    transfer_option: {
+      type: "warm_transfer",
+      on_hold_music: "ringtone",
+      private_handoff_option: {
+        type: "prompt",
+        prompt:
+          "In one sentence, tell the teammate who is calling and why — the caller's name, their location, and what they need or why they're upset. Then the caller is connected.",
+      },
+    },
+  };
+}
+
 let client: Retell | null = null;
 function getClient(): Retell {
   if (!env.RETELL_API_KEY) {
@@ -106,6 +128,7 @@ export class RetellVoiceProvider implements VoiceProvider {
   ): Promise<SyncAgentResult> {
     const c = getClient();
     const tools = [...mapTools(config.tools), END_CALL_TOOL];
+    if (config.transferNumber) tools.push(transferTool(config.transferNumber));
 
     // Up to date already — skip the network round-trips.
     if (

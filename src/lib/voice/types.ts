@@ -33,6 +33,8 @@ export interface VoiceAgentConfig {
   /** Hard cap on call length (cost guard, §15). */
   maxCallSeconds: number;
   tools: VoiceToolDef[];
+  /** E.164 number to warm-transfer live callers to (a human), or null. */
+  transferNumber: string | null;
   /** Stable hash of the above — used to skip no-op re-syncs. */
   promptHash: string;
 }

@@ -34,6 +34,8 @@ export interface PromptInput {
   bookingEnabled?: boolean;
   /** True when owner-approved pricing exists — turns on AI quoting. */
   quotingEnabled?: boolean;
+  /** E.164 human number for live warm transfer, or null/absent to disable. */
+  transferNumber?: string | null;
   agent?: {
     name?: string | null;
     voiceId?: string | null;
@@ -109,6 +111,7 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
 
   const bookingEnabled = input.bookingEnabled ?? false;
   const quotingEnabled = input.quotingEnabled ?? false;
+  const transferEnabled = Boolean(input.transferNumber);
 
   const rule2 = quotingEnabled
     ? `2. NEVER invent, estimate, round, or hint at a price from your own head — not even "around" or "starting at". To answer ANY question about cost/price/"how much", you MUST call calculate_quote and tell the caller ONLY the exact total it returns. If it returns ok=false, follow its guidance (ask for the missing info, or offer to take details for the owner). Never say a number that did not come from calculate_quote.`
@@ -149,7 +152,9 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
     "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line spoken summary so the team can call back fast."
   );
   steps.push(
-    "If the caller demands a human, is angry, or it's beyond you: call escalate_to_human. Stay calm and never argue."
+    transferEnabled
+      ? 'If the caller is upset or distressed, asks for a person, has a complaint, or it\'s beyond you: say "let me connect you with someone on our team right now" and call transfer_to_human to bridge them to a teammate live. Stay calm, never argue. If the transfer doesn\'t connect, call escalate_to_human to take a message and alert the team urgently.'
+      : "If the caller demands a human, is angry, or it's beyond you: call escalate_to_human. Stay calm and never argue."
   );
   steps.push(
     `Text permission: when it fits, ask using this exact script — "${consentScript}" — and set sms_consent on create_contact based on their answer. If the caller says NOT to text them, call create_contact with sms_consent set to false to record that opt-out.${
@@ -211,6 +216,7 @@ ${wrapUp}`;
         language,
         maxCallSeconds,
         tools: VOICE_TOOLS.map((t) => t.name),
+        transferNumber: input.transferNumber ?? null,
       })
     )
     .digest("hex");
@@ -223,6 +229,7 @@ ${wrapUp}`;
     language,
     maxCallSeconds,
     tools: VOICE_TOOLS,
+    transferNumber: input.transferNumber ?? null,
     promptHash,
   };
 }
