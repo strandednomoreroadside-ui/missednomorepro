@@ -3,6 +3,7 @@ import {
   CalendarCheck,
   CreditCard,
   DollarSign,
+  HelpCircle,
   LayoutDashboard,
   MessageSquare,
   PhoneCall,
@@ -83,6 +84,13 @@ export default async function DashboardLayout({
           >
             <DollarSign className="size-4" aria-hidden />
             Pricing
+          </Link>
+          <Link
+            href="/dashboard/faqs"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <HelpCircle className="size-4" aria-hidden />
+            FAQs
           </Link>
           <Link
             href="/dashboard/billing"

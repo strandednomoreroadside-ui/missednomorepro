@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireActiveOrg } from "@/lib/auth";
@@ -55,6 +56,25 @@ export async function approvePricing() {
     .eq("tenant_id", active.organization_id);
 
   redirect("/dashboard/pricing?pricing=approved");
+}
+
+/** Set the service-area radius (miles from home base) used for quoting +
+ *  the radius-based check_service_area. */
+export async function updateServiceRadius(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+  const businessId = await firstBusinessId(supabase, active.organization_id);
+  if (!businessId) return;
+
+  const miles = Number(formData.get("max_service_miles"));
+  if (!Number.isFinite(miles) || miles <= 0 || miles > 200) return;
+
+  await supabase
+    .from("pricing_settings")
+    .update({ max_service_miles: miles })
+    .eq("business_id", businessId)
+    .eq("tenant_id", active.organization_id);
+  revalidatePath("/dashboard/pricing");
 }
 
 /** Turn AI quoting back off (revert to "owner will text a quote"). */

@@ -9,11 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { requireActiveOrg } from "@/lib/auth";
 import { isMapsConfigured } from "@/lib/maps/client";
 import { createClient } from "@/lib/supabase/server";
 
-import { approvePricing, unapprovePricing } from "./actions";
+import { approvePricing, unapprovePricing, updateServiceRadius } from "./actions";
 
 export const metadata: Metadata = { title: "Pricing" };
 
@@ -229,8 +230,27 @@ export default async function PricingPage({
                   </li>
                 ))}
               </ul>
+              <form action={updateServiceRadius} className="mt-3 flex items-end gap-2">
+                <label className="text-xs text-steel">
+                  Service area radius (miles from home base)
+                  <Input
+                    type="number"
+                    name="max_service_miles"
+                    defaultValue={settings?.max_service_miles ?? 25}
+                    min={1}
+                    max={200}
+                    step={1}
+                    className="mt-1 w-28"
+                    aria-label="Service area radius in miles"
+                  />
+                </label>
+                <Button type="submit" variant="outline" size="sm">
+                  Save radius
+                </Button>
+              </form>
               <p className="mt-2 text-xs text-steel">
-                Past {settings?.max_service_miles ?? 25} miles = outside service area.
+                Anywhere within this radius of your home base is serviceable; past it,
+                the AI says it&rsquo;s out of area. This also caps quoting distance.
               </p>
             </CardContent>
           </Card>

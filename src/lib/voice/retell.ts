@@ -42,6 +42,17 @@ const SIP_HOST = "sip.retellai.com";
  *  filler line so the caller isn't met with silence. */
 const SLOW_TOOLS = new Set(["notify_staff", "escalate_to_human"]);
 
+/** Retell built-in end-call tool so the agent can hang up when finished —
+ *  otherwise it lingers on the line and burns minutes. */
+const END_CALL_TOOL = {
+  type: "end_call",
+  name: "end_call",
+  description:
+    "End the phone call. Call this the moment the conversation is finished — right after you've confirmed next steps and said a brief goodbye. Never stay on the line waiting in silence.",
+};
+/** Auto-hang-up after this much dead air (caller stopped responding). */
+const END_CALL_AFTER_SILENCE_MS = 15000;
+
 let client: Retell | null = null;
 function getClient(): Retell {
   if (!env.RETELL_API_KEY) {
@@ -94,7 +105,7 @@ export class RetellVoiceProvider implements VoiceProvider {
     existing: ProviderAgentRef | null
   ): Promise<SyncAgentResult> {
     const c = getClient();
-    const tools = mapTools(config.tools);
+    const tools = [...mapTools(config.tools), END_CALL_TOOL];
 
     // Up to date already — skip the network round-trips.
     if (
@@ -122,6 +133,7 @@ export class RetellVoiceProvider implements VoiceProvider {
         language: config.language as never,
         webhook_url: webhookUrl(),
         max_call_duration_ms: config.maxCallSeconds * 1000,
+        end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
       });
       return {
         providerAgentId: existing.providerAgentId,
@@ -143,6 +155,7 @@ export class RetellVoiceProvider implements VoiceProvider {
       language: config.language as never,
       webhook_url: webhookUrl(),
       max_call_duration_ms: config.maxCallSeconds * 1000,
+      end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
       agent_name: config.name,
     });
 

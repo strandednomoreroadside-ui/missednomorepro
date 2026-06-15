@@ -328,11 +328,46 @@ const checkServiceArea = defineTool(
   }),
   async (ctx, args) => {
     const zip = args.zip ? args.zip.replace(/\D/g, "").slice(0, 5) : null;
-    const city = args.city ? args.city.trim().toLowerCase() : null;
+    const city = args.city ? args.city.trim() : null;
+    const state = args.state ? args.state.trim() : null;
     if (!zip && !city) {
       return { status: "ok", data: { covered: false, reason: "no zip or city provided" } };
     }
 
+    // Radius mode (preferred): is the location within max_service_miles of
+    // the business's home base? One Distance Matrix lookup; the API geocodes
+    // the city/zip for us.
+    const business = await resolveBusiness(ctx);
+    if (business) {
+      const { data: ps } = await ctx.admin
+        .from("pricing_settings")
+        .select("base_lat, base_lng, max_service_miles")
+        .eq("business_id", business.id)
+        .maybeSingle();
+      if (ps?.base_lat != null && ps?.base_lng != null) {
+        const dest = [city ? `${city}${state ? `, ${state}` : ""}` : null, zip]
+          .filter(Boolean)
+          .join(" ");
+        const miles = await drivingDistanceMiles(
+          { lat: ps.base_lat as number, lng: ps.base_lng as number, formatted: "" },
+          dest
+        );
+        if (miles != null) {
+          const radius = (ps.max_service_miles as number | null) ?? 25;
+          return {
+            status: "ok",
+            data: {
+              covered: miles <= radius,
+              miles: Math.round(miles * 10) / 10,
+              radius_miles: radius,
+              matched_by: "radius",
+            },
+          };
+        }
+      }
+    }
+
+    // Fallback: the legacy ZIP/city allowlist (no home base / maps offline).
     let q = ctx.admin
       .from("service_areas")
       .select("type, zip_code, city")
@@ -341,6 +376,7 @@ const checkServiceArea = defineTool(
     if (ctx.businessId) q = q.eq("business_id", ctx.businessId);
     const { data: areas } = await q;
 
+    const cityLc = city ? city.toLowerCase() : null;
     let covered = false;
     let matchedBy: "zip" | "city" | null = null;
     for (const a of areas ?? []) {
@@ -349,7 +385,7 @@ const checkServiceArea = defineTool(
         matchedBy = "zip";
         break;
       }
-      if (city && a.type === "city" && a.city && a.city.toLowerCase() === city) {
+      if (cityLc && a.type === "city" && a.city && a.city.toLowerCase() === cityLc) {
         covered = true;
         matchedBy = "city";
         break;
