@@ -8,8 +8,9 @@
  * validates each call's args with a zod schema that MIRRORS the schema
  * here — keep the two in step when editing.
  *
- * Out of scope for M7 (later milestones): calculate_quote, book_*,
- * send_sms, create_payment_link, create_invoice, request_review.
+ * Out of scope (later milestones): calculate_quote, create_payment_link,
+ * create_invoice, request_review. send_sms arrived in M8; the two booking
+ * tools (check_calendar_availability, book_appointment) arrived in M9.
  */
 import type { VoiceToolDef } from "../types";
 
@@ -23,6 +24,8 @@ export const VOICE_TOOL_NAMES = [
   "mark_spam",
   "create_follow_up_task",
   "send_sms",
+  "check_calendar_availability",
+  "book_appointment",
 ] as const;
 
 export type VoiceToolName = (typeof VOICE_TOOL_NAMES)[number];
@@ -182,6 +185,56 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         message: { type: "string", description: "The text to send. Keep it short and clear." },
       },
       required: ["message"],
+    },
+  },
+  {
+    name: "check_calendar_availability",
+    description:
+      "Find open appointment times on a given day before you offer any time to the caller. NEVER guess or " +
+      "invent availability — always call this and offer only the slots it returns. Pass the date the caller " +
+      "wants. Returns a short list of open start times (already inside business hours and not double-booked).",
+    parameters: {
+      type: "object",
+      properties: {
+        date: {
+          type: "string",
+          description:
+            "The day to check. Pass 'today', 'tomorrow', or an exact YYYY-MM-DD date (compute it from today's date given in your instructions).",
+        },
+        preferred_time: {
+          type: "string",
+          description: "Optional preferred time of day as 24-hour HH:MM (e.g. 14:00 for 2 PM).",
+        },
+      },
+      required: ["date"],
+    },
+  },
+  {
+    name: "book_appointment",
+    description:
+      "Book an appointment AFTER the caller agrees to a specific time you offered from " +
+      "check_calendar_availability. Pass the exact start time you offered. This is rejected if the time is " +
+      "outside business hours, in the past, or already taken — if it's rejected, call " +
+      "check_calendar_availability again and offer a new time. On success, tell the caller it's booked and " +
+      "that they'll get a confirmation text if they agreed to texts.",
+    parameters: {
+      type: "object",
+      properties: {
+        start: {
+          type: "string",
+          description:
+            "The chosen start time, copied exactly (ISO 8601) from a check_calendar_availability result.",
+        },
+        title: {
+          type: "string",
+          description: "Short description of the appointment, e.g. 'Tow from I-40' or 'AC repair'.",
+        },
+        name: { type: "string", description: "Caller's name, if not already saved." },
+        phone: { type: "string", description: "E.164 phone. Defaults to the caller's number." },
+        location: { type: "string", description: "Service address or location, if given." },
+        notes: { type: "string", description: "Any extra details for the team." },
+      },
+      required: ["start", "title"],
     },
   },
 ];

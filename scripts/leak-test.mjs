@@ -278,6 +278,88 @@ try {
     phone_number: "+15555550112",
   });
   assert("Members cannot claim phone numbers directly", !!claimErr);
+
+  // ── M9: calendar, appointments, jobs ──────────────────────────
+
+  // Server seeds an appointment + a Google connection (with a fake
+  // encrypted token) for A. A (a member) creates a job directly.
+  const apptStart = new Date(Date.now() + 86_400_000).toISOString();
+  const apptEnd = new Date(Date.now() + 90_000_000).toISOString();
+  const { error: apptSeedErr } = await admin.from("appointments").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    title: "Secret appointment",
+    starts_at: apptStart,
+    ends_at: apptEnd,
+  });
+  if (apptSeedErr) throw new Error(`seed appointment: ${apptSeedErr.message}`);
+  const { error: connSeedErr } = await admin.from("calendar_connections").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    google_account_email: "secret@example.com",
+    refresh_token_encrypted: "v1:fake-secret-token",
+    status: "connected",
+  });
+  if (connSeedErr) throw new Error(`seed connection: ${connSeedErr.message}`);
+  const { data: aJob, error: aJobErr } = await a.client
+    .from("jobs")
+    .insert({ tenant_id: a.orgId, business_id: aBiz.id, title: "A's job", status: "scheduled" })
+    .select("id")
+    .single();
+  assert("Owner can create a job in their tenant", !aJobErr && !!aJob?.id, aJobErr?.message);
+
+  // 17. B sees none of A's calendar/appointment/job data.
+  const { data: bAppts } = await b.client.from("appointments").select("tenant_id");
+  const { data: bJobs } = await b.client.from("jobs").select("tenant_id");
+  const { data: bJse } = await b.client.from("job_status_events").select("tenant_id");
+  const { data: bConn } = await b.client.from("calendar_connections").select("tenant_id");
+  const m9Leak = [
+    ...(bAppts ?? []),
+    ...(bJobs ?? []),
+    ...(bJse ?? []),
+    ...(bConn ?? []),
+  ].filter((r) => r.tenant_id === a.orgId);
+  assert("B cannot see A's appointments/jobs/calendar connection", m9Leak.length === 0);
+
+  // 18. Appointments are server-written — members can't forge them.
+  const { error: apptForgeErr } = await a.client.from("appointments").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    title: "Forged appointment",
+    starts_at: apptStart,
+    ends_at: apptEnd,
+  });
+  assert("Members cannot write appointments directly", !!apptForgeErr);
+
+  // 19. OAuth tokens are NOT selectable by members (column-level grant),
+  //     even though the connection row itself is readable.
+  const tokenRead = await a.client
+    .from("calendar_connections")
+    .select("refresh_token_encrypted")
+    .eq("business_id", aBiz.id);
+  assert(
+    "OAuth token columns are not selectable by members",
+    !!tokenRead.error,
+    tokenRead.error?.message?.slice(0, 60)
+  );
+  const safeRead = await a.client
+    .from("calendar_connections")
+    .select("status, google_account_email")
+    .eq("business_id", aBiz.id)
+    .maybeSingle();
+  assert(
+    "Members can still read safe connection columns",
+    !safeRead.error && safeRead.data?.status === "connected",
+    safeRead.error?.message?.slice(0, 60)
+  );
+
+  // 20. Job status trail is server/trigger-written — members can't forge it.
+  const { error: jseForgeErr } = await a.client.from("job_status_events").insert({
+    tenant_id: a.orgId,
+    job_id: aJob?.id ?? a.orgId,
+    status: "completed",
+  });
+  assert("Members cannot write job status events directly", !!jseForgeErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

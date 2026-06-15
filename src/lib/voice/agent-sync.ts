@@ -21,7 +21,7 @@ export async function loadPromptInput(
   admin: SupabaseClient,
   business: AgentBusiness
 ): Promise<PromptInput> {
-  const [services, hours, areas, faqs, sms, agent] = await Promise.all([
+  const [services, hours, areas, faqs, sms, agent, conn] = await Promise.all([
     admin
       .from("services")
       .select("id, name, description, active")
@@ -54,6 +54,12 @@ export async function loadPromptInput(
       .eq("business_id", business.id)
       .limit(1)
       .maybeSingle(),
+    admin
+      .from("calendar_connections")
+      .select("status")
+      .eq("tenant_id", business.tenant_id)
+      .eq("business_id", business.id)
+      .maybeSingle(),
   ]);
 
   const language =
@@ -70,6 +76,7 @@ export async function loadPromptInput(
     areas: (areas.data ?? []) as PromptInput["areas"],
     faqs: (faqs.data ?? []) as PromptInput["faqs"],
     sms: (sms.data ?? null) as PromptInput["sms"],
+    bookingEnabled: (conn.data as { status?: string } | null)?.status === "connected",
     agent: {
       name: agent.data?.name ?? null,
       voiceId: agent.data?.voice_id ?? null,

@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { MessageSquare, Phone, PhoneCall } from "lucide-react";
+import {
+  CalendarCheck,
+  CheckCircle2,
+  MessageSquare,
+  Phone,
+  PhoneCall,
+  TriangleAlert,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,10 +18,16 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { requireActiveOrg } from "@/lib/auth";
+import { isGoogleConfigured } from "@/lib/google/credentials";
 import { formatUsPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 
-import { updateTextBack } from "./actions";
+import {
+  connectGoogleCalendar,
+  disconnectGoogleCalendar,
+  updateBookingConfirmation,
+  updateTextBack,
+} from "./actions";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -29,10 +42,33 @@ type NumberRow = {
 
 const DEFAULT_TEMPLATE =
   "Hi! Thanks for calling {business}. Sorry we missed you — text us back here and we'll help right away. Reply STOP to opt out.";
+const DEFAULT_BOOKING_TEMPLATE =
+  "You're booked with {business} for {time}. Reply STOP to opt out.";
 
-export default async function SettingsPage() {
+const CALENDAR_BANNERS: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: "Google Calendar connected — your AI can now book appointments." },
+  denied: { ok: false, text: "Calendar connection was canceled." },
+  norefresh: {
+    ok: false,
+    text: "Google didn't return a refresh token. In your Google Account → Security → Third-party access, remove this app, then connect again.",
+  },
+  unconfigured: {
+    ok: false,
+    text: "Calendar isn't configured on the server yet (missing Google credentials).",
+  },
+  nobusiness: { ok: false, text: "Finish the setup wizard before connecting a calendar." },
+  error: { ok: false, text: "Something went wrong connecting your calendar. Please try again." },
+};
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ calendar?: string }>;
+}) {
   const { active } = await requireActiveOrg();
   const supabase = await createClient();
+  const params = await searchParams;
+  const banner = params.calendar ? CALENDAR_BANNERS[params.calendar] : undefined;
 
   const { data: business } = await supabase
     .from("businesses")
@@ -42,7 +78,7 @@ export default async function SettingsPage() {
     .limit(1)
     .maybeSingle();
 
-  const [{ data: numbers }, { data: sms }] = await Promise.all([
+  const [{ data: numbers }, { data: sms }, { data: calendar }] = await Promise.all([
     supabase
       .from("phone_numbers")
       .select("id, phone_number, type, voice_enabled, sms_enabled, a2p_status")
@@ -51,7 +87,14 @@ export default async function SettingsPage() {
     business
       ? supabase
           .from("sms_settings")
-          .select("text_back_enabled, text_back_template")
+          .select("text_back_enabled, text_back_template, booking_confirmation_template")
+          .eq("business_id", business.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    business
+      ? supabase
+          .from("calendar_connections")
+          .select("google_account_email, status, connected_at")
           .eq("business_id", business.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -60,14 +103,37 @@ export default async function SettingsPage() {
   const rows = (numbers ?? []) as NumberRow[];
   const textBackEnabled = (sms?.text_back_enabled ?? true) as boolean;
   const textBackTemplate = (sms?.text_back_template ?? DEFAULT_TEMPLATE) as string;
+  const bookingTemplate = (sms?.booking_confirmation_template ??
+    DEFAULT_BOOKING_TEMPLATE) as string;
+  const cal = calendar as
+    | { google_account_email: string | null; status: string; connected_at: string }
+    | null;
+  const calConnected = cal?.status === "connected";
+  const googleConfigured = isGoogleConfigured();
 
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="font-display text-2xl font-bold tracking-tight">Settings</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Your number and text-back behavior. Calendars and more arrive with later
-        milestones.
+        Your number, calendar booking, and text behavior.
       </p>
+
+      {banner && (
+        <div
+          className={`mt-4 flex items-start gap-2 rounded-lg border px-3.5 py-3 text-sm ${
+            banner.ok
+              ? "border-cyan/40 bg-cyan/5 text-foreground"
+              : "border-amber-500/40 bg-amber-500/5 text-foreground"
+          }`}
+        >
+          {banner.ok ? (
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-cyan" aria-hidden />
+          ) : (
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+          )}
+          <span>{banner.text}</span>
+        </div>
+      )}
 
       <Card className="mt-6 bg-card/60">
         <CardHeader>
@@ -115,6 +181,78 @@ export default async function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <CalendarCheck className="size-4 text-cyan" aria-hidden />
+            Calendar booking
+          </CardTitle>
+          <CardDescription>
+            Connect Google Calendar so your AI can book appointments inside your
+            business hours and add them to your calendar automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {calConnected ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/40 px-3.5 py-3">
+              <CheckCircle2 className="size-5 text-cyan" aria-hidden />
+              <span className="text-sm">
+                Connected
+                {cal?.google_account_email ? (
+                  <span className="text-muted-foreground"> as {cal.google_account_email}</span>
+                ) : null}
+              </span>
+              <form action={disconnectGoogleCalendar} className="ml-auto">
+                <Button type="submit" variant="outline" size="sm">
+                  Disconnect
+                </Button>
+              </form>
+            </div>
+          ) : !googleConfigured ? (
+            <p className="rounded-lg border border-border/40 px-3.5 py-4 text-sm text-muted-foreground">
+              Google Calendar isn&rsquo;t configured on the server yet. Once the
+              platform adds Google credentials, a Connect button appears here.
+            </p>
+          ) : (
+            <form action={connectGoogleCalendar}>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Your AI will offer only open times inside your business hours and
+                never double-book.
+              </p>
+              <Button type="submit">Connect Google Calendar</Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+
+      {calConnected && (
+        <Card className="mt-4 bg-card/60">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <MessageSquare className="size-4 text-cyan" aria-hidden />
+              Booking confirmation text
+            </CardTitle>
+            <CardDescription>
+              Sent when the AI books an appointment (only if the caller agreed to
+              texts). Use <code className="text-cyan">{"{business}"}</code> and{" "}
+              <code className="text-cyan">{"{time}"}</code>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={updateBookingConfirmation} className="space-y-4">
+              <Textarea
+                name="booking_confirmation_template"
+                defaultValue={bookingTemplate}
+                rows={3}
+                maxLength={480}
+                aria-label="Booking confirmation message"
+              />
+              <Button type="submit">Save</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-4 bg-card/60">
         <CardHeader>

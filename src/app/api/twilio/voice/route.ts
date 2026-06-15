@@ -1,3 +1,4 @@
+import { currentZonedStrings } from "@/lib/calendar/timezone";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -106,6 +107,8 @@ export async function POST(request: Request) {
               : " How can I help you today?")
           : `Thanks for calling ${businessName}. You've reached our virtual assistant — how can I help you today?`;
 
+        const localNow = currentZonedStrings(business.timezone || "America/New_York");
+
         const reg = await getVoiceProvider().registerInboundCall({
           agent: synced.ref,
           tenantId: business.tenant_id,
@@ -121,6 +124,11 @@ export async function POST(request: Request) {
             is_returning: contact ? "true" : "false",
             last_need: lastNeed,
             opening_line: openingLine,
+            // Booking date context (business-local) so the AI can resolve
+            // "tomorrow"/"next Tuesday" to a concrete date.
+            current_date: localNow.date,
+            current_day: localNow.day,
+            current_time: localNow.time,
           },
         });
 

@@ -4,6 +4,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
+import {
+  computeAvailableSlots,
+  isWithinBusinessHours,
+  DEFAULT_AVAILABILITY,
+  type BusyInterval,
+  type HoursRow,
+} from "@/lib/calendar/availability";
+import {
+  addDays,
+  formatSlotLabel,
+  parseDateString,
+  parseTimeString,
+  todayInZone,
+  zonedTimeToUtc,
+} from "@/lib/calendar/timezone";
+import { freeBusy, insertEvent } from "@/lib/google/calendar";
+import { getConnection, getValidAccessToken, isConnected } from "@/lib/google/connection";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
 import { sendCustomerSms, sendStaffSms } from "@/lib/sms/outbound";
 
@@ -523,6 +540,383 @@ const sendSmsTool = defineTool(
   }
 );
 
+// ── M9 booking helpers ─────────────────────────────────────────
+
+/** Resolve the business (id + timezone) for this call. */
+async function resolveBusiness(
+  ctx: ToolContext
+): Promise<{ id: string; timezone: string } | null> {
+  if (ctx.businessId) {
+    const { data } = await ctx.admin
+      .from("businesses")
+      .select("id, timezone")
+      .eq("id", ctx.businessId)
+      .eq("tenant_id", ctx.tenantId)
+      .maybeSingle();
+    if (data) {
+      return { id: data.id as string, timezone: (data.timezone as string) || "America/New_York" };
+    }
+  }
+  const { data } = await ctx.admin
+    .from("businesses")
+    .select("id, timezone")
+    .eq("tenant_id", ctx.tenantId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data
+    ? { id: data.id as string, timezone: (data.timezone as string) || "America/New_York" }
+    : null;
+}
+
+async function loadHours(ctx: ToolContext, businessId: string): Promise<HoursRow[]> {
+  const { data } = await ctx.admin
+    .from("business_hours")
+    .select("day_of_week, closed, opens_at, closes_at")
+    .eq("business_id", businessId);
+  return (data ?? []) as HoursRow[];
+}
+
+/** Confirmed appointments overlapping [fromIso, toIso) as busy intervals. */
+async function dbBusy(
+  ctx: ToolContext,
+  businessId: string,
+  fromIso: string,
+  toIso: string
+): Promise<BusyInterval[]> {
+  const { data } = await ctx.admin
+    .from("appointments")
+    .select("starts_at, ends_at")
+    .eq("tenant_id", ctx.tenantId)
+    .eq("business_id", businessId)
+    .eq("status", "confirmed")
+    .lt("starts_at", toIso)
+    .gt("ends_at", fromIso);
+  return (data ?? []).map((r) => ({
+    start: new Date(r.starts_at as string),
+    end: new Date(r.ends_at as string),
+  }));
+}
+
+/** Use the linked contact, else find/create by phone (for booking). */
+async function ensureContactForBooking(
+  ctx: ToolContext,
+  name?: string,
+  phone?: string
+): Promise<string | null> {
+  if (ctx.contactId) return ctx.contactId;
+  const p = normalizeUsPhone(phone ?? "") ?? ctx.fromNumber;
+  if (p) {
+    const { data: existing } = await ctx.admin
+      .from("contacts")
+      .select("id")
+      .eq("tenant_id", ctx.tenantId)
+      .eq("phone", p)
+      .maybeSingle();
+    if (existing) {
+      await linkCallToContact(ctx, existing.id);
+      return existing.id;
+    }
+  }
+  if (!name) return null;
+  const { data: created } = await ctx.admin
+    .from("contacts")
+    .insert({ tenant_id: ctx.tenantId, name, phone: p })
+    .select("id")
+    .single();
+  if (created) {
+    await linkCallToContact(ctx, created.id);
+    return created.id;
+  }
+  return null;
+}
+
+function ymd(d: { year: number; month: number; day: number }): string {
+  return `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
+}
+
+const checkCalendarAvailability = defineTool(
+  z.object({
+    date: z.string().min(1).max(20),
+    preferred_time: z.string().max(10).optional(),
+  }),
+  async (ctx, args) => {
+    const business = await resolveBusiness(ctx);
+    if (!business) return { status: "error", data: {}, error: "no business configured" };
+    const tz = business.timezone;
+
+    const raw = args.date.trim().toLowerCase();
+    let target: { year: number; month: number; day: number };
+    if (raw === "today") target = todayInZone(tz);
+    else if (raw === "tomorrow") target = addDays(todayInZone(tz), 1);
+    else {
+      const parsed = parseDateString(args.date);
+      if (!parsed) {
+        return {
+          status: "blocked",
+          data: {},
+          error: "date must be YYYY-MM-DD, 'today', or 'tomorrow'",
+        };
+      }
+      target = parsed;
+    }
+
+    const preferredTime = args.preferred_time ? parseTimeString(args.preferred_time) : null;
+    const hours = await loadHours(ctx, business.id);
+    const next = addDays(target, 1);
+    const dayStart = zonedTimeToUtc(target.year, target.month, target.day, 0, 0, tz);
+    const dayEnd = zonedTimeToUtc(next.year, next.month, next.day, 0, 0, tz);
+
+    const busy = await dbBusy(ctx, business.id, dayStart.toISOString(), dayEnd.toISOString());
+
+    const conn = await getConnection(ctx.admin, ctx.tenantId, business.id);
+    if (conn && isConnected(conn)) {
+      const token = await getValidAccessToken(ctx.admin, conn);
+      if (token) {
+        try {
+          const gb = await freeBusy(
+            token,
+            conn.google_calendar_id,
+            dayStart.toISOString(),
+            dayEnd.toISOString()
+          );
+          for (const b of gb) busy.push({ start: new Date(b.start), end: new Date(b.end) });
+        } catch (err) {
+          console.error("[book] freeBusy failed:", err);
+        }
+      }
+    }
+
+    const slots = computeAvailableSlots({
+      tz,
+      hours,
+      busy,
+      now: new Date(),
+      targetDate: target,
+      preferredTime,
+    });
+
+    return {
+      status: "ok",
+      data: {
+        date: ymd(target),
+        count: slots.length,
+        slots: slots.map((s) => ({ start: s.startIso, time: s.timeLabel, label: s.label })),
+      },
+    };
+  }
+);
+
+const bookAppointment = defineTool(
+  z.object({
+    start: z.string().min(10).max(40),
+    title: z.string().min(1).max(200),
+    name: z.string().max(160).optional(),
+    phone: z.string().optional(),
+    location: z.string().max(500).optional(),
+    notes: z.string().max(2000).optional(),
+  }),
+  async (ctx, args) => {
+    const business = await resolveBusiness(ctx);
+    if (!business) return { status: "error", data: {}, error: "no business configured" };
+    const tz = business.timezone;
+
+    const start = new Date(args.start);
+    if (Number.isNaN(start.getTime())) {
+      return { status: "blocked", data: {}, error: "invalid start time" };
+    }
+    const end = new Date(start.getTime() + DEFAULT_AVAILABILITY.durationMinutes * 60_000);
+
+    if (start.getTime() <= Date.now() + 60_000) {
+      return { status: "blocked", data: {}, error: "that time is in the past — offer a future time" };
+    }
+
+    const hours = await loadHours(ctx, business.id);
+    if (!isWithinBusinessHours(start, end, hours, tz)) {
+      return {
+        status: "blocked",
+        data: {},
+        error:
+          "that time is outside business hours — call check_calendar_availability and offer a listed time",
+      };
+    }
+
+    // Google free/busy guard (catches events created outside our app).
+    const conn = await getConnection(ctx.admin, ctx.tenantId, business.id);
+    const hasCal = !!conn && isConnected(conn);
+    let accessToken: string | null = null;
+    if (hasCal && conn) {
+      accessToken = await getValidAccessToken(ctx.admin, conn);
+      if (accessToken) {
+        try {
+          const gb = await freeBusy(
+            accessToken,
+            conn.google_calendar_id,
+            start.toISOString(),
+            end.toISOString()
+          );
+          const clash = gb.some((b) => start < new Date(b.end) && end > new Date(b.start));
+          if (clash) {
+            return {
+              status: "blocked",
+              data: { slot_unavailable: true },
+              error: "that time was just taken — offer another time",
+            };
+          }
+        } catch (err) {
+          console.error("[book] freeBusy failed:", err);
+        }
+      }
+    }
+
+    const contactId = await ensureContactForBooking(ctx, args.name, args.phone);
+
+    // Insert the appointment. The exclusion constraint is the real lock: a
+    // concurrent booking of an overlapping slot fails here (code 23P01).
+    const { data: appt, error: apptErr } = await ctx.admin
+      .from("appointments")
+      .insert({
+        tenant_id: ctx.tenantId,
+        business_id: business.id,
+        contact_id: contactId,
+        call_id: ctx.callId,
+        title: args.title,
+        starts_at: start.toISOString(),
+        ends_at: end.toISOString(),
+        status: "confirmed",
+        location: args.location ?? null,
+        notes: args.notes ?? null,
+        source: "ai",
+        google_calendar_id: hasCal && conn ? conn.google_calendar_id : null,
+        sync_status: hasCal ? "pending" : "none",
+      })
+      .select("id")
+      .single();
+
+    if (apptErr) {
+      if (apptErr.code === "23P01") {
+        return {
+          status: "blocked",
+          data: { slot_unavailable: true },
+          error: "that time was just taken — offer another time",
+        };
+      }
+      return { status: "error", data: {}, error: apptErr.message };
+    }
+
+    // Push to Google Calendar (best-effort; the appointment already stands).
+    let googleEventId: string | null = null;
+    if (hasCal && conn && accessToken) {
+      try {
+        googleEventId = await insertEvent(accessToken, {
+          calendarId: conn.google_calendar_id,
+          summary: `${args.title} — ${ctx.businessName}`,
+          description: [
+            `Booked by the AI receptionist for ${ctx.businessName}.`,
+            `Caller: ${formatUsPhone(ctx.fromNumber)}`,
+            args.notes ? `Notes: ${args.notes}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          location: args.location,
+          startIso: start.toISOString(),
+          endIso: end.toISOString(),
+          timeZone: tz,
+        });
+        await ctx.admin
+          .from("appointments")
+          .update({ google_event_id: googleEventId, sync_status: "synced" })
+          .eq("id", appt.id)
+          .eq("tenant_id", ctx.tenantId);
+      } catch (err) {
+        console.error("[book] insertEvent failed:", err);
+        await ctx.admin
+          .from("appointments")
+          .update({ sync_status: "failed" })
+          .eq("id", appt.id)
+          .eq("tenant_id", ctx.tenantId);
+      }
+    }
+
+    // Create the job the team will work.
+    const { data: job } = await ctx.admin
+      .from("jobs")
+      .insert({
+        tenant_id: ctx.tenantId,
+        business_id: business.id,
+        contact_id: contactId,
+        appointment_id: appt.id,
+        title: args.title,
+        status: "scheduled",
+        scheduled_for: start.toISOString(),
+        address: args.location ?? null,
+        source: "ai",
+      })
+      .select("id")
+      .single();
+
+    // Disposition -> booked (don't override an earlier spam/escalated).
+    await ctx.admin
+      .from("calls")
+      .update({ disposition: "booked" })
+      .eq("id", ctx.callId)
+      .eq("tenant_id", ctx.tenantId)
+      .or("disposition.is.null,disposition.eq.lead");
+
+    // Confirmation text (transactional — they asked to book; STOP still wins).
+    const label = formatSlotLabel(start, tz);
+    let smsSent = false;
+    if (contactId) {
+      const { data: smsSettings } = await ctx.admin
+        .from("sms_settings")
+        .select("booking_confirmation_template")
+        .eq("business_id", business.id)
+        .maybeSingle();
+      const template =
+        (smsSettings?.booking_confirmation_template as string | undefined) ??
+        "You're booked with {business} for {time}. Reply STOP to opt out.";
+      const body = template
+        .replaceAll("{business}", ctx.businessName)
+        .replaceAll("{time}", label);
+      const res = await sendCustomerSms(ctx.admin, {
+        tenantId: ctx.tenantId,
+        businessId: business.id,
+        contactId,
+        toPhone: ctx.fromNumber,
+        body,
+        kind: "confirmation",
+        requireConsent: false,
+      });
+      smsSent = res.sent;
+    }
+
+    await logAudit({
+      tenantId: ctx.tenantId,
+      action: "voice.tool.book_appointment",
+      entityType: "appointment",
+      entityId: appt.id,
+      metadata: {
+        callId: ctx.callId,
+        when: start.toISOString(),
+        googleSynced: Boolean(googleEventId),
+        jobId: job?.id ?? null,
+      },
+    });
+
+    return {
+      status: "ok",
+      data: {
+        booked: true,
+        appointment_id: appt.id,
+        job_id: job?.id ?? null,
+        when: label,
+        confirmation_text_sent: smsSent,
+        calendar_synced: Boolean(googleEventId),
+      },
+    };
+  }
+);
+
 export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   lookup_contact: lookupContact,
   create_contact: createContact,
@@ -533,4 +927,6 @@ export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   mark_spam: markSpam,
   create_follow_up_task: createFollowUpTask,
   send_sms: sendSmsTool,
+  check_calendar_availability: checkCalendarAvailability,
+  book_appointment: bookAppointment,
 };

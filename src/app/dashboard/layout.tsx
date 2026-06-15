@@ -18,8 +18,6 @@ import { signOut } from "@/app/(auth)/actions";
 
 import { switchOrganization } from "./actions";
 
-const UPCOMING = [{ label: "Jobs", icon: CalendarCheck, milestone: "M9" }];
-
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -72,6 +70,13 @@ export default async function DashboardLayout({
             Messages
           </Link>
           <Link
+            href="/dashboard/jobs"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <CalendarCheck className="size-4" aria-hidden />
+            Jobs
+          </Link>
+          <Link
             href="/dashboard/billing"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
           >
@@ -85,21 +90,6 @@ export default async function DashboardLayout({
             <Settings className="size-4" aria-hidden />
             Settings
           </Link>
-          <p className="px-3 pb-1 pt-4 font-mono text-[10px] uppercase tracking-widest text-steel">
-            Coming as we build
-          </p>
-          {UPCOMING.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60"
-            >
-              <item.icon className="size-4" aria-hidden />
-              {item.label}
-              <span className="ml-auto rounded-full border border-border/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-steel">
-                {item.milestone}
-              </span>
-            </div>
-          ))}
         </nav>
         <div className="border-t border-border/60 p-4 text-xs text-steel">
           {active.organizations.name}

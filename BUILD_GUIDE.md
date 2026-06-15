@@ -372,13 +372,21 @@ Call your number and act out each scenario. Score PASS/FAIL. **All 10 must pass 
 **Goal:** the AI books real appointments inside approved hours, sends confirmations, and creates job records.
 *(Master plan: Phase 8, Tickets 38–40, §5.3 rules, §8.6.)*
 
+> **🟡 Status update (June 2026): code is built (`npm run build` + `typecheck` green); your turn next.** What's left is the Google Cloud setup below, pasting the migration `supabase/migrations/20260615090000_calendar_jobs.sql` into the Supabase SQL editor, adding `GOOGLE_OAUTH_CREDENTIALS` to `.env.local` + Vercel, then connecting Google in **Settings → Calendar booking**. Booking turns on automatically once a calendar is connected (the AI only offers real open times and never double-books — enforced in the database). Then run the test at the bottom. Note: booking isn't restricted by plan yet (that arrives with M10).
+
 ### 🧑 You do — Google Cloud setup (one-time, ~20 min)
 
 1. [console.cloud.google.com](https://console.cloud.google.com) → sign in with the Google account whose calendar you'll test with → New Project: `missed-no-more-pro`.
 2. "APIs & Services" → Library → enable **Google Calendar API**.
 3. "OAuth consent screen" → External → fill app name + your email → add scope for Calendar → **add yourself as a Test user** → save. (Staying in "Testing" mode is correct for beta — up to 100 users, no Google review needed yet.)
-4. "Credentials" → Create credentials → **OAuth client ID** → Web application → authorized redirect URI: Claude will give you the exact URL to paste.
-5. Copy the **Client ID** and **Client Secret** into `.env.local`.
+4. "Credentials" → Create credentials → **OAuth client ID** → Web application. Under **Authorized redirect URIs**, add **both**:
+   - `https://missednomorepro.com/api/google/callback`
+   - `http://localhost:3000/api/google/callback`
+5. Click **Download JSON** on the new client, then turn the file into one line and put it in `.env.local` as `GOOGLE_OAUTH_CREDENTIALS` (and later add the same value to Vercel). On Windows PowerShell:
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\Users\Stran\Downloads\client_secret_XXXX.json"))
+   ```
+   (The app reads the client ID + secret from this one base64 value — no separate `GOOGLE_CLIENT_ID`/`SECRET` needed.)
 
 ### 🤖 Claude does
 
