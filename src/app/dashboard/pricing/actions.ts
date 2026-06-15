@@ -92,3 +92,140 @@ export async function unapprovePricing() {
 
   redirect("/dashboard/pricing?pricing=off");
 }
+
+// ── Prices & Services manager (member-managed CRUD) ────────────
+
+function num(formData: FormData, key: string): number | null {
+  const raw = formData.get(key);
+  if (raw == null || String(raw).trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+async function ctx() {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+  const businessId = await firstBusinessId(supabase, active.organization_id);
+  return { tenantId: active.organization_id, supabase, businessId };
+}
+
+async function deleteRow(table: string, formData: FormData) {
+  const { tenantId, supabase } = await ctx();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await supabase.from(table).delete().eq("id", id).eq("tenant_id", tenantId);
+  revalidatePath("/dashboard/pricing");
+}
+
+/** Set/replace the home base address. Clears coords so the next Approve
+ *  re-geocodes (and quoting stays off until that happens). */
+export async function setHomeBase(formData: FormData) {
+  const { tenantId, supabase, businessId } = await ctx();
+  if (!businessId) return;
+  const base = String(formData.get("base_address") ?? "").trim();
+  if (!base) return;
+  await supabase.from("pricing_settings").upsert(
+    {
+      tenant_id: tenantId,
+      business_id: businessId,
+      base_address: base,
+      base_lat: null,
+      base_lng: null,
+      approved_at: null,
+    },
+    { onConflict: "business_id" }
+  );
+  revalidatePath("/dashboard/pricing");
+}
+
+/** Add a service (flat fee, or a tow with hook + per-mile). */
+export async function addService(formData: FormData) {
+  const { tenantId, supabase, businessId } = await ctx();
+  if (!businessId) return;
+  const name = String(formData.get("name") ?? "").trim().slice(0, 160);
+  if (!name) return;
+  const pricingType = formData.get("pricing_type") === "tow" ? "tow" : "flat";
+  const variablePart = String(formData.get("variable_part") ?? "").trim() || null;
+  const start = String(formData.get("available_start") ?? "").trim() || null;
+  const end = String(formData.get("available_end") ?? "").trim() || null;
+
+  await supabase.from("service_pricing").insert({
+    tenant_id: tenantId,
+    business_id: businessId,
+    name,
+    pricing_type: pricingType,
+    service_fee: pricingType === "flat" ? num(formData, "service_fee") ?? 0 : 0,
+    hook_fee: pricingType === "tow" ? num(formData, "hook_fee") : null,
+    per_mile_rate: pricingType === "tow" ? num(formData, "per_mile_rate") : null,
+    free_miles: pricingType === "tow" ? num(formData, "free_miles") ?? 0 : 0,
+    variable_part: variablePart,
+    available_start: start,
+    available_end: end,
+  });
+  revalidatePath("/dashboard/pricing");
+}
+
+export async function toggleService(formData: FormData) {
+  const { tenantId, supabase } = await ctx();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await supabase
+    .from("service_pricing")
+    .update({ active: formData.get("active") === "true" })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  revalidatePath("/dashboard/pricing");
+}
+
+export async function deleteService(formData: FormData) {
+  await deleteRow("service_pricing", formData);
+}
+
+/** Add a distance-banded dispatch zone. */
+export async function addZone(formData: FormData) {
+  const { tenantId, supabase, businessId } = await ctx();
+  if (!businessId) return;
+  const zoneNumber = num(formData, "zone_number");
+  const minMiles = num(formData, "min_miles");
+  const maxMiles = num(formData, "max_miles");
+  const fee = num(formData, "dispatch_fee");
+  if (zoneNumber == null || minMiles == null || maxMiles == null || fee == null) return;
+  if (maxMiles <= minMiles) return;
+  await supabase.from("pricing_zones").insert({
+    tenant_id: tenantId,
+    business_id: businessId,
+    zone_number: Math.round(zoneNumber),
+    min_miles: minMiles,
+    max_miles: maxMiles,
+    dispatch_fee: fee,
+  });
+  revalidatePath("/dashboard/pricing");
+}
+
+export async function deleteZone(formData: FormData) {
+  await deleteRow("pricing_zones", formData);
+}
+
+/** Add a surcharge (auto by time window, or conditional/mentioned). */
+export async function addSurcharge(formData: FormData) {
+  const { tenantId, supabase, businessId } = await ctx();
+  if (!businessId) return;
+  const name = String(formData.get("name") ?? "").trim().slice(0, 160);
+  const amount = num(formData, "amount");
+  if (!name || amount == null) return;
+  const applyType = formData.get("apply_type") === "auto_time" ? "auto_time" : "conditional";
+  await supabase.from("pricing_surcharges").insert({
+    tenant_id: tenantId,
+    business_id: businessId,
+    name,
+    amount,
+    apply_type: applyType,
+    window_start: applyType === "auto_time" ? String(formData.get("window_start") ?? "").trim() || null : null,
+    window_end: applyType === "auto_time" ? String(formData.get("window_end") ?? "").trim() || null : null,
+  });
+  revalidatePath("/dashboard/pricing");
+}
+
+export async function deleteSurcharge(formData: FormData) {
+  await deleteRow("pricing_surcharges", formData);
+}

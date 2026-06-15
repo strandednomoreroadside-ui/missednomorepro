@@ -21,9 +21,9 @@ function resolveZone(zones, miles) {
   return null;
 }
 const ZONES = [
-  { n: 1, max: 8, fee: 65 },
-  { n: 2, max: 16, fee: 75 },
-  { n: 3, max: 25, fee: 85 },
+  { n: 1, max: 8, fee: 55 },
+  { n: 2, max: 16, fee: 65 },
+  { n: 3, max: 25, fee: 75 },
 ];
 const LATE = [21 * 60, 5 * 60]; // 9 PM–5 AM
 function quote({ service, miles, towMiles, timeMin, maxMiles = 25 }) {
@@ -34,22 +34,23 @@ function quote({ service, miles, towMiles, timeMin, maxMiles = 25 }) {
   const z = resolveZone(ZONES, miles);
   if (!z) return { ok: false, reason: "no_zone" };
   let total = z.fee;
-  if (service.type === "tow") total += service.hook + service.rate * towMiles;
-  else total += service.fee;
+  if (service.type === "tow") {
+    total += service.hook + service.rate * Math.max(0, towMiles - (service.free ?? 0));
+  } else total += service.fee;
   if (inWindow(timeMin, LATE[0], LATE[1])) total += 20; // auto late-night
   return { ok: true, total: Math.round(total * 100) / 100 };
 }
 
-const JUMP = { type: "flat", fee: 45 };
-const LOCK = { type: "flat", fee: 55 };
-const NOSPARE = { type: "flat", fee: 85, availStart: 9 * 60, availEnd: 16 * 60 };
-const TOW = { type: "tow", hook: 65, rate: 2.5 };
+const JUMP = { type: "flat", fee: 40 };
+const LOCK = { type: "flat", fee: 50 };
+const NOSPARE = { type: "flat", fee: 80, availStart: 9 * 60, availEnd: 16 * 60 };
+const TOW = { type: "tow", hook: 60, rate: 2.5, free: 5 };
 
 const cases = [
-  ["Jump, Zone1 (5mi), 10AM", quote({ service: JUMP, miles: 5, timeMin: 600 }), { ok: true, total: 110 }],
-  ["Jump, Zone2 (12mi), 11PM late", quote({ service: JUMP, miles: 12, timeMin: 1380 }), { ok: true, total: 140 }],
-  ["Lockout, Zone3 (20mi), 2PM", quote({ service: LOCK, miles: 20, timeMin: 840 }), { ok: true, total: 140 }],
-  ["Tow, Zone1 pickup (5mi) + 10 tow mi, 2PM", quote({ service: TOW, miles: 5, towMiles: 10, timeMin: 840 }), { ok: true, total: 155 }],
+  ["Jump, Zone1 (5mi), 10AM", quote({ service: JUMP, miles: 5, timeMin: 600 }), { ok: true, total: 95 }],
+  ["Jump, Zone2 (12mi), 11PM late", quote({ service: JUMP, miles: 12, timeMin: 1380 }), { ok: true, total: 125 }],
+  ["Lockout, Zone3 (20mi), 2PM", quote({ service: LOCK, miles: 20, timeMin: 840 }), { ok: true, total: 125 }],
+  ["Tow, Zone1 (5mi) + 10 tow mi, 5 free, 2PM", quote({ service: TOW, miles: 5, towMiles: 10, timeMin: 840 }), { ok: true, total: 127.5 }],
   ["Out of area (30mi)", quote({ service: JUMP, miles: 30, timeMin: 840 }), { ok: false, reason: "out_of_area" }],
   ["No-spare tire at 6PM (closed)", quote({ service: NOSPARE, miles: 5, timeMin: 1080 }), { ok: false, reason: "service_unavailable" }],
 ];

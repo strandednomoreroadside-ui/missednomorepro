@@ -23,6 +23,8 @@ export interface ServicePrice {
   service_fee: number;
   hook_fee: number | null;
   per_mile_rate: number | null;
+  /** Tow only: included miles before the per-mile rate kicks in. */
+  free_miles: number | null;
   variable_part: string | null;
   available_start: string | null; // "HH:MM[:SS]"
   available_end: string | null;
@@ -146,11 +148,15 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     if (input.towMiles == null) return { ...base, reason: "need_destination" };
     const hook = input.service.hook_fee ?? 0;
     const rate = input.service.per_mile_rate ?? 0;
+    const free = input.service.free_miles ?? 0;
     const towMiles = money(input.towMiles);
+    const chargeableMiles = Math.max(0, input.towMiles - free);
     lines.push({ label: "Tow hook fee", amount: money(hook) });
     lines.push({
-      label: `Towing ${towMiles} mi @ $${rate.toFixed(2)}/mi`,
-      amount: money(rate * input.towMiles),
+      label:
+        `Towing ${towMiles} mi @ $${rate.toFixed(2)}/mi` +
+        (free > 0 ? ` (first ${free} free)` : ""),
+      amount: money(rate * chargeableMiles),
     });
   } else {
     lines.push({ label: input.service.name, amount: money(input.service.service_fee) });

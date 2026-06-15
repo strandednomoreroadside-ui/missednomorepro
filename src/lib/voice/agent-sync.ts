@@ -23,7 +23,7 @@ export async function loadPromptInput(
   admin: SupabaseClient,
   business: AgentBusiness
 ): Promise<PromptInput> {
-  const [services, hours, areas, faqs, sms, agent, conn, quoting] = await Promise.all([
+  const [services, hours, areas, faqs, sms, agent, conn, quoting, pricing] = await Promise.all([
     admin
       .from("services")
       .select("id, name, description, active")
@@ -63,10 +63,32 @@ export async function loadPromptInput(
       .eq("business_id", business.id)
       .maybeSingle(),
     isQuotingEnabled(admin, business.tenant_id, business.id),
+    admin
+      .from("service_pricing")
+      .select("name")
+      .eq("business_id", business.id)
+      .eq("active", true),
   ]);
 
   const language =
     (agent.data?.language_settings as { language?: string } | null)?.language ?? null;
+
+  // The AI's spoken service list must reflect what the business ACTUALLY
+  // offers. The M4 wizard `services` table and the `service_pricing` sheet
+  // can diverge, so union them (dedupe by name) — otherwise the AI only
+  // "knows" the handful of services from the original wizard setup.
+  const m4Services = (services.data ?? []) as PromptInput["services"];
+  const pricedNames = ((pricing.data ?? []) as { name: string }[]).map((p) => p.name);
+  const haveNames = new Set(
+    m4Services.filter((s) => s.active).map((s) => s.name.toLowerCase())
+  );
+  const mergedServices = [...m4Services];
+  for (const name of pricedNames) {
+    if (!haveNames.has(name.toLowerCase())) {
+      mergedServices.push({ id: `price:${name}`, name, description: null, active: true });
+      haveNames.add(name.toLowerCase());
+    }
+  }
 
   return {
     business: {
@@ -74,7 +96,7 @@ export async function loadPromptInput(
       industry: business.industry,
       timezone: business.timezone,
     },
-    services: (services.data ?? []) as PromptInput["services"],
+    services: mergedServices,
     hours: (hours.data ?? []) as PromptInput["hours"],
     areas: (areas.data ?? []) as PromptInput["areas"],
     faqs: (faqs.data ?? []) as PromptInput["faqs"],

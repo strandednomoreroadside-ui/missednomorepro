@@ -19,26 +19,26 @@ const db = createClient(
 const BASE_ADDRESS = "6466 Haviland Dr, Brook Park, OH 44142";
 
 const ZONES = [
-  { zone_number: 1, min_miles: 0.1, max_miles: 8, dispatch_fee: 65 },
-  { zone_number: 2, min_miles: 8.1, max_miles: 16, dispatch_fee: 75 },
-  { zone_number: 3, min_miles: 16.1, max_miles: 25, dispatch_fee: 85 },
+  { zone_number: 1, min_miles: 0.1, max_miles: 8, dispatch_fee: 55 },
+  { zone_number: 2, min_miles: 8.1, max_miles: 16, dispatch_fee: 65 },
+  { zone_number: 3, min_miles: 16.1, max_miles: 25, dispatch_fee: 75 },
 ];
 
 const SERVICES = [
-  { name: "Jump Start", pricing_type: "flat", service_fee: 45 },
-  { name: "Vehicle Lockout", pricing_type: "flat", service_fee: 55 },
-  { name: "Flat Tire Change With Spare", pricing_type: "flat", service_fee: 65 },
+  { name: "Jump Start", pricing_type: "flat", service_fee: 40 },
+  { name: "Vehicle Lockout", pricing_type: "flat", service_fee: 50 },
+  { name: "Flat Tire Change With Spare", pricing_type: "flat", service_fee: 60 },
   {
     name: "Flat Tire Change Without Spare",
     pricing_type: "flat",
-    service_fee: 85,
+    service_fee: 80,
     variable_part: "tire",
     available_start: "09:00",
     available_end: "16:00",
   },
-  { name: "Battery Testing / Replacement", pricing_type: "flat", service_fee: 55, variable_part: "battery" },
-  { name: "Emergency Fuel Delivery", pricing_type: "flat", service_fee: 45, variable_part: "fuel" },
-  { name: "Local Towing", pricing_type: "tow", service_fee: 0, hook_fee: 65, per_mile_rate: 2.5 },
+  { name: "Battery Testing / Replacement", pricing_type: "flat", service_fee: 50, variable_part: "battery" },
+  { name: "Emergency Fuel Delivery", pricing_type: "flat", service_fee: 40, variable_part: "fuel" },
+  { name: "Local Towing", pricing_type: "tow", service_fee: 0, hook_fee: 60, per_mile_rate: 2.5, free_miles: 5 },
 ];
 
 const SURCHARGES = [
@@ -100,7 +100,11 @@ const withIds = (rows) =>
 
 const z = await db.from("pricing_zones").insert(withIds(ZONES));
 if (z.error) throw new Error(`zones: ${z.error.message}`);
-const s = await db.from("service_pricing").insert(withIds(SERVICES));
+// free_miles default 0 on every row — a bulk insert sends null for any key
+// missing from a row, which would violate the not-null default.
+const s = await db.from("service_pricing").insert(
+  SERVICES.map((r) => ({ tenant_id: business.tenant_id, business_id: business.id, free_miles: 0, ...r }))
+);
 if (s.error) throw new Error(`services: ${s.error.message}`);
 const sc = await db.from("pricing_surcharges").insert(withIds(SURCHARGES));
 if (sc.error) throw new Error(`surcharges: ${sc.error.message}`);

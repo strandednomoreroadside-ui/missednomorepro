@@ -15,8 +15,9 @@ import type {
 import { VOICE_TOOLS } from "./tools/registry";
 import type { VoiceAgentConfig } from "./types";
 
-/** Retell voice id — confirmed against the provider's voice list in step 7. */
-const DEFAULT_VOICE_ID = "11labs-Adrian";
+/** Retell voice id — "Grace" (operator's chosen voice, June 2026). Stored
+ *  per-agent on agents.voice_id; this is the fallback for new agents. */
+const DEFAULT_VOICE_ID = "11labs-Grace";
 const DEFAULT_LANGUAGE = "en-US";
 const DEFAULT_MAX_CALL_SECONDS = 600;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */

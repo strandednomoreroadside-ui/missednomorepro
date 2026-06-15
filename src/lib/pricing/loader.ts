@@ -46,7 +46,7 @@ export async function loadPricing(
     admin
       .from("service_pricing")
       .select(
-        "name, pricing_type, service_fee, hook_fee, per_mile_rate, variable_part, available_start, available_end"
+        "name, pricing_type, service_fee, hook_fee, per_mile_rate, free_miles, variable_part, available_start, available_end"
       )
       .eq("business_id", businessId)
       .eq("active", true),
