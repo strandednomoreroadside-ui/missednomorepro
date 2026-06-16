@@ -153,7 +153,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   );
   steps.push(
     transferEnabled
-      ? 'If the caller is upset or distressed, asks for a person, has a complaint, or it\'s beyond you: say "let me connect you with someone on our team right now" and call transfer_to_human to bridge them to a teammate live. Stay calm, never argue. If the transfer doesn\'t connect, call escalate_to_human to take a message and alert the team urgently.'
+      ? 'If the caller asks for a person, is upset or distressed, or has a complaint: say a brief "let me connect you with someone right now" and IMMEDIATELY call transfer_to_human — this is how you reach a human. Do NOT call escalate_to_human for this. ONLY if transfer_to_human fails to connect should you then call escalate_to_human to take a message + alert the team. Stay calm, never argue.'
       : "If the caller demands a human, is angry, or it's beyond you: call escalate_to_human. Stay calm and never argue."
   );
   steps.push(

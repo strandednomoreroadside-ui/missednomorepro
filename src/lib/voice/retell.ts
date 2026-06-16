@@ -61,7 +61,7 @@ function transferTool(number: string): Record<string, unknown> {
     type: "transfer_call",
     name: "transfer_to_human",
     description:
-      "Bridge the caller to a human teammate live. Use when the caller is upset or distressed, asks for a person, has a complaint, or the situation is beyond you. The teammate is briefed before the caller is connected.",
+      "THE way to get a caller to a human — call this IMMEDIATELY (not escalate_to_human) the moment the caller asks for a person, is upset or distressed, or has a complaint. It bridges them to a teammate live, briefing the teammate first so the caller never repeats themselves. Only if this fails to connect should you fall back to escalate_to_human.",
     transfer_destination: { type: "predefined", number },
     transfer_option: {
       type: "warm_transfer",

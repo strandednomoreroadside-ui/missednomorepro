@@ -129,9 +129,10 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
   {
     name: "escalate_to_human",
     description:
-      "Hand the call to a human when the caller demands a person, is upset, or the situation is " +
-      "beyond you. Stay calm, don't argue. This raises an urgent staff alert and logs the call for " +
-      "immediate human follow-up. Tell the caller a team member will reach out right away.",
+      "FALLBACK ONLY — use this to take a message + raise an urgent staff alert when a live transfer " +
+      "is NOT possible (no transfer set up, after-hours, or transfer_to_human already failed to " +
+      "connect). Do NOT use this as your first move when the caller wants a person — call " +
+      "transfer_to_human first. Tell the caller a team member will reach out right away.",
     parameters: {
       type: "object",
       properties: {
