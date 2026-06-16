@@ -7,6 +7,12 @@ import type Stripe from "stripe";
 import { isPlatformAdmin } from "@/lib/auth";
 import { getStripe } from "@/lib/billing/stripe";
 import { ALL_LOOKUP_KEYS, PLAN_META, PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
+import {
+  ADDON_META,
+  ADDON_ORDER,
+  ALL_ADDON_LOOKUP_KEYS,
+  addonLookupKey,
+} from "@/lib/billing/addons";
 import { env } from "@/lib/env";
 import { getOrigin } from "@/lib/request";
 
@@ -40,7 +46,7 @@ export async function runStripeSetup() {
 
   // ── Products & prices ──────────────────────────────────────────
   const existing = await stripe.prices.list({
-    lookup_keys: [...ALL_LOOKUP_KEYS],
+    lookup_keys: [...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS],
     limit: 100,
   });
   const have = new Set(existing.data.map((p) => p.lookup_key));
@@ -90,6 +96,35 @@ export async function runStripeSetup() {
     }
   }
 
+  // ── Add-on products & prices (monthly only) ────────────────────
+  for (const key of ADDON_ORDER) {
+    const meta = ADDON_META[key];
+    const lk = addonLookupKey(key);
+    if (have.has(lk)) {
+      log.push(`= Add-on ${meta.name}: price already exists`);
+      continue;
+    }
+    const search = await stripe.products.search({
+      query: `metadata['addon']:'${key}'`,
+      limit: 1,
+    });
+    const product =
+      search.data[0] ??
+      (await stripe.products.create({
+        name: `Missed No More Pro — ${meta.name}`,
+        metadata: { addon: key },
+      }));
+    await stripe.prices.create({
+      product: product.id,
+      currency: "usd",
+      unit_amount: Math.round(meta.monthly * 100),
+      recurring: { interval: "month" },
+      lookup_key: lk,
+      metadata: { addon: key },
+    });
+    log.push(`+ Add-on ${meta.name} $${meta.monthly}/mo`);
+  }
+
   // ── Webhook endpoint on the production URL ─────────────────────
   const webhookUrl = `${await productionBaseUrl()}/api/stripe/webhook`;
   const endpoints = await stripe.webhookEndpoints.list({ limit: 100 });
@@ -114,9 +149,9 @@ export async function runStripeSetup() {
   if (configs.data.some((c) => c.active)) {
     log.push("= Customer Portal already configured");
   } else {
-    // Allow switching between every plan/interval in the catalog.
+    // Allow switching between every plan/interval + managing add-ons.
     const prices = await stripe.prices.list({
-      lookup_keys: [...ALL_LOOKUP_KEYS],
+      lookup_keys: [...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS],
       limit: 100,
     });
     const byProduct = new Map<string, string[]>();

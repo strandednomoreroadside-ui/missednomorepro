@@ -5,13 +5,19 @@ import { redirect } from "next/navigation";
 import { requireActiveOrg } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { ALL_LOOKUP_KEYS } from "@/lib/billing/plans";
+import { addonLookupKey, isAddonKey, parseAddonLookupKey } from "@/lib/billing/addons";
 import { getStripe } from "@/lib/billing/stripe";
 import { getSubscription } from "@/lib/billing/subscription";
+import { syncSubscription } from "@/lib/billing/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrigin } from "@/lib/request";
 
 function billingError(message: string): never {
   redirect(`/dashboard/billing?error=${encodeURIComponent(message)}`);
+}
+
+function billingOk(): never {
+  redirect(`/dashboard/billing?addon=1`);
 }
 
 /** Starts a Stripe Checkout session for the selected plan/interval. */
@@ -84,6 +90,105 @@ export async function startCheckout(formData: FormData) {
   }
 
   redirect(checkoutUrl);
+}
+
+/** Adds an add-on as a new subscription item on the tenant's plan. */
+export async function addAddon(formData: FormData) {
+  const key = String(formData.get("addon_key") ?? "");
+  if (!isAddonKey(key)) billingError("Unknown add-on.");
+
+  const { user, active } = await requireActiveOrg();
+  if (active.role !== "owner" && active.role !== "admin") {
+    billingError("Only the workspace owner or an admin can manage billing.");
+  }
+  const tenantId = active.organization_id;
+
+  const sub = await getSubscription(tenantId);
+  if (!sub?.stripe_subscription_id) {
+    billingError("Choose a plan before adding add-ons.");
+  }
+
+  try {
+    const stripe = getStripe();
+    const prices = await stripe.prices.list({ lookup_keys: [addonLookupKey(key)], limit: 1 });
+    const price = prices.data[0];
+    if (!price) throw new Error("Add-on price not found — run Stripe setup.");
+
+    const full = await stripe.subscriptions.retrieve(sub.stripe_subscription_id, {
+      expand: ["items.data.price"],
+    });
+    const already = full.items.data.find(
+      (i) => parseAddonLookupKey(i.price?.lookup_key) === key || i.price?.metadata?.addon === key
+    );
+    if (!already) {
+      await stripe.subscriptionItems.create({
+        subscription: sub.stripe_subscription_id,
+        price: price.id,
+        quantity: 1,
+        proration_behavior: "create_prorations",
+      });
+      const refreshed = await stripe.subscriptions.retrieve(sub.stripe_subscription_id, {
+        expand: ["items.data.price"],
+      });
+      await syncSubscription(createAdminClient(), stripe, refreshed);
+    }
+
+    await logAudit({
+      tenantId,
+      actorUserId: user.id,
+      action: "billing.addon_added",
+      entityType: "addon",
+      entityId: key,
+    });
+  } catch (err) {
+    console.error("[billing] addAddon failed:", err);
+    billingError("Could not add that add-on. Try again in a moment.");
+  }
+  billingOk();
+}
+
+/** Removes an add-on subscription item from the tenant's plan. */
+export async function removeAddon(formData: FormData) {
+  const key = String(formData.get("addon_key") ?? "");
+  if (!isAddonKey(key)) billingError("Unknown add-on.");
+
+  const { user, active } = await requireActiveOrg();
+  if (active.role !== "owner" && active.role !== "admin") {
+    billingError("Only the workspace owner or an admin can manage billing.");
+  }
+  const tenantId = active.organization_id;
+
+  const sub = await getSubscription(tenantId);
+  if (!sub?.stripe_subscription_id) billingError("No subscription to change.");
+
+  try {
+    const stripe = getStripe();
+    const full = await stripe.subscriptions.retrieve(sub.stripe_subscription_id, {
+      expand: ["items.data.price"],
+    });
+    const item = full.items.data.find(
+      (i) => parseAddonLookupKey(i.price?.lookup_key) === key || i.price?.metadata?.addon === key
+    );
+    if (item) {
+      await stripe.subscriptionItems.del(item.id, { proration_behavior: "create_prorations" });
+      const refreshed = await stripe.subscriptions.retrieve(sub.stripe_subscription_id, {
+        expand: ["items.data.price"],
+      });
+      await syncSubscription(createAdminClient(), stripe, refreshed);
+    }
+
+    await logAudit({
+      tenantId,
+      actorUserId: user.id,
+      action: "billing.addon_removed",
+      entityType: "addon",
+      entityId: key,
+    });
+  } catch (err) {
+    console.error("[billing] removeAddon failed:", err);
+    billingError("Could not remove that add-on. Try again in a moment.");
+  }
+  billingOk();
 }
 
 /** Opens the Stripe Customer Portal (plan changes, cards, invoices, cancel). */

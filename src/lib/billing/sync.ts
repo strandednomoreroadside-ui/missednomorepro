@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { parseLookupKey, PLAN_ORDER, type PlanId } from "@/lib/billing/plans";
+import { parseAddonLookupKey, type AddonKey } from "@/lib/billing/addons";
 import { logAudit } from "@/lib/audit";
 
 /** Statuses that entitle the org to its plan (mirrors subscription.ts). */
@@ -34,7 +35,12 @@ export async function syncSubscription(
     return;
   }
 
-  const item = sub.items?.data?.[0];
+  // The subscription carries the base plan item PLUS any add-on items. Find
+  // the base plan item (parses to a plan); collect add-on items separately.
+  const items = sub.items?.data ?? [];
+  const item =
+    items.find((i) => parseLookupKey(i.price?.lookup_key) || PLAN_ORDER.includes(i.price?.metadata?.plan as PlanId)) ??
+    items[0];
   let parsed = parseLookupKey(item?.price?.lookup_key);
   if (!parsed) {
     // Fallback: the plan/interval metadata we stamp on every price.
@@ -86,6 +92,8 @@ export async function syncSubscription(
     .eq("id", tenantId);
   if (orgErr) throw new Error(`organizations plan update failed: ${orgErr.message}`);
 
+  await syncAddons(admin, tenantId, items, ENTITLED.has(sub.status));
+
   await logAudit({
     tenantId,
     action: "billing.subscription_synced",
@@ -93,4 +101,56 @@ export async function syncSubscription(
     entityId: sub.id,
     metadata: { plan, status: sub.status, interval },
   });
+}
+
+/**
+ * Reconcile tenant_addons against the add-on items currently on the Stripe
+ * subscription. Present items → active; previously-active rows no longer on
+ * the subscription → canceled. Stripe is the source of truth.
+ */
+async function syncAddons(
+  admin: SupabaseClient,
+  tenantId: string,
+  items: Stripe.SubscriptionItem[],
+  entitled: boolean
+) {
+  const present = new Map<AddonKey, Stripe.SubscriptionItem>();
+  for (const it of items) {
+    const key =
+      parseAddonLookupKey(it.price?.lookup_key) ??
+      (it.price?.metadata?.addon as AddonKey | undefined) ??
+      null;
+    if (key) present.set(key, it);
+  }
+
+  for (const [key, it] of present) {
+    const { error } = await admin.from("tenant_addons").upsert(
+      {
+        tenant_id: tenantId,
+        addon_key: key,
+        status: entitled ? "active" : "canceled",
+        stripe_subscription_item_id: it.id,
+        stripe_price_id: typeof it.price?.id === "string" ? it.price.id : null,
+      },
+      { onConflict: "tenant_id,addon_key" }
+    );
+    if (error) throw new Error(`tenant_addons upsert failed: ${error.message}`);
+  }
+
+  // Cancel any add-on we still have marked active that's no longer present.
+  const { data: existing } = await admin
+    .from("tenant_addons")
+    .select("addon_key")
+    .eq("tenant_id", tenantId)
+    .eq("status", "active");
+  for (const row of existing ?? []) {
+    const key = row.addon_key as AddonKey;
+    if (!present.has(key)) {
+      await admin
+        .from("tenant_addons")
+        .update({ status: "canceled" })
+        .eq("tenant_id", tenantId)
+        .eq("addon_key", key);
+    }
+  }
 }

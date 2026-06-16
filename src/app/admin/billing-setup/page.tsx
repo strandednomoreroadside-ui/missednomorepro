@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ALL_LOOKUP_KEYS } from "@/lib/billing/plans";
+import { ALL_ADDON_LOOKUP_KEYS } from "@/lib/billing/addons";
 import { getStripe } from "@/lib/billing/stripe";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -77,8 +78,9 @@ async function stripeChecks(): Promise<Check[]> {
   }
   try {
     const stripe = getStripe();
+    const expectedKeys = [...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS];
     const [prices, endpoints, portals] = await Promise.all([
-      stripe.prices.list({ lookup_keys: [...ALL_LOOKUP_KEYS], limit: 100 }),
+      stripe.prices.list({ lookup_keys: expectedKeys, limit: 100 }),
       stripe.webhookEndpoints.list({ limit: 100 }),
       stripe.billingPortal.configurations.list({ limit: 10 }),
     ]);
@@ -89,12 +91,12 @@ async function stripeChecks(): Promise<Check[]> {
 
     return [
       {
-        label: "Plan catalog in Stripe (10 prices)",
-        state: found === ALL_LOOKUP_KEYS.length ? "ok" : "todo",
+        label: `Plan + add-on catalog in Stripe (${expectedKeys.length} prices)`,
+        state: found === expectedKeys.length ? "ok" : "todo",
         detail:
-          found === ALL_LOOKUP_KEYS.length
-            ? "All 5 plans exist with monthly + annual prices."
-            : `${found} of ${ALL_LOOKUP_KEYS.length} prices exist — run setup below.`,
+          found === expectedKeys.length
+            ? "All plans (monthly + annual) and add-ons exist."
+            : `${found} of ${expectedKeys.length} prices exist — run setup below.`,
       },
       {
         label: "Stripe webhook endpoint",

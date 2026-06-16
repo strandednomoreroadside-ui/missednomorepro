@@ -13,13 +13,20 @@ import { FormBanner } from "@/components/form-banner";
 import { requireActiveOrg } from "@/lib/auth";
 import { PLAN_META, PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
 import {
+  ADDON_META,
+  ADDON_ORDER,
+  effectiveAddonKeys,
+  type AddonKey,
+} from "@/lib/billing/addons";
+import {
   effectivePlan,
   getPlanLimits,
   getSubscription,
 } from "@/lib/billing/subscription";
 import { getUsageSummary, type UsageStatus } from "@/lib/billing/usage";
+import { createClient } from "@/lib/supabase/server";
 
-import { openBillingPortal, startCheckout } from "./actions";
+import { addAddon, openBillingPortal, removeAddon, startCheckout } from "./actions";
 
 export const metadata: Metadata = { title: "Billing" };
 
@@ -46,10 +53,31 @@ export default async function BillingPage({
     voice_minutes: "AI minutes",
     sms: "texts",
   };
+  const overageRate: Record<UsageStatus["kind"], number> = {
+    voice_minutes: limits.overage_per_minute_cents,
+    sms: limits.overage_per_sms_cents,
+  };
+
+  // Active add-ons (members may read tenant_addons). Expand the bundle so the
+  // three growth add-ons show as included when the bundle is active.
+  const supabase = await createClient();
+  const { data: addonRows } =
+    plan !== "none"
+      ? await supabase
+          .from("tenant_addons")
+          .select("addon_key")
+          .eq("tenant_id", active.organization_id)
+          .eq("status", "active")
+      : { data: [] };
+  const purchased = new Set<AddonKey>(
+    ((addonRows ?? []) as { addon_key: AddonKey }[]).map((r) => r.addon_key)
+  );
+  const effectiveAddons = effectiveAddonKeys(purchased);
 
   const error = typeof sp.error === "string" ? sp.error : undefined;
   const success = sp.success === "1";
   const canceled = sp.canceled === "1";
+  const addonSaved = sp.addon === "1";
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -69,6 +97,11 @@ export default async function BillingPage({
         {canceled && (
           <FormBanner kind="error">
             Checkout canceled — nothing was charged.
+          </FormBanner>
+        )}
+        {addonSaved && (
+          <FormBanner kind="success">
+            Add-ons updated. Your subscription was adjusted with prorated billing.
           </FormBanner>
         )}
       </div>
@@ -124,14 +157,23 @@ export default async function BillingPage({
               <span className="font-mono text-[10px] uppercase tracking-widest text-steel">
                 Used this period
               </span>
-              {usage.map((u) => (
-                <span key={u.kind}>
-                  <span className="font-mono text-cyan">
-                    {u.used.toLocaleString()}
-                  </span>{" "}
-                  / {u.limit.toLocaleString()} {usageLabel[u.kind]}
-                </span>
-              ))}
+              {usage.map((u) => {
+                const over = Math.max(0, u.used - u.limit);
+                const overCost = (over * overageRate[u.kind]) / 100;
+                return (
+                  <span key={u.kind}>
+                    <span className="font-mono text-cyan">
+                      {u.used.toLocaleString()}
+                    </span>{" "}
+                    / {u.limit.toLocaleString()} {usageLabel[u.kind]}
+                    {over > 0 && (
+                      <span className="ml-1 text-amber-500">
+                        (+{over.toLocaleString()} over ≈ ${overCost.toFixed(2)})
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
             </div>
           )}
           {canManage && sub?.stripe_customer_id && (
@@ -241,6 +283,71 @@ export default async function BillingPage({
         once you&rsquo;re subscribed. Overage protection is built in — no
         surprise bills.
       </p>
+
+      {/* ── Add-ons ── */}
+      <h2 className="mt-10 font-display text-lg font-semibold">Add-ons</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Bolt on extra automation. Billed monthly on top of your plan, prorated
+        from the day you add them.
+        {plan === "none" && " Choose a plan first to enable add-ons."}
+      </p>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ADDON_ORDER.map((key) => {
+          const meta = ADDON_META[key];
+          const isPurchased = purchased.has(key);
+          const includedViaBundle = !isPurchased && effectiveAddons.has(key);
+          const isActive = isPurchased || includedViaBundle;
+          const canToggle = canManage && plan !== "none" && !!sub?.stripe_subscription_id;
+          return (
+            <div
+              key={key}
+              className={`flex flex-col rounded-xl p-5 ${
+                isActive ? "border border-cyan/50 bg-cyan/5" : "border border-border bg-card/60"
+              }`}
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="font-display text-base font-semibold">{meta.name}</h3>
+                <span className="font-mono text-sm text-cyan">+${meta.monthly}/mo</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{meta.blurb}</p>
+              <ul className="mt-3 flex-1 space-y-1.5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
+                {meta.highlights.map((h) => (
+                  <li key={h} className="flex items-center gap-1.5">
+                    <Check className="size-3 shrink-0 text-cyan/70" strokeWidth={3} aria-hidden />
+                    {h}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4">
+                {includedViaBundle ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-cyan/30 px-2 py-1 text-[10px] font-medium uppercase text-cyan">
+                    <Check className="size-3" strokeWidth={3} aria-hidden />
+                    Included in Growth Suite
+                  </span>
+                ) : !canToggle ? (
+                  <span className="text-[11px] text-steel">
+                    {plan === "none" ? "Requires a plan" : isActive ? "Active" : ""}
+                  </span>
+                ) : isPurchased ? (
+                  <form action={removeAddon}>
+                    <input type="hidden" name="addon_key" value={key} />
+                    <Button type="submit" variant="outline" size="sm" className="w-full">
+                      Remove
+                    </Button>
+                  </form>
+                ) : (
+                  <form action={addAddon}>
+                    <input type="hidden" name="addon_key" value={key} />
+                    <Button type="submit" size="sm" className="w-full">
+                      Add — ${meta.monthly}/mo
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
