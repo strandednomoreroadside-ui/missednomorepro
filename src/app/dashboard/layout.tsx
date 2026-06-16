@@ -1,9 +1,8 @@
 import Link from "next/link";
 import {
+  BookOpen,
   CalendarCheck,
   CreditCard,
-  DollarSign,
-  HelpCircle,
   LayoutDashboard,
   MessageSquare,
   PhoneCall,
@@ -79,18 +78,11 @@ export default async function DashboardLayout({
             Jobs
           </Link>
           <Link
-            href="/dashboard/pricing"
+            href="/dashboard/knowledge"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
           >
-            <DollarSign className="size-4" aria-hidden />
-            Pricing
-          </Link>
-          <Link
-            href="/dashboard/faqs"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
-          >
-            <HelpCircle className="size-4" aria-hidden />
-            FAQs
+            <BookOpen className="size-4" aria-hidden />
+            Knowledge Hub
           </Link>
           <Link
             href="/dashboard/billing"
