@@ -9,9 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { requireActiveOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+
+import { updateJobStatus } from "./actions";
 
 export const metadata: Metadata = { title: "Jobs" };
 
@@ -146,6 +150,24 @@ export default async function JobsPage() {
                     >
                       {meta.label}
                     </span>
+                    <form action={updateJobStatus} className="flex items-center gap-1">
+                      <input type="hidden" name="job_id" value={job.id} />
+                      <Select
+                        name="status"
+                        defaultValue={job.status}
+                        className="h-8 w-32 text-xs"
+                        aria-label="Update job status"
+                      >
+                        {Object.entries(STATUS_META).map(([value, m]) => (
+                          <option key={value} value={value}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </Select>
+                      <Button type="submit" variant="outline" size="sm">
+                        Update
+                      </Button>
+                    </form>
                   </li>
                 );
               })}

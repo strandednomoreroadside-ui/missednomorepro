@@ -3,6 +3,7 @@ import {
   BookOpen,
   CalendarCheck,
   CreditCard,
+  KanbanSquare,
   LayoutDashboard,
   MessageSquare,
   PhoneCall,
@@ -55,6 +56,13 @@ export default async function DashboardLayout({
           >
             <Users className="size-4" aria-hidden />
             Contacts
+          </Link>
+          <Link
+            href="/dashboard/leads"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <KanbanSquare className="size-4" aria-hidden />
+            Pipeline
           </Link>
           <Link
             href="/dashboard/calls"

@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
+import { advanceLead } from "@/lib/crm/pipeline";
 import {
   computeAvailableSlots,
   isWithinBusinessHours,
@@ -258,7 +259,7 @@ const createContact = defineTool(
           tenant_id: ctx.tenantId,
           contact_id: contactId,
           source: "call",
-          status: "new",
+          status: "new_lead",
           service_needed: args.need,
         })
         .select("id")
@@ -903,6 +904,9 @@ const bookAppointment = defineTool(
       .eq("tenant_id", ctx.tenantId)
       .or("disposition.is.null,disposition.eq.lead");
 
+    // Pipeline: this lead is now scheduled.
+    await advanceLead(ctx.admin, ctx.tenantId, contactId, "scheduled");
+
     // Confirmation text (transactional — they asked to book; STOP still wins).
     const label = formatSlotLabel(start, tz);
     let smsSent = false;
@@ -1107,6 +1111,9 @@ const cancelAppointment = defineTool(
       .update({ status: "canceled" })
       .eq("appointment_id", appt.id)
       .eq("tenant_id", ctx.tenantId);
+
+    // Pipeline: a canceled appointment becomes a follow-up.
+    await advanceLead(ctx.admin, ctx.tenantId, contactId, "follow_up");
 
     // Confirmation text (transactional — they asked to cancel; STOP wins).
     let smsSent = false;
@@ -1525,6 +1532,15 @@ const calculateQuoteTool = defineTool(
         miles: result.miles,
       },
     });
+
+    // Pipeline: a real quote moves the lead to "quoted" with its value.
+    if (result.ok) {
+      const contactId = await resolveCallerContactId(ctx);
+      await advanceLead(ctx.admin, ctx.tenantId, contactId, "quoted", {
+        service: svc.name,
+        estimatedValue: result.total,
+      });
+    }
 
     return { status: "ok", data: formatQuote(result) };
   }

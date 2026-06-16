@@ -78,7 +78,24 @@ const EVENT_ICONS: Record<string, typeof NotebookPen> = {
   contact_created: UserRound,
 };
 
-const LEAD_STATUSES = ["new", "contacted", "qualified", "won", "lost"] as const;
+const LEAD_STATUSES = [
+  "new_lead",
+  "quoted",
+  "scheduled",
+  "completed",
+  "follow_up",
+  "repeat",
+  "lost",
+] as const;
+const LEAD_STATUS_LABEL: Record<string, string> = {
+  new_lead: "New Lead",
+  quoted: "Quoted",
+  scheduled: "Scheduled",
+  completed: "Completed",
+  follow_up: "Follow-Up",
+  repeat: "Repeat Customer",
+  lost: "Lost",
+};
 
 export default async function ContactDetailPage({
   params,
@@ -262,7 +279,7 @@ export default async function ContactDetailPage({
                         >
                           {LEAD_STATUSES.map((s) => (
                             <option key={s} value={s}>
-                              {s}
+                              {LEAD_STATUS_LABEL[s]}
                             </option>
                           ))}
                         </Select>

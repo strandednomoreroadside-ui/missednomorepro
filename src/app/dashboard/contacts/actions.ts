@@ -192,7 +192,11 @@ export async function updateLeadStatus(formData: FormData) {
   const contactId = text(formData, "contact_id");
   const back = `/dashboard/contacts/${contactId}`;
   const status = text(formData, "status");
-  if (!["new", "contacted", "qualified", "won", "lost"].includes(status)) {
+  if (
+    !["new_lead", "quoted", "scheduled", "completed", "follow_up", "repeat", "lost"].includes(
+      status
+    )
+  ) {
     failTo(back, "Unknown lead status.");
   }
 
