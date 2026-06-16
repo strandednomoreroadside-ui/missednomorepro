@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   BookOpen,
+  Bot,
   CalendarCheck,
   CreditCard,
   KanbanSquare,
@@ -92,6 +93,13 @@ export default async function DashboardLayout({
           >
             <CalendarCheck className="size-4" aria-hidden />
             Jobs
+          </Link>
+          <Link
+            href="/dashboard/assistant"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Bot className="size-4" aria-hidden />
+            Assistant
           </Link>
           <Link
             href="/dashboard/knowledge"
