@@ -45,10 +45,8 @@ export async function runStripeSetup() {
   let webhookSecret: string | null = null;
 
   // ── Products & prices ──────────────────────────────────────────
-  const existing = await stripe.prices.list({
-    lookup_keys: [...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS],
-    limit: 100,
-  });
+  // Stripe caps lookup_keys filtering at 10; list all and match in code.
+  const existing = await stripe.prices.list({ limit: 100 });
   const have = new Set(existing.data.map((p) => p.lookup_key));
 
   for (const plan of PLAN_ORDER) {
@@ -150,10 +148,9 @@ export async function runStripeSetup() {
     log.push("= Customer Portal already configured");
   } else {
     // Allow switching between every plan/interval + managing add-ons.
-    const prices = await stripe.prices.list({
-      lookup_keys: [...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS],
-      limit: 100,
-    });
+    const expectedSet = new Set([...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS]);
+    const priceList = await stripe.prices.list({ limit: 100 });
+    const prices = { data: priceList.data.filter((p) => p.lookup_key && expectedSet.has(p.lookup_key)) };
     const byProduct = new Map<string, string[]>();
     for (const price of prices.data) {
       const product = typeof price.product === "string" ? price.product : price.product.id;

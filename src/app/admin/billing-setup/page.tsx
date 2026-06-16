@@ -79,13 +79,18 @@ async function stripeChecks(): Promise<Check[]> {
   try {
     const stripe = getStripe();
     const expectedKeys = [...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS];
+    // Stripe caps lookup_keys filtering at 10, so list all prices and match
+    // in code (test accounts have far fewer than 100 prices).
     const [prices, endpoints, portals] = await Promise.all([
-      stripe.prices.list({ lookup_keys: expectedKeys, limit: 100 }),
+      stripe.prices.list({ limit: 100 }),
       stripe.webhookEndpoints.list({ limit: 100 }),
       stripe.billingPortal.configurations.list({ limit: 10 }),
     ]);
 
-    const found = prices.data.length;
+    const expectedSet = new Set(expectedKeys);
+    const found = prices.data.filter(
+      (p) => p.lookup_key && expectedSet.has(p.lookup_key)
+    ).length;
     const webhook = endpoints.data.find((e) => e.url.endsWith("/api/stripe/webhook"));
     const portalReady = portals.data.some((c) => c.active);
 
