@@ -51,6 +51,22 @@ export async function POST(req: Request) {
             String(session.subscription)
           );
           await syncSubscription(admin, stripe, sub);
+        } else if (session.mode === "payment" && session.payment_status === "paid") {
+          // Customer payment (deposit/invoice/payment link) — mark it paid.
+          const paymentId = session.metadata?.payment_id;
+          const tenantId = session.metadata?.tenant_id;
+          if (paymentId && tenantId) {
+            await admin
+              .from("payments")
+              .update({
+                status: "paid",
+                paid_at: new Date().toISOString(),
+                stripe_payment_intent:
+                  typeof session.payment_intent === "string" ? session.payment_intent : null,
+              })
+              .eq("id", paymentId)
+              .eq("tenant_id", tenantId);
+          }
         }
         break;
       }

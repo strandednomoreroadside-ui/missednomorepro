@@ -3,7 +3,12 @@
 import { redirect } from "next/navigation";
 
 import { requireActiveOrg } from "@/lib/auth";
+import { getEntitlements } from "@/lib/billing/entitlements";
+import { createPaymentCheckout } from "@/lib/billing/payments";
 import { normalizeUsPhone } from "@/lib/phone";
+import { getOrigin } from "@/lib/request";
+import { sendCustomerSms } from "@/lib/sms/outbound";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const text = (formData: FormData, key: string) =>
@@ -183,6 +188,120 @@ export async function createLead(formData: FormData) {
   if (error) failTo(back, error.message);
 
   redirect(`${back}?saved=1`);
+}
+
+// ── Payments (Phase 8) ──────────────────────────────────────────
+
+/** Create a Stripe payment link for a customer and text it to them. */
+export async function requestPayment(formData: FormData) {
+  const { active, user } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const contactId = text(formData, "contact_id");
+  const back = `/dashboard/contacts/${contactId}`;
+
+  // Gate: payment requests need the Growth plan (or higher).
+  const ent = await getEntitlements(active.organization_id);
+  if (!ent.has("payment_requests")) {
+    failTo(back, "Payment requests are on the Growth plan and up.");
+  }
+
+  const dollars = Number(text(formData, "amount"));
+  if (!Number.isFinite(dollars) || dollars <= 0 || dollars > 100000) {
+    failTo(back, "Enter a valid amount.");
+  }
+  const amountCents = Math.round(dollars * 100);
+  const kind = text(formData, "kind");
+  const safeKind = ["deposit", "invoice", "payment"].includes(kind) ? kind : "payment";
+  const description =
+    text(formData, "description") ||
+    `${safeKind === "deposit" ? "Deposit" : safeKind === "invoice" ? "Invoice" : "Payment"} request`;
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("id, phone")
+    .eq("id", contactId)
+    .eq("tenant_id", active.organization_id)
+    .maybeSingle();
+  if (!contact) failTo(back, "Contact not found.");
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) failTo(back, "Set up your business first.");
+
+  // Insert the pending payment, then create the Stripe link with its id.
+  const { data: payment, error: insErr } = await supabase
+    .from("payments")
+    .insert({
+      tenant_id: active.organization_id,
+      business_id: business.id,
+      contact_id: contactId,
+      kind: safeKind,
+      amount_cents: amountCents,
+      description,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+  if (insErr || !payment) failTo(back, insErr?.message ?? "Could not create the request.");
+
+  try {
+    const origin = await getOrigin();
+    const { url, sessionId } = await createPaymentCheckout({
+      paymentId: payment.id,
+      tenantId: active.organization_id,
+      amountCents,
+      currency: "usd",
+      description,
+      origin,
+    });
+    await supabase
+      .from("payments")
+      .update({ stripe_session_id: sessionId, payment_url: url })
+      .eq("id", payment.id)
+      .eq("tenant_id", active.organization_id);
+
+    // Text the customer the link (transactional — they're paying us; STOP wins).
+    if (contact.phone) {
+      const admin = createAdminClient();
+      await sendCustomerSms(admin, {
+        tenantId: active.organization_id,
+        businessId: business.id,
+        contactId,
+        toPhone: contact.phone as string,
+        body: `Here's your secure payment link for ${description}: ${url}`,
+        kind: "payment",
+        requireConsent: false,
+      });
+    }
+  } catch (err) {
+    console.error("[payments] requestPayment failed:", err);
+    failTo(back, "Could not create the payment link. Try again.");
+  }
+
+  redirect(`${back}?saved=1`);
+}
+
+/** Cancel a pending payment request. */
+export async function cancelPayment(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+  const contactId = text(formData, "contact_id");
+  const paymentId = text(formData, "payment_id");
+
+  await supabase
+    .from("payments")
+    .update({ status: "canceled" })
+    .eq("id", paymentId)
+    .eq("tenant_id", active.organization_id)
+    .eq("status", "pending");
+
+  redirect(`/dashboard/contacts/${contactId}?saved=1`);
 }
 
 export async function updateLeadStatus(formData: FormData) {

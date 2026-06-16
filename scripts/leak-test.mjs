@@ -444,6 +444,22 @@ try {
     dedupe_key: `forge-${a.orgId}`,
   });
   assert("Members cannot write the outbound queue directly", !!queueForgeErr);
+
+  // ── Payments ──────────────────────────────────────────────────
+  const { error: paySeedErr } = await admin.from("payments").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    kind: "invoice",
+    amount_cents: 12345,
+    description: "secret invoice",
+    status: "paid",
+  });
+  if (paySeedErr) throw new Error(`seed payment: ${paySeedErr.message}`);
+
+  // 25. B sees none of A's payments.
+  const { data: bPays } = await b.client.from("payments").select("tenant_id");
+  const payLeak = (bPays ?? []).filter((r) => r.tenant_id === a.orgId);
+  assert("B cannot see A's payments", payLeak.length === 0);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

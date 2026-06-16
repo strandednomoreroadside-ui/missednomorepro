@@ -30,6 +30,7 @@ export type SmsKind =
   | "reminder"
   | "followup"
   | "review"
+  | "payment"
   | "reply"
   | "help"
   | "optout_ack"

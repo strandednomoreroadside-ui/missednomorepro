@@ -54,6 +54,7 @@ export default async function DashboardPage() {
     { count: leadCount },
     { data: leadRows },
     { count: textbackCount },
+    { data: paidRows },
   ] = await Promise.all([
     supabase
       .from("businesses")
@@ -82,6 +83,12 @@ export default async function DashboardPage() {
       .eq("tenant_id", active.organization_id)
       .eq("kind", "text_back")
       .gte("created_at", since),
+    supabase
+      .from("payments")
+      .select("amount_cents")
+      .eq("tenant_id", active.organization_id)
+      .eq("status", "paid")
+      .gte("paid_at", since),
   ]);
 
   // Derive call KPIs.
@@ -110,12 +117,18 @@ export default async function DashboardPage() {
       ? STEP_META[setupState.current_step].title
       : null;
 
+  const collectedCents = ((paidRows ?? []) as { amount_cents: number }[]).reduce(
+    (sum, p) => sum + Number(p.amount_cents ?? 0),
+    0
+  );
+
   const kpis = [
     { label: "Calls (30d)", value: callsTotal.toLocaleString(), href: "/dashboard/calls" },
     { label: "Answer rate", value: pct(aiHandled, callsTotal), hint: "AI-handled" },
     { label: "Booking rate", value: pct(booked, callsTotal), hint: `${booked} booked` },
     { label: "Leads (30d)", value: (leadCount ?? 0).toLocaleString(), href: "/dashboard/leads" },
     { label: "Pipeline value", value: `$${Math.round(pipelineValue).toLocaleString()}`, hint: "quoted + booked" },
+    { label: "Collected (30d)", value: `$${Math.round(collectedCents / 100).toLocaleString()}`, hint: "paid" },
     { label: "Missed-call texts", value: (textbackCount ?? 0).toLocaleString(), hint: "recovered" },
   ];
 

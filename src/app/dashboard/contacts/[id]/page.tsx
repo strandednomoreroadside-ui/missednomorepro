@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  CreditCard,
   MessageSquare,
   NotebookPen,
   PhoneCall,
@@ -29,8 +30,10 @@ import { createClient } from "@/lib/supabase/server";
 
 import {
   addNote,
+  cancelPayment,
   createLead,
   deleteContact,
+  requestPayment,
   updateContact,
   updateLeadStatus,
 } from "../actions";
@@ -69,6 +72,18 @@ type TimelineEvent = {
   summary: string;
   created_at: string;
 };
+
+type PaymentRow = {
+  id: string;
+  kind: string;
+  amount_cents: number;
+  description: string | null;
+  status: string;
+  payment_url: string | null;
+  created_at: string;
+};
+
+const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const EVENT_ICONS: Record<string, typeof NotebookPen> = {
   note: NotebookPen,
@@ -135,6 +150,16 @@ export default async function ContactDetailPage({
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
+
+  const { data: paymentRows } = await supabase
+    .from("payments")
+    .select("id, kind, amount_cents, description, status, payment_url, created_at")
+    .eq("contact_id", id)
+    .order("created_at", { ascending: false });
+  const payments = (paymentRows ?? []) as PaymentRow[];
+  const ltvCents = payments
+    .filter((p) => p.status === "paid")
+    .reduce((sum, p) => sum + p.amount_cents, 0);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -310,6 +335,101 @@ export default async function ContactDetailPage({
                   Add lead
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* ── Payments + lifetime value ── */}
+          <Card className="bg-card/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 font-display text-base">
+                <CreditCard className="size-4 text-cyan" aria-hidden />
+                Payments
+                <span className="ml-auto font-mono text-xs text-steel">
+                  LTV {money(ltvCents)}
+                </span>
+              </CardTitle>
+              <CardDescription>
+                Text a secure Stripe link for a deposit, invoice, or payment.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form action={requestPayment} className="flex flex-wrap items-end gap-2">
+                <input type="hidden" name="contact_id" value={c.id} />
+                <label className="text-xs text-muted-foreground">
+                  Amount
+                  <Input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    placeholder="0.00"
+                    required
+                    className="mt-1 w-28"
+                    aria-label="Amount"
+                  />
+                </label>
+                <label className="text-xs text-muted-foreground">
+                  Type
+                  <Select name="kind" defaultValue="payment" className="mt-1 w-32" aria-label="Payment type">
+                    <option value="payment">Payment</option>
+                    <option value="deposit">Deposit</option>
+                    <option value="invoice">Invoice</option>
+                  </Select>
+                </label>
+                <Input
+                  name="description"
+                  placeholder="What's it for? (optional)"
+                  maxLength={200}
+                  className="min-w-40 flex-1"
+                  aria-label="Description"
+                />
+                <Button type="submit" variant="outline">
+                  Request &amp; text
+                </Button>
+              </form>
+
+              {payments.length > 0 && (
+                <ul className="divide-y divide-border/40">
+                  {payments.map((p) => (
+                    <li key={p.id} className="flex items-center gap-3 py-2 text-sm">
+                      <span className="font-mono text-foreground">{money(p.amount_cents)}</span>
+                      <span className="text-xs capitalize text-steel">{p.kind}</span>
+                      <span
+                        className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium uppercase ${
+                          p.status === "paid"
+                            ? "border-success/40 text-success"
+                            : p.status === "pending"
+                              ? "border-cyan/30 text-cyan"
+                              : "border-border/70 text-steel"
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                      <div className="ml-auto flex items-center gap-2">
+                        {p.status === "pending" && p.payment_url && (
+                          <a
+                            href={p.payment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-cyan hover:underline"
+                          >
+                            link
+                          </a>
+                        )}
+                        {p.status === "pending" && (
+                          <form action={cancelPayment}>
+                            <input type="hidden" name="contact_id" value={c.id} />
+                            <input type="hidden" name="payment_id" value={p.id} />
+                            <Button type="submit" variant="ghost" size="sm" className="h-6 px-2 text-[11px]">
+                              Cancel
+                            </Button>
+                          </form>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </div>
