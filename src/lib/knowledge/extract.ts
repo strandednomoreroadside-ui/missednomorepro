@@ -56,6 +56,7 @@ Return TWO things, only from what is EXPLICITLY written in the document:
 Rules:
 - NEVER invent or estimate a price. If a price is not clearly stated, do not include that service.
 - Use plain numbers for money (45, not "$45.00").
+- Return at most 20 items TOTAL (FAQs + services combined). If the document has more, return only the 20 most important — prioritize priced services, then the most useful FAQs.
 - If the document has no FAQs, return an empty faqs array. If it has no priced services, return an empty services array.`;
 
 const RESPONSE_SCHEMA = {
@@ -158,6 +159,10 @@ export const ACCEPTED_MIME_TYPES = [
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
+/** Max suggestions queued per document (FAQs + services combined), so a big
+ *  sheet can't flood the owner's review queue. Enforced in sanitize(). */
+export const MAX_LINE_ITEMS = 20;
+
 export function isExtractionConfigured(): boolean {
   return Boolean(env.OPENAI_API_KEY);
 }
@@ -253,5 +258,10 @@ function sanitize(result: ExtractionResult): ExtractionResult {
     })
     .filter((s) => s.name);
 
-  return { faqs, services };
+  // Cap the queue at MAX_LINE_ITEMS total, prioritizing services (higher
+  // value) then filling with FAQs — even if the model ignored the prompt.
+  const cappedServices = services.slice(0, MAX_LINE_ITEMS);
+  const cappedFaqs = faqs.slice(0, Math.max(0, MAX_LINE_ITEMS - cappedServices.length));
+
+  return { faqs: cappedFaqs, services: cappedServices };
 }

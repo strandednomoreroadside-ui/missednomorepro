@@ -23,8 +23,10 @@ import { createClient } from "@/lib/supabase/server";
 import { isExtractionConfigured, type ServiceSuggestion } from "@/lib/knowledge/extract";
 
 import {
+  approveAllForDocument,
   approveSuggestion,
   deleteDocument,
+  rejectAllForDocument,
   rejectSuggestion,
   retryExtraction,
   uploadDocument,
@@ -183,6 +185,27 @@ export default async function UploadDocsPage() {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-2">
+                  {items.length > 0 && (
+                    <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                      <span className="text-xs text-muted-foreground">
+                        {items.length} suggestion{items.length === 1 ? "" : "s"} to review
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <form action={approveAllForDocument}>
+                          <input type="hidden" name="documentId" value={doc.id} />
+                          <Button type="submit" size="sm">
+                            Approve all ({items.length})
+                          </Button>
+                        </form>
+                        <form action={rejectAllForDocument}>
+                          <input type="hidden" name="documentId" value={doc.id} />
+                          <Button type="submit" variant="ghost" size="sm">
+                            Reject all
+                          </Button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                   {items.length > 0 && (
                     <ul className="divide-y divide-border/40">
                       {items.map((s) => (
