@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireActiveOrg } from "@/lib/auth";
 import { advanceLead } from "@/lib/crm/pipeline";
+import { enqueueFollowup } from "@/lib/sms/outbound-engine";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const JOB_STATUSES = ["new", "scheduled", "in_progress", "completed", "canceled"];
@@ -24,7 +26,7 @@ export async function updateJobStatus(formData: FormData): Promise<void> {
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("id, contact_id, status")
+    .select("id, contact_id, business_id, status")
     .eq("id", jobId)
     .eq("tenant_id", tenantId)
     .maybeSingle();
@@ -63,6 +65,25 @@ export async function updateJobStatus(formData: FormData): Promise<void> {
         .update({ tags: [...tags, "Customer"] })
         .eq("id", job.contact_id)
         .eq("tenant_id", tenantId);
+    }
+
+    // Queue post-job follow-ups (opt-in; outbound_queue is service-role write).
+    if (job.business_id) {
+      const admin = createAdminClient();
+      await enqueueFollowup(admin, {
+        tenantId,
+        businessId: job.business_id,
+        contactId: job.contact_id,
+        kind: "review_request",
+        dedupeKey: `review_request:${jobId}`,
+      });
+      await enqueueFollowup(admin, {
+        tenantId,
+        businessId: job.business_id,
+        contactId: job.contact_id,
+        kind: "maintenance",
+        dedupeKey: `maintenance:${jobId}`,
+      });
     }
   }
 

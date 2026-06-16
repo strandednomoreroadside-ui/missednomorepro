@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   PhoneCall,
+  Send,
   Settings,
   ShieldCheck,
   Users,
@@ -77,6 +78,13 @@ export default async function DashboardLayout({
           >
             <MessageSquare className="size-4" aria-hidden />
             Messages
+          </Link>
+          <Link
+            href="/dashboard/automations"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Send className="size-4" aria-hidden />
+            Follow-ups
           </Link>
           <Link
             href="/dashboard/jobs"

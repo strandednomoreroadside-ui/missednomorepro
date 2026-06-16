@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
 import { advanceLead } from "@/lib/crm/pipeline";
+import { enqueueFollowup } from "@/lib/sms/outbound-engine";
 import {
   computeAvailableSlots,
   isWithinBusinessHours,
@@ -1533,13 +1534,24 @@ const calculateQuoteTool = defineTool(
       },
     });
 
-    // Pipeline: a real quote moves the lead to "quoted" with its value.
+    // Pipeline: a real quote moves the lead to "quoted" with its value, and
+    // queues a quote follow-up (opt-in; sent by the outbound cron).
     if (result.ok) {
       const contactId = await resolveCallerContactId(ctx);
       await advanceLead(ctx.admin, ctx.tenantId, contactId, "quoted", {
         service: svc.name,
         estimatedValue: result.total,
       });
+      if (contactId) {
+        const day = new Date().toISOString().slice(0, 10);
+        await enqueueFollowup(ctx.admin, {
+          tenantId: ctx.tenantId,
+          businessId: business.id,
+          contactId,
+          kind: "quote_followup",
+          dedupeKey: `quote_followup:${contactId}:${day}`,
+        });
+      }
     }
 
     return { status: "ok", data: formatQuote(result) };

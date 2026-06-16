@@ -406,6 +406,44 @@ try {
     "B cannot approve A's knowledge suggestion",
     !crossApproveErr ? stillPending?.status === "pending" : true
   );
+
+  // ── Outbound engine: automations + queued sends ───────────────
+  // Server seeds an automation + a queued outbound message for A.
+  const { error: autoSeedErr } = await admin.from("automations").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    kind: "review_request",
+    enabled: true,
+    delay_hours: 3,
+    template: "secret template",
+  });
+  if (autoSeedErr) throw new Error(`seed automation: ${autoSeedErr.message}`);
+  const { error: queueSeedErr } = await admin.from("outbound_queue").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    kind: "review_request",
+    body: "secret outbound body",
+    dedupe_key: `review_request:leak-${a.orgId}`,
+  });
+  if (queueSeedErr) throw new Error(`seed outbound_queue: ${queueSeedErr.message}`);
+
+  // 23. B sees none of A's automations or queued messages.
+  const { data: bAutos } = await b.client.from("automations").select("tenant_id");
+  const { data: bQueue } = await b.client.from("outbound_queue").select("tenant_id");
+  const outboundLeak = [...(bAutos ?? []), ...(bQueue ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's automations/outbound queue", outboundLeak.length === 0);
+
+  // 24. Outbound queue is server-written — members can't forge a send.
+  const { error: queueForgeErr } = await a.client.from("outbound_queue").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    kind: "review_request",
+    body: "forged",
+    dedupe_key: `forge-${a.orgId}`,
+  });
+  assert("Members cannot write the outbound queue directly", !!queueForgeErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {
