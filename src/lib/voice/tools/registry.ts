@@ -26,6 +26,8 @@ export const VOICE_TOOL_NAMES = [
   "send_sms",
   "check_calendar_availability",
   "book_appointment",
+  "cancel_appointment",
+  "reschedule_appointment",
   "calculate_quote",
 ] as const;
 
@@ -237,6 +239,55 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         notes: { type: "string", description: "Any extra details for the team." },
       },
       required: ["start", "title"],
+    },
+  },
+  {
+    name: "cancel_appointment",
+    description:
+      "Cancel the caller's existing appointment. Use when a known/returning caller asks to cancel. It finds " +
+      "their upcoming appointment automatically — confirm WHICH one with the caller (read back the day/time) " +
+      "before you call this. If it returns needs_selection, ask the caller which one and call again with that " +
+      "appointment's exact start time. If it returns found=false, follow the 'say' guidance. On success, tell " +
+      "the caller it's canceled.",
+    parameters: {
+      type: "object",
+      properties: {
+        start: {
+          type: "string",
+          description:
+            "The chosen appointment's exact start time (ISO 8601), copied from a needs_selection list. Omit if the caller has only one upcoming appointment.",
+        },
+        reason: {
+          type: "string",
+          description: "Optional brief reason the caller gave for canceling.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "reschedule_appointment",
+    description:
+      "Move the caller's existing appointment to a new time. First confirm WHICH appointment, then call " +
+      "check_calendar_availability for the new day and offer only the open times it returns. When the caller " +
+      "picks one, call this with that exact new start time. Rejected if the new time is outside business " +
+      "hours, in the past, or already taken — if so, check availability again and offer another. If it returns " +
+      "needs_selection, ask which appointment and pass its start time. On success, confirm the new time.",
+    parameters: {
+      type: "object",
+      properties: {
+        new_start: {
+          type: "string",
+          description:
+            "The new start time, copied exactly (ISO 8601) from a check_calendar_availability result.",
+        },
+        start: {
+          type: "string",
+          description:
+            "The existing appointment's exact start time (ISO 8601), from a needs_selection list. Omit if the caller has only one upcoming appointment.",
+        },
+      },
+      required: ["new_start"],
     },
   },
   {

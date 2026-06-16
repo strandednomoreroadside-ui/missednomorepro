@@ -20,7 +20,7 @@ import {
   todayInZone,
   zonedTimeToUtc,
 } from "@/lib/calendar/timezone";
-import { freeBusy, insertEvent } from "@/lib/google/calendar";
+import { deleteEvent, freeBusy, insertEvent } from "@/lib/google/calendar";
 import { getConnection, getValidAccessToken, isConnected } from "@/lib/google/connection";
 import { drivingDistanceMiles } from "@/lib/maps/client";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
@@ -957,6 +957,408 @@ const bookAppointment = defineTool(
   }
 );
 
+// ── cancel / reschedule (mutating, high data-risk) ─────────────
+
+type UpcomingAppt = {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  contact_id: string | null;
+  google_event_id: string | null;
+  google_calendar_id: string | null;
+};
+
+/** The caller's contact id — from the call context, or matched by their
+ *  number. Returns null when we can't tie the caller to a contact. */
+async function resolveCallerContactId(ctx: ToolContext): Promise<string | null> {
+  if (ctx.contactId) return ctx.contactId;
+  const p = normalizeUsPhone(ctx.fromNumber ?? "");
+  if (!p) return null;
+  const { data } = await ctx.admin
+    .from("contacts")
+    .select("id")
+    .eq("tenant_id", ctx.tenantId)
+    .eq("phone", p)
+    .maybeSingle();
+  return (data?.id as string | undefined) ?? null;
+}
+
+/** Upcoming confirmed appointments for a contact, soonest first. */
+async function upcomingAppointments(
+  ctx: ToolContext,
+  businessId: string,
+  contactId: string
+): Promise<UpcomingAppt[]> {
+  const { data } = await ctx.admin
+    .from("appointments")
+    .select("id, title, starts_at, ends_at, contact_id, google_event_id, google_calendar_id")
+    .eq("tenant_id", ctx.tenantId)
+    .eq("business_id", businessId)
+    .eq("contact_id", contactId)
+    .eq("status", "confirmed")
+    .gt("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true });
+  return (data ?? []) as UpcomingAppt[];
+}
+
+/** Pick the appointment the caller means: an explicit start (matched within
+ *  5 min) wins; otherwise the only upcoming one. Returns a marker when the
+ *  caller must choose between several. */
+function pickAppt(
+  appts: UpcomingAppt[],
+  startHint?: string
+): { appt?: UpcomingAppt; needsSelection?: boolean } {
+  if (appts.length === 0) return {};
+  if (startHint) {
+    const t = new Date(startHint).getTime();
+    if (!Number.isNaN(t)) {
+      let best: UpcomingAppt | null = null;
+      let bestDiff = Infinity;
+      for (const a of appts) {
+        const diff = Math.abs(new Date(a.starts_at).getTime() - t);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          best = a;
+        }
+      }
+      if (best && bestDiff <= 5 * 60_000) return { appt: best };
+    }
+  }
+  if (appts.length === 1) return { appt: appts[0] };
+  return { needsSelection: true };
+}
+
+function apptList(appts: UpcomingAppt[], tz: string) {
+  return appts.map((a) => ({
+    start: a.starts_at,
+    when: formatSlotLabel(new Date(a.starts_at), tz),
+    title: a.title,
+  }));
+}
+
+const cancelAppointment = defineTool(
+  z.object({
+    start: z.string().max(40).optional(),
+    reason: z.string().max(500).optional(),
+  }),
+  async (ctx, args) => {
+    const business = await resolveBusiness(ctx);
+    if (!business) return { status: "error", data: {}, error: "no business configured" };
+    const tz = business.timezone;
+
+    const contactId = await resolveCallerContactId(ctx);
+    if (!contactId) {
+      return {
+        status: "ok",
+        data: {
+          found: false,
+          say: "I don't see an appointment under this number. What name or number was it booked under?",
+        },
+      };
+    }
+
+    const appts = await upcomingAppointments(ctx, business.id, contactId);
+    const { appt, needsSelection } = pickAppt(appts, args.start);
+    if (needsSelection) {
+      return {
+        status: "ok",
+        data: {
+          needs_selection: true,
+          appointments: apptList(appts, tz),
+          say: "You have a few upcoming appointments — which one would you like to cancel?",
+        },
+      };
+    }
+    if (!appt) {
+      return {
+        status: "ok",
+        data: { found: false, say: "I don't see an upcoming appointment to cancel." },
+      };
+    }
+
+    const label = formatSlotLabel(new Date(appt.starts_at), tz);
+
+    const { error: updErr } = await ctx.admin
+      .from("appointments")
+      .update({ status: "canceled" })
+      .eq("id", appt.id)
+      .eq("tenant_id", ctx.tenantId);
+    if (updErr) return { status: "error", data: {}, error: updErr.message };
+
+    // Remove the Google event (best-effort; the cancellation already stands).
+    if (appt.google_event_id && appt.google_calendar_id) {
+      const conn = await getConnection(ctx.admin, ctx.tenantId, business.id);
+      if (conn && isConnected(conn)) {
+        const token = await getValidAccessToken(ctx.admin, conn);
+        if (token) {
+          try {
+            await deleteEvent(token, appt.google_calendar_id, appt.google_event_id);
+          } catch (err) {
+            console.error("[cancel] deleteEvent failed:", err);
+          }
+        }
+      }
+    }
+
+    // Cancel the linked job.
+    await ctx.admin
+      .from("jobs")
+      .update({ status: "canceled" })
+      .eq("appointment_id", appt.id)
+      .eq("tenant_id", ctx.tenantId);
+
+    // Confirmation text (transactional — they asked to cancel; STOP wins).
+    let smsSent = false;
+    const { data: contact } = await ctx.admin
+      .from("contacts")
+      .select("phone")
+      .eq("id", contactId)
+      .eq("tenant_id", ctx.tenantId)
+      .maybeSingle();
+    const toPhone = (contact?.phone as string | null) ?? ctx.fromNumber;
+    if (toPhone) {
+      const res = await sendCustomerSms(ctx.admin, {
+        tenantId: ctx.tenantId,
+        businessId: business.id,
+        contactId,
+        toPhone,
+        body: `Your appointment with ${ctx.businessName} on ${label} is canceled. Call us anytime to rebook. Reply STOP to opt out.`,
+        kind: "confirmation",
+        requireConsent: false,
+      });
+      smsSent = res.sent;
+    }
+
+    await logAudit({
+      tenantId: ctx.tenantId,
+      action: "voice.tool.cancel_appointment",
+      entityType: "appointment",
+      entityId: appt.id,
+      metadata: { callId: ctx.callId, when: appt.starts_at, reason: args.reason ?? null },
+    });
+
+    return {
+      status: "ok",
+      data: { canceled: true, when: label, confirmation_text_sent: smsSent, say: `Done — your appointment on ${label} is canceled.` },
+    };
+  }
+);
+
+const rescheduleAppointment = defineTool(
+  z.object({
+    new_start: z.string().min(10).max(40),
+    start: z.string().max(40).optional(),
+  }),
+  async (ctx, args) => {
+    const business = await resolveBusiness(ctx);
+    if (!business) return { status: "error", data: {}, error: "no business configured" };
+    const tz = business.timezone;
+
+    const contactId = await resolveCallerContactId(ctx);
+    if (!contactId) {
+      return {
+        status: "ok",
+        data: {
+          found: false,
+          say: "I don't see an appointment under this number. What name or number was it booked under?",
+        },
+      };
+    }
+
+    const appts = await upcomingAppointments(ctx, business.id, contactId);
+    const { appt, needsSelection } = pickAppt(appts, args.start);
+    if (needsSelection) {
+      return {
+        status: "ok",
+        data: {
+          needs_selection: true,
+          appointments: apptList(appts, tz),
+          say: "Which appointment would you like to move?",
+        },
+      };
+    }
+    if (!appt) {
+      return {
+        status: "ok",
+        data: { found: false, say: "I don't see an upcoming appointment to move." },
+      };
+    }
+
+    const newStart = new Date(args.new_start);
+    if (Number.isNaN(newStart.getTime())) {
+      return { status: "blocked", data: {}, error: "invalid new start time" };
+    }
+    const durationMs =
+      new Date(appt.ends_at).getTime() - new Date(appt.starts_at).getTime() ||
+      DEFAULT_AVAILABILITY.durationMinutes * 60_000;
+    const newEnd = new Date(newStart.getTime() + durationMs);
+
+    if (newStart.getTime() <= Date.now() + 60_000) {
+      return { status: "blocked", data: {}, error: "that time is in the past — offer a future time" };
+    }
+
+    const hours = await loadHours(ctx, business.id);
+    if (!isWithinBusinessHours(newStart, newEnd, hours, tz)) {
+      return {
+        status: "blocked",
+        data: {},
+        error:
+          "that time is outside business hours — call check_calendar_availability and offer a listed time",
+      };
+    }
+
+    // Google free/busy guard (the appointment's own event will be removed, so
+    // a clash here means a *different* event holds the new slot).
+    const conn = await getConnection(ctx.admin, ctx.tenantId, business.id);
+    const hasCal = !!conn && isConnected(conn);
+    let accessToken: string | null = null;
+    if (hasCal && conn) {
+      accessToken = await getValidAccessToken(ctx.admin, conn);
+      if (accessToken) {
+        try {
+          const gb = await freeBusy(
+            accessToken,
+            conn.google_calendar_id,
+            newStart.toISOString(),
+            newEnd.toISOString()
+          );
+          const clash = gb.some(
+            (b) =>
+              newStart < new Date(b.end) &&
+              newEnd > new Date(b.start) &&
+              // ignore the busy block created by this very appointment
+              !(appt.starts_at === new Date(b.start).toISOString())
+          );
+          if (clash) {
+            return {
+              status: "blocked",
+              data: { slot_unavailable: true },
+              error: "that time was just taken — offer another time",
+            };
+          }
+        } catch (err) {
+          console.error("[reschedule] freeBusy failed:", err);
+        }
+      }
+    }
+
+    // Move the appointment. The exclusion constraint guards overlaps with
+    // other confirmed appointments (code 23P01).
+    const { error: updErr } = await ctx.admin
+      .from("appointments")
+      .update({
+        starts_at: newStart.toISOString(),
+        ends_at: newEnd.toISOString(),
+        sync_status: hasCal ? "pending" : "none",
+      })
+      .eq("id", appt.id)
+      .eq("tenant_id", ctx.tenantId);
+    if (updErr) {
+      if (updErr.code === "23P01") {
+        return {
+          status: "blocked",
+          data: { slot_unavailable: true },
+          error: "that time was just taken — offer another time",
+        };
+      }
+      return { status: "error", data: {}, error: updErr.message };
+    }
+
+    // Re-create the Google event at the new time (delete old + insert new).
+    let newEventId: string | null = appt.google_event_id;
+    if (hasCal && conn && accessToken) {
+      if (appt.google_event_id) {
+        try {
+          await deleteEvent(accessToken, conn.google_calendar_id, appt.google_event_id);
+        } catch (err) {
+          console.error("[reschedule] deleteEvent failed:", err);
+        }
+      }
+      try {
+        newEventId = await insertEvent(accessToken, {
+          calendarId: conn.google_calendar_id,
+          summary: `${appt.title} — ${ctx.businessName}`,
+          description: `Rescheduled by the AI receptionist for ${ctx.businessName}.\nCaller: ${formatUsPhone(ctx.fromNumber)}`,
+          startIso: newStart.toISOString(),
+          endIso: newEnd.toISOString(),
+          timeZone: tz,
+        });
+        await ctx.admin
+          .from("appointments")
+          .update({ google_event_id: newEventId, sync_status: "synced" })
+          .eq("id", appt.id)
+          .eq("tenant_id", ctx.tenantId);
+      } catch (err) {
+        console.error("[reschedule] insertEvent failed:", err);
+        await ctx.admin
+          .from("appointments")
+          .update({ sync_status: "failed" })
+          .eq("id", appt.id)
+          .eq("tenant_id", ctx.tenantId);
+      }
+    }
+
+    // Move the linked job.
+    await ctx.admin
+      .from("jobs")
+      .update({ scheduled_for: newStart.toISOString() })
+      .eq("appointment_id", appt.id)
+      .eq("tenant_id", ctx.tenantId);
+
+    // Confirmation text with the new time (transactional; STOP wins).
+    const label = formatSlotLabel(newStart, tz);
+    let smsSent = false;
+    const { data: smsSettings } = await ctx.admin
+      .from("sms_settings")
+      .select("booking_confirmation_template")
+      .eq("business_id", business.id)
+      .maybeSingle();
+    const template =
+      (smsSettings?.booking_confirmation_template as string | undefined) ??
+      "You're booked with {business} for {time}. Reply STOP to opt out.";
+    const body = template.replaceAll("{business}", ctx.businessName).replaceAll("{time}", label);
+    const { data: contact } = await ctx.admin
+      .from("contacts")
+      .select("phone")
+      .eq("id", contactId)
+      .eq("tenant_id", ctx.tenantId)
+      .maybeSingle();
+    const toPhone = (contact?.phone as string | null) ?? ctx.fromNumber;
+    if (toPhone) {
+      const res = await sendCustomerSms(ctx.admin, {
+        tenantId: ctx.tenantId,
+        businessId: business.id,
+        contactId,
+        toPhone,
+        body,
+        kind: "confirmation",
+        requireConsent: false,
+      });
+      smsSent = res.sent;
+    }
+
+    await logAudit({
+      tenantId: ctx.tenantId,
+      action: "voice.tool.reschedule_appointment",
+      entityType: "appointment",
+      entityId: appt.id,
+      metadata: { callId: ctx.callId, from: appt.starts_at, to: newStart.toISOString() },
+    });
+
+    return {
+      status: "ok",
+      data: {
+        rescheduled: true,
+        when: label,
+        confirmation_text_sent: smsSent,
+        calendar_synced: Boolean(newEventId),
+        say: `All set — I've moved your appointment to ${label}.`,
+      },
+    };
+  }
+);
+
 // ── calculate_quote (deterministic pricing) ────────────────────
 
 function matchService(services: ServicePrice[], name: string): ServicePrice | null {
@@ -1140,5 +1542,7 @@ export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   send_sms: sendSmsTool,
   check_calendar_availability: checkCalendarAvailability,
   book_appointment: bookAppointment,
+  cancel_appointment: cancelAppointment,
+  reschedule_appointment: rescheduleAppointment,
   calculate_quote: calculateQuoteTool,
 };

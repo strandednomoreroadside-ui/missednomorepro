@@ -147,6 +147,9 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
     steps.push(
       'Booking: if the caller wants an appointment, call check_calendar_availability for the day they want, then offer the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). When they pick one, call book_appointment with that exact start time. If it comes back unavailable or outside hours, check availability again and offer a different time. Always confirm the booked time back to them.'
     );
+    steps.push(
+      'Cancel / reschedule: if a caller wants to change or cancel an existing appointment, confirm which one (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first call check_calendar_availability for the new day and offer only open times. If the tool reports it can\'t find their appointment, take their details and call notify_staff. A confirmation text is sent automatically (if they\'re opted in).'
+    );
   }
   steps.push(
     "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line spoken summary so the team can call back fast."
