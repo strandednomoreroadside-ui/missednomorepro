@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import {
+  BellRing,
   CalendarCheck,
   CheckCircle2,
   MessageSquare,
@@ -16,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { requireActiveOrg } from "@/lib/auth";
 import { isGoogleConfigured } from "@/lib/google/credentials";
@@ -26,8 +28,12 @@ import {
   connectGoogleCalendar,
   disconnectGoogleCalendar,
   updateBookingConfirmation,
+  updateReminders,
   updateTextBack,
 } from "./actions";
+
+const DEFAULT_REMINDER_TEMPLATE =
+  "Reminder: your appointment with {business} is {time}. Need to change it? Just call us back. Reply STOP to opt out.";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -87,7 +93,9 @@ export default async function SettingsPage({
     business
       ? supabase
           .from("sms_settings")
-          .select("text_back_enabled, text_back_template, booking_confirmation_template")
+          .select(
+            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template"
+          )
           .eq("business_id", business.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -105,6 +113,10 @@ export default async function SettingsPage({
   const textBackTemplate = (sms?.text_back_template ?? DEFAULT_TEMPLATE) as string;
   const bookingTemplate = (sms?.booking_confirmation_template ??
     DEFAULT_BOOKING_TEMPLATE) as string;
+  const reminderEnabled = (sms?.reminder_enabled ?? true) as boolean;
+  const reminderLeadHours = (sms?.reminder_lead_hours ?? 24) as number;
+  const reminderTemplate = (sms?.reminder_template ??
+    DEFAULT_REMINDER_TEMPLATE) as string;
   const cal = calendar as
     | { google_account_email: string | null; status: string; connected_at: string }
     | null;
@@ -247,6 +259,70 @@ export default async function SettingsPage({
                 rows={3}
                 maxLength={480}
                 aria-label="Booking confirmation message"
+              />
+              <Button type="submit">Save</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {calConnected && (
+        <Card className="mt-4 bg-card/60">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <BellRing className="size-4 text-cyan" aria-hidden />
+              Appointment reminders
+            </CardTitle>
+            <CardDescription>
+              We text customers once before their appointment so they don&rsquo;t
+              forget (and can call to change it). Use{" "}
+              <code className="text-cyan">{"{business}"}</code> and{" "}
+              <code className="text-cyan">{"{time}"}</code>. STOP always wins.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={updateReminders} className="space-y-4">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="reminder_enabled"
+                  defaultChecked={reminderEnabled}
+                  className="mt-1 accent-cyan"
+                />
+                <span>
+                  <span className="font-medium text-foreground">
+                    Send appointment reminders
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    One reminder per appointment — keeps your no-show rate down.
+                  </span>
+                </span>
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">
+                  Hours before the appointment
+                </span>
+                <Input
+                  type="number"
+                  name="reminder_lead_hours"
+                  min={1}
+                  max={168}
+                  defaultValue={reminderLeadHours}
+                  className="mt-1 w-28"
+                  aria-label="Reminder lead hours"
+                />
+                <span className="mt-1 block text-xs text-steel">
+                  Reminders are checked once a day, so the actual notice is
+                  roughly this many hours (or up to a day less for same-day
+                  bookings).
+                </span>
+              </label>
+              <Textarea
+                name="reminder_template"
+                defaultValue={reminderTemplate}
+                rows={3}
+                maxLength={480}
+                aria-label="Reminder message"
               />
               <Button type="submit">Save</Button>
             </form>

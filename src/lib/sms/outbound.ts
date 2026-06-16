@@ -27,6 +27,7 @@ export type SmsKind =
   | "text_back"
   | "staff_alert"
   | "confirmation"
+  | "reminder"
   | "reply"
   | "help"
   | "optout_ack"

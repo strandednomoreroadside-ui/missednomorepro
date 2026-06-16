@@ -70,6 +70,39 @@ export async function updateBookingConfirmation(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/** Update appointment-reminder settings (roadmap #3). */
+export async function updateReminders(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const enabled = formData.get("reminder_enabled") === "on";
+  const template = String(formData.get("reminder_template") ?? "").trim();
+  const leadRaw = Number(formData.get("reminder_lead_hours"));
+  const leadHours =
+    Number.isFinite(leadRaw) && leadRaw >= 1 && leadRaw <= 168 ? Math.round(leadRaw) : null;
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  const patch: Record<string, unknown> = { reminder_enabled: enabled };
+  if (template) patch.reminder_template = template;
+  if (leadHours != null) patch.reminder_lead_hours = leadHours;
+
+  await supabase
+    .from("sms_settings")
+    .update(patch)
+    .eq("business_id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 /**
  * Start the Google Calendar OAuth flow (M9). Sets a CSRF state cookie and
  * redirects to Google's consent screen. The connection is finished in

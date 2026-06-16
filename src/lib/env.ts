@@ -61,6 +61,10 @@ const envSchema = z.object({
   INTERNAL_API_SECRET: z.string().min(16).optional(),
   // AES-256-GCM key (32 bytes, base64) for encrypting raw transcripts (§9, M7)
   TRANSCRIPT_ENCRYPTION_KEY: z.string().min(1).optional(),
+
+  // Secret guarding cron endpoints (appointment reminders). Vercel Cron
+  // sends it as `Authorization: Bearer <CRON_SECRET>` when this env is set.
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
