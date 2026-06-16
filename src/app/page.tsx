@@ -409,43 +409,43 @@ function Features() {
 function Pricing() {
   const plans = [
     {
-      name: "Answer",
+      name: "Starter",
       price: "$99",
-      blurb: "Solo operators replacing voicemail",
-      minutes: "500 AI minutes",
-      extras: ["1 concurrent call", "1,000 texts", "1 user"],
+      blurb: "Solo operators who never want to miss a call",
+      minutes: "250 AI minutes",
+      extras: ["Booking, cancel & reschedule", "Human transfer + Google Calendar", "Review requests", "1 user"],
       popular: false,
     },
     {
-      name: "Book",
+      name: "Growth",
       price: "$199",
-      blurb: "Teams that want appointments booked",
-      minutes: "1,500 AI minutes",
-      extras: ["2 concurrent calls", "3,000 texts", "3 users"],
+      blurb: "Teams that want more leads converted",
+      minutes: "500 AI minutes",
+      extras: ["Lead pipeline + timeline", "AI follow-ups & reminders", "Payment requests + analytics", "3 users"],
       popular: false,
     },
     {
-      name: "Revenue",
+      name: "Professional",
       price: "$349",
-      blurb: "Quoting, deposits, and job creation",
-      minutes: "3,000 AI minutes",
-      extras: ["4 concurrent calls", "7,500 texts", "10 users"],
+      blurb: "Growing teams that dispatch and need insight",
+      minutes: "900 AI minutes",
+      extras: ["Dispatch board + team calendar", "AI business insights", "Make/Zapier + website chat", "10 users"],
       popular: true,
     },
     {
-      name: "Scale",
+      name: "Elite",
       price: "$599",
-      blurb: "High-volume and multi-location teams",
-      minutes: "6,000 AI minutes",
-      extras: ["8 concurrent calls", "15,000 texts", "25 users"],
+      blurb: "Multi-location operations at scale",
+      minutes: "1,500 AI minutes",
+      extras: ["Multiple locations & numbers", "Membership management", "API access", "25 users"],
       popular: false,
     },
     {
-      name: "Agency",
-      price: "$899+",
-      blurb: "Agencies managing multiple clients",
-      minutes: "10,000 pooled minutes",
-      extras: ["20 pooled calls", "30,000 texts", "+$89 per location"],
+      name: "Enterprise",
+      price: "Custom",
+      blurb: "Large & multi-location organizations",
+      minutes: "Custom minutes",
+      extras: ["Dedicated onboarding", "Custom integrations", "Priority support"],
       popular: false,
     },
   ];
@@ -474,7 +474,9 @@ function Pricing() {
             <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
             <div className="mt-2 flex items-baseline gap-1">
               <span className="font-display text-3xl font-bold">{plan.price}</span>
-              <span className="text-sm text-muted-foreground">/mo</span>
+              {plan.price.startsWith("$") && (
+                <span className="text-sm text-muted-foreground">/mo</span>
+              )}
             </div>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{plan.blurb}</p>
             <ul className="mt-4 flex-1 space-y-2 border-t border-border/70 pt-4 text-sm text-muted-foreground">

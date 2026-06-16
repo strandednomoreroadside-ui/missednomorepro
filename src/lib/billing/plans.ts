@@ -1,54 +1,105 @@
-/** Plan catalog (master plan §6.1) — UI metadata + Stripe lookup keys. */
+/** Plan catalog — the public pricing tiers (vision pricing, June 2026).
+ *
+ *  Margin note: voice minutes are the only material COGS (~$0.10–0.13/min).
+ *  Included minutes are set to the 70%-safe level; usage past them bills as
+ *  metered overage (built in Phase 4). See the approved vision plan. */
 
-export const PLAN_ORDER = ["answer", "book", "revenue", "scale", "agency"] as const;
+// Self-serve tiers (drive Stripe price creation + the pricing cards).
+export const PLAN_ORDER = ["starter", "growth", "professional", "elite"] as const;
 export type PlanId = (typeof PLAN_ORDER)[number];
-export type EffectivePlan = PlanId | "none";
+// Enterprise is custom (contact sales) — no self-serve Stripe price, but it is
+// a valid assigned plan, so it has metadata + a plan_limits row.
+export type EffectivePlan = PlanId | "enterprise" | "none";
+
+/** Every plan id the app recognises as an active entitlement. */
+export const KNOWN_PLANS: readonly EffectivePlan[] = [...PLAN_ORDER, "enterprise"];
+
+export function isKnownPlan(value: string | null | undefined): value is Exclude<EffectivePlan, "none"> {
+  return !!value && (KNOWN_PLANS as readonly string[]).includes(value);
+}
 
 export type PlanMeta = {
   name: string;
-  monthly: number; // dollars
+  monthly: number; // dollars (0 for custom/enterprise)
   annualMonthly: number; // effective $/mo when billed annually
   blurb: string;
+  minutes: string;
   highlights: string[];
   popular?: boolean;
+  custom?: boolean; // enterprise: "contact sales", no self-serve checkout
 };
 
-export const PLAN_META: Record<PlanId, PlanMeta> = {
-  answer: {
-    name: "Answer",
+export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
+  starter: {
+    name: "Starter",
     monthly: 99,
     annualMonthly: 79.2,
-    blurb: "Solo operators replacing voicemail",
-    highlights: ["500 AI minutes", "1 concurrent call", "1,000 texts", "1 user"],
+    blurb: "Solo operators who never want to miss a call",
+    minutes: "250 AI minutes",
+    highlights: [
+      "AI receptionist + basic CRM",
+      "Booking, cancel & reschedule",
+      "Human transfer + Google Calendar",
+      "Review requests + missed-call recovery",
+      "1 user",
+    ],
   },
-  book: {
-    name: "Book",
+  growth: {
+    name: "Growth",
     monthly: 199,
     annualMonthly: 159.2,
-    blurb: "Teams that want appointments booked",
-    highlights: ["1,500 AI minutes", "2 concurrent calls", "3,000 texts", "3 users"],
+    blurb: "Teams that want more leads converted",
+    minutes: "500 AI minutes",
+    highlights: [
+      "Everything in Starter",
+      "Lead pipeline + customer timeline",
+      "AI follow-ups, reminders & quote intake",
+      "Payment requests + analytics dashboard",
+      "3 users",
+    ],
   },
-  revenue: {
-    name: "Revenue",
+  professional: {
+    name: "Professional",
     monthly: 349,
     annualMonthly: 279.2,
-    blurb: "Quoting, deposits, and job creation",
-    highlights: ["3,000 AI minutes", "4 concurrent calls", "7,500 texts", "10 users"],
+    blurb: "Growing teams that dispatch and need insight",
+    minutes: "900 AI minutes",
+    highlights: [
+      "Everything in Growth",
+      "Dispatch board + team calendar",
+      "AI business insights + workflows",
+      "Make/Zapier + website chat",
+      "10 users",
+    ],
     popular: true,
   },
-  scale: {
-    name: "Scale",
+  elite: {
+    name: "Elite",
     monthly: 599,
     annualMonthly: 479.2,
-    blurb: "High-volume and multi-location teams",
-    highlights: ["6,000 AI minutes", "8 concurrent calls", "15,000 texts", "25 users"],
+    blurb: "Multi-location operations at scale",
+    minutes: "1,500 AI minutes",
+    highlights: [
+      "Everything in Professional",
+      "Multiple locations & phone numbers",
+      "Membership management",
+      "API access + advanced automations",
+      "25 users",
+    ],
   },
-  agency: {
-    name: "Agency",
-    monthly: 899,
-    annualMonthly: 719.2,
-    blurb: "Agencies managing multiple clients",
-    highlights: ["10,000 pooled minutes", "20 pooled calls", "30,000 texts", "+$89/location"],
+  enterprise: {
+    name: "Enterprise",
+    monthly: 0,
+    annualMonthly: 0,
+    blurb: "Large & multi-location organizations",
+    minutes: "Custom minutes",
+    highlights: [
+      "Custom minutes & pricing",
+      "Dedicated onboarding",
+      "Custom integrations",
+      "Priority support",
+    ],
+    custom: true,
   },
 };
 
@@ -66,7 +117,7 @@ export function parseLookupKey(
   key: string | null | undefined
 ): { plan: PlanId; interval: "month" | "year" } | null {
   if (!key) return null;
-  const m = /^plan_(answer|book|revenue|scale|agency)_(monthly|annual)$/.exec(key);
+  const m = /^plan_(starter|growth|professional|elite)_(monthly|annual)$/.exec(key);
   if (!m) return null;
   return { plan: m[1] as PlanId, interval: m[2] === "annual" ? "year" : "month" };
 }

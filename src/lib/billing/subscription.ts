@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { EffectivePlan } from "@/lib/billing/plans";
+import { isKnownPlan, type EffectivePlan } from "@/lib/billing/plans";
 
 export type SubscriptionRow = {
   id: string;
@@ -28,6 +28,8 @@ export type PlanLimits = {
   max_workflows: number;
   max_knowledge_sources: number;
   transcript_retention_days: number;
+  overage_per_minute_cents: number;
+  overage_per_sms_cents: number;
   feature_flags_json: Record<string, boolean>;
 };
 
@@ -50,7 +52,9 @@ const ENTITLED_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 export function effectivePlan(sub: SubscriptionRow | null): EffectivePlan {
   if (!sub || !ENTITLED_STATUSES.has(sub.status)) return "none";
-  return (sub.plan as EffectivePlan) ?? "none";
+  // Guard against stale/renamed plan ids (e.g. a pre-retier 'revenue' row):
+  // an unrecognized plan entitles nothing until the tenant re-subscribes.
+  return isKnownPlan(sub.plan) ? sub.plan : "none";
 }
 
 /** Limits row for a plan; falls back to the locked-down 'none' row. */

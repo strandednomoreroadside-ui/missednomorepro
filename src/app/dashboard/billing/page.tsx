@@ -211,6 +211,29 @@ export default async function BillingPage({
             </div>
           );
         })}
+
+        {/* Enterprise — custom, contact sales (no self-serve checkout) */}
+        <div className="relative flex flex-col rounded-xl border border-border bg-card/60 p-5">
+          <h3 className="font-display text-lg font-semibold">{PLAN_META.enterprise.name}</h3>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="font-display text-2xl font-bold">Custom</span>
+          </div>
+          <p className="text-xs text-muted-foreground">{PLAN_META.enterprise.blurb}</p>
+          <ul className="mt-4 flex-1 space-y-1.5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
+            {PLAN_META.enterprise.highlights.map((h) => (
+              <li key={h} className="flex items-center gap-1.5">
+                <Check className="size-3 shrink-0 text-cyan/70" strokeWidth={3} aria-hidden />
+                {h}
+              </li>
+            ))}
+          </ul>
+          <a
+            href="mailto:sales@missednomorepro.com?subject=Enterprise%20plan%20inquiry"
+            className="mt-4 inline-flex h-9 w-full items-center justify-center rounded-lg border border-border text-sm font-semibold text-foreground transition-colors hover:border-cyan/50 hover:text-cyan"
+          >
+            Contact sales
+          </a>
+        </div>
       </div>
 
       <p className="mt-6 text-xs text-steel">

@@ -32,11 +32,13 @@ const STATS = [
 
 /** Plan-gated modules (master plan §6.1/§7) and the plan that unlocks each. */
 const GATED_FEATURES: { flag: string; label: string; unlockedBy: string }[] = [
-  { flag: "booking", label: "Calendar booking", unlockedBy: "Book" },
-  { flag: "quotes", label: "Quotes & estimates", unlockedBy: "Revenue" },
-  { flag: "jobs", label: "Job tracking", unlockedBy: "Revenue" },
-  { flag: "multi_location", label: "Multi-location", unlockedBy: "Scale" },
-  { flag: "api_access", label: "API access", unlockedBy: "Scale" },
+  { flag: "booking", label: "Calendar booking", unlockedBy: "Starter" },
+  { flag: "lead_pipeline", label: "Lead pipeline", unlockedBy: "Growth" },
+  { flag: "analytics", label: "Analytics dashboard", unlockedBy: "Growth" },
+  { flag: "followup_campaigns", label: "AI follow-ups", unlockedBy: "Growth" },
+  { flag: "dispatch_board", label: "Dispatch board", unlockedBy: "Professional" },
+  { flag: "multi_location", label: "Multi-location", unlockedBy: "Elite" },
+  { flag: "api_access", label: "API access", unlockedBy: "Elite" },
 ];
 
 const PROGRESS: { label: string; done: boolean }[] = [
