@@ -34,7 +34,7 @@ export default async function KnowledgeHubPage() {
     .maybeSingle();
 
   const bizId = business?.id;
-  const [hours, services, settings, faqs] = await Promise.all([
+  const [hours, services, settings, faqs, pendingSuggestions] = await Promise.all([
     bizId
       ? supabase.from("business_hours").select("closed").eq("business_id", bizId)
       : Promise.resolve({ data: [] }),
@@ -59,11 +59,19 @@ export default async function KnowledgeHubPage() {
           .eq("business_id", bizId)
           .eq("active", true)
       : Promise.resolve({ count: 0 }),
+    bizId
+      ? supabase
+          .from("knowledge_suggestions")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", bizId)
+          .eq("status", "pending")
+      : Promise.resolve({ count: 0 }),
   ]);
 
   const openDays = ((hours.data ?? []) as { closed: boolean }[]).filter((h) => !h.closed).length;
   const serviceCount = (services as { count: number | null }).count ?? 0;
   const faqCount = (faqs as { count: number | null }).count ?? 0;
+  const pendingCount = (pendingSuggestions as { count: number | null }).count ?? 0;
   const quotingOn = Boolean((settings.data as { approved_at?: string } | null)?.approved_at);
   const radius = (settings.data as { max_service_miles?: number } | null)?.max_service_miles ?? null;
 
@@ -144,22 +152,37 @@ export default async function KnowledgeHubPage() {
           </Card>
         ))}
 
-        {/* Document upload — the fast-follow */}
-        <Card className="border-dashed bg-card/30">
+        {/* Document upload — extract structured FAQs + prices to approve */}
+        <Card className="bg-card/60 transition-colors hover:border-cyan/40">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display text-base text-muted-foreground">
-              <FileUp className="size-4" aria-hidden />
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <FileUp className="size-4 text-cyan" aria-hidden />
               Upload documents
-              <span className="ml-auto rounded-full border border-border/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-steel">
-                soon
-              </span>
+              {pendingCount > 0 && (
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-cyan/30 px-2 py-0.5 text-[10px] font-medium uppercase text-cyan">
+                  {pendingCount} to review
+                </span>
+              )}
             </CardTitle>
             <CardDescription>
-              Coming next: drop in a price sheet or FAQ doc and we&rsquo;ll turn it into the
-              structured services, prices, and answers above for you to approve — your AI
-              still only quotes computed numbers, never text from a file.
+              Drop in a price sheet or FAQ doc and we&rsquo;ll turn it into structured
+              services, prices, and answers for you to approve — your AI still only
+              quotes computed numbers, never text from a file.
             </CardDescription>
           </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <span className="font-mono text-sm text-foreground">
+              {pendingCount > 0
+                ? `${pendingCount} suggestion${pendingCount === 1 ? "" : "s"} pending`
+                : "PDF, image, or text"}
+            </span>
+            <Link
+              href="/dashboard/knowledge/upload"
+              className="text-sm font-medium text-cyan hover:underline"
+            >
+              Upload &amp; review →
+            </Link>
+          </CardContent>
         </Card>
       </div>
     </div>

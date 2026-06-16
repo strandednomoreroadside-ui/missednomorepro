@@ -360,6 +360,52 @@ try {
     status: "completed",
   });
   assert("Members cannot write job status events directly", !!jseForgeErr);
+
+  // ── Knowledge Hub: documents + extraction suggestions ─────────
+  // Server seeds an uploaded document + a pending suggestion for A.
+  const { data: aDoc, error: docSeedErr } = await admin
+    .from("knowledge_documents")
+    .insert({
+      tenant_id: a.orgId,
+      business_id: aBiz.id,
+      file_name: "secret-price-sheet.pdf",
+      mime_type: "application/pdf",
+      status: "extracted",
+    })
+    .select("id")
+    .single();
+  if (docSeedErr) throw new Error(`seed knowledge document: ${docSeedErr.message}`);
+  const { error: sugSeedErr } = await admin.from("knowledge_suggestions").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    document_id: aDoc.id,
+    kind: "faq",
+    payload: { question: "secret?", answer: "secret answer" },
+  });
+  if (sugSeedErr) throw new Error(`seed knowledge suggestion: ${sugSeedErr.message}`);
+
+  // 21. B sees none of A's knowledge documents or suggestions.
+  const { data: bDocs } = await b.client.from("knowledge_documents").select("tenant_id");
+  const { data: bSugs } = await b.client.from("knowledge_suggestions").select("tenant_id");
+  const knowledgeLeak = [...(bDocs ?? []), ...(bSugs ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's knowledge documents/suggestions", knowledgeLeak.length === 0);
+
+  // 22. B cannot approve A's suggestion into B's own tenant.
+  const { error: crossApproveErr } = await b.client
+    .from("knowledge_suggestions")
+    .update({ status: "approved" })
+    .eq("document_id", aDoc.id);
+  const { data: stillPending } = await admin
+    .from("knowledge_suggestions")
+    .select("status")
+    .eq("document_id", aDoc.id)
+    .maybeSingle();
+  assert(
+    "B cannot approve A's knowledge suggestion",
+    !crossApproveErr ? stillPending?.status === "pending" : true
+  );
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {
