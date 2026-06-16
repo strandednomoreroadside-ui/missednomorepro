@@ -1,21 +1,31 @@
 import {
   ArrowRight,
   BellRing,
+  Bot,
   CalendarCheck,
   Check,
+  CreditCard,
+  KanbanSquare,
   MessageSquareText,
+  Minus,
   PhoneCall,
-  ShieldCheck,
+  Repeat2,
+  Route,
+  Sparkles,
+  Star,
   TrendingUp,
   Users,
+  Workflow,
+  X,
   Zap,
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
-
-// TODO(M1): point this at the real support inbox once the domain is purchased.
-const EARLY_ACCESS_MAILTO =
-  "mailto:hello@missednomorepro.com?subject=Early%20access%20request%20%E2%80%94%20Missed%20No%20More%20Pro";
+import { Faq } from "@/components/landing/faq";
+import { Pricing } from "@/components/landing/pricing";
+import { ButtonLink, EARLY_ACCESS_MAILTO, SectionHeading } from "@/components/landing/primitives";
+import { Reveal } from "@/components/landing/reveal";
+import { CheckRow, ProductShowcase } from "@/components/landing/showcase";
 
 const NICHES = [
   "Towing",
@@ -40,10 +50,17 @@ export default function LandingPage() {
       <SiteHeader />
       <main>
         <Hero />
-        <PromiseStrip />
+        <NicheMarquee />
+        <MissedCallMath />
+        <Showcase />
         <HowItWorks />
-        <Features />
+        <Pillars />
+        <AddOns />
+        <Integrations />
+        <Comparison />
+        <ProofBand />
         <Pricing />
+        <Faq />
         <FinalCta />
       </main>
       <SiteFooter />
@@ -52,6 +69,13 @@ export default function LandingPage() {
 }
 
 function SiteHeader() {
+  const links = [
+    ["#product", "Product"],
+    ["#features", "Features"],
+    ["#add-ons", "Add-ons"],
+    ["#pricing", "Pricing"],
+    ["#faq", "FAQ"],
+  ] as const;
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-night/75 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -59,48 +83,42 @@ function SiteHeader() {
           <Logo />
         </a>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          <a className="transition-colors hover:text-foreground" href="#how-it-works">
-            How it works
-          </a>
-          <a className="transition-colors hover:text-foreground" href="#features">
-            Features
-          </a>
-          <a className="transition-colors hover:text-foreground" href="#pricing">
-            Pricing
-          </a>
+          {links.map(([href, label]) => (
+            <a key={href} className="transition-colors hover:text-foreground" href={href}>
+              {label}
+            </a>
+          ))}
         </nav>
-        <ButtonLink href={EARLY_ACCESS_MAILTO}>Get early access</ButtonLink>
+        <div className="flex items-center gap-3">
+          {/* Mobile menu — native disclosure, no JS */}
+          <details className="relative md:hidden">
+            <summary className="flex size-10 cursor-pointer list-none items-center justify-center rounded-lg border border-border text-foreground [&::-webkit-details-marker]:hidden">
+              <span className="sr-only">Open menu</span>
+              <span className="flex flex-col gap-1" aria-hidden>
+                <span className="h-0.5 w-5 bg-current" />
+                <span className="h-0.5 w-5 bg-current" />
+                <span className="h-0.5 w-5 bg-current" />
+              </span>
+            </summary>
+            <div className="absolute right-0 mt-2 w-44 rounded-xl border border-border bg-popover p-2 shadow-xl">
+              {links.map(([href, label]) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+          </details>
+          <ButtonLink href="/login" variant="outline" className="hidden sm:inline-flex">
+            Sign in
+          </ButtonLink>
+          <ButtonLink href={EARLY_ACCESS_MAILTO}>Get early access</ButtonLink>
+        </div>
       </div>
     </header>
-  );
-}
-
-/**
- * Small helper: the header CTA is an anchor styled as a button. Kept local so
- * the shadcn Button stays standard.
- */
-function ButtonLink({
-  href,
-  children,
-  variant = "primary",
-  large = false,
-}: {
-  href: string;
-  children: React.ReactNode;
-  variant?: "primary" | "outline";
-  large?: boolean;
-}) {
-  const base =
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-  const size = large ? "h-12 rounded-xl px-7 text-base" : "h-9 px-4 text-sm";
-  const look =
-    variant === "primary"
-      ? "bg-primary text-primary-foreground shadow-[0_0_24px_-6px_var(--color-cyan)] hover:shadow-[0_0_36px_-4px_var(--color-cyan)] hover:brightness-110"
-      : "border border-border bg-transparent text-foreground hover:border-cyan/50 hover:text-cyan";
-  return (
-    <a href={href} className={`${base} ${size} ${look}`}>
-      {children}
-    </a>
   );
 }
 
@@ -115,7 +133,7 @@ function Hero() {
             style={{ animationDelay: "0ms" }}
           >
             <Zap className="size-3.5" aria-hidden />
-            AI Receptionist + Business OS for local service pros
+            AI Receptionist + Smart CRM + AI Business Assistant
           </p>
           <h1
             className="animate-fade-up mt-6 font-display text-5xl font-bold leading-[1.04] tracking-tight sm:text-6xl"
@@ -134,9 +152,8 @@ function Hero() {
             className="animate-fade-up mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
             style={{ animationDelay: "240ms" }}
           >
-            Missed No More Pro answers your phones 24/7, qualifies the caller, books
-            the job, and follows up by text — then shows you exactly how much
-            revenue it saved.
+            Missed No More Pro answers your phones 24/7, qualifies the caller, quotes the exact
+            price, books the job, and follows up by text — then shows you the revenue it saved.
           </p>
           <div
             className="animate-fade-up mt-8 flex flex-wrap items-center gap-4"
@@ -145,15 +162,21 @@ function Hero() {
             <ButtonLink href={EARLY_ACCESS_MAILTO} large>
               Get early access <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
-            <ButtonLink href="#how-it-works" variant="outline" large>
-              See how it works
+            <ButtonLink href="#product" variant="outline" large>
+              See it in action
             </ButtonLink>
           </div>
-          <div
-            className="animate-fade-up mt-10 flex flex-wrap gap-2"
-            style={{ animationDelay: "480ms" }}
+          <p
+            className="animate-fade-up mt-5 font-mono text-xs uppercase tracking-wider text-steel"
+            style={{ animationDelay: "440ms" }}
           >
-            {NICHES.map((niche) => (
+            A2P 10DLC-compliant · STOP/HELP built in · for 1–15 person teams
+          </p>
+          <div
+            className="animate-fade-up mt-8 flex flex-wrap gap-2"
+            style={{ animationDelay: "520ms" }}
+          >
+            {NICHES.slice(0, 8).map((niche) => (
               <span
                 key={niche}
                 className="rounded-full border border-border/70 px-3 py-1 text-xs text-steel"
@@ -189,32 +212,27 @@ function LiveCallCard() {
       </div>
 
       <div className="mt-5 space-y-3 border-t border-border/70 pt-5">
-        <Bubble delay={500} side="left" label="Caller">
+        <Bubble side="left" label="Caller">
           My AC just died and it&rsquo;s 95 degrees. Can anyone come out today?
         </Bubble>
-        <Bubble delay={900} side="right" label="AI receptionist">
-          I&rsquo;m sorry to hear that — let&rsquo;s get it fixed fast. What&rsquo;s
-          your ZIP code?
+        <Bubble side="right" label="AI receptionist">
+          I&rsquo;m sorry to hear that — let&rsquo;s get it fixed fast. What&rsquo;s your ZIP code?
         </Bubble>
-        <Bubble delay={1300} side="left" label="Caller">
+        <Bubble side="left" label="Caller">
           37214.
         </Bubble>
-        <Bubble delay={1700} side="right" label="AI receptionist">
-          You&rsquo;re in our service area. Our first opening is today at 2:30 PM —
-          should I book it?
+        <Bubble side="right" label="AI receptionist">
+          You&rsquo;re in our service area. Our first opening is today at 2:30 PM — should I book it?
         </Bubble>
       </div>
 
       <div className="mt-5 space-y-2 border-t border-border/70 pt-5">
-        <ProgressRow delay={2100}>Lead captured — name, number, address</ProgressRow>
-        <ProgressRow delay={2350}>Appointment booked · Today 2:30 PM</ProgressRow>
-        <ProgressRow delay={2600}>Technician notified by text</ProgressRow>
+        <ProgressRow>Lead captured — name, number, address</ProgressRow>
+        <ProgressRow>Appointment booked · Today 2:30 PM</ProgressRow>
+        <ProgressRow>Technician notified by text</ProgressRow>
       </div>
 
-      <div
-        className="animate-fade-up mt-5 flex items-center justify-between rounded-xl bg-night/60 px-4 py-3"
-        style={{ animationDelay: "2850ms" }}
-      >
+      <div className="mt-5 flex items-center justify-between rounded-xl bg-night/60 px-4 py-3">
         <span className="text-sm text-muted-foreground">Job saved while you worked</span>
         <span className="font-mono text-lg font-semibold text-success">+$385</span>
       </div>
@@ -225,20 +243,15 @@ function LiveCallCard() {
 function Bubble({
   side,
   label,
-  delay,
   children,
 }: {
   side: "left" | "right";
   label: string;
-  delay: number;
   children: React.ReactNode;
 }) {
   const isAi = side === "right";
   return (
-    <div
-      className={`animate-fade-up flex ${isAi ? "justify-end" : "justify-start"}`}
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div className={`flex ${isAi ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           isAi
@@ -259,12 +272,9 @@ function Bubble({
   );
 }
 
-function ProgressRow({ delay, children }: { delay: number; children: React.ReactNode }) {
+function ProgressRow({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="animate-fade-up flex items-center gap-2.5 text-sm text-muted-foreground"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
       <span className="inline-flex size-5 items-center justify-center rounded-full border border-success/40 bg-success/10">
         <Check className="size-3 text-success" strokeWidth={3} aria-hidden />
       </span>
@@ -273,21 +283,69 @@ function ProgressRow({ delay, children }: { delay: number; children: React.React
   );
 }
 
-function PromiseStrip() {
+function NicheMarquee() {
+  const row = [...NICHES, ...NICHES];
+  return (
+    <section className="border-y border-border/60 bg-navy/30 py-6">
+      <p className="mb-4 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-steel">
+        Built for local service pros
+      </p>
+      <div className="marquee-mask overflow-hidden">
+        <div className="marquee-track flex w-max gap-3">
+          {row.map((niche, i) => (
+            <span
+              key={`${niche}-${i}`}
+              className="whitespace-nowrap rounded-full border border-border/70 bg-card/40 px-4 py-1.5 text-sm text-steel"
+            >
+              {niche}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MissedCallMath() {
   const stats = [
-    ["24/7", "every call answered — nights, weekends, holidays"],
-    ["100%", "of calls logged, transcribed, and summarized"],
-    ["0", "voicemails left for you to chase"],
+    ["80%", "of callers won't leave a voicemail — they just dial the next business"],
+    ["24/7", "every call answered, including nights, weekends, and holidays"],
+    ["1 job", "is usually all it takes to cover your entire monthly plan"],
   ] as const;
   return (
-    <section className="border-y border-border/60 bg-navy/40">
-      <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 sm:grid-cols-3">
-        {stats.map(([big, small]) => (
-          <div key={big} className="text-center sm:text-left">
-            <div className="font-mono text-3xl font-semibold text-cyan">{big}</div>
-            <div className="mt-1 text-sm leading-snug text-muted-foreground">{small}</div>
-          </div>
+    <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
+      <Reveal>
+        <SectionHeading
+          eyebrow="The math of a missed call"
+          title="A missed call isn't a missed call. It's a booked job — for someone else."
+        />
+      </Reveal>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {stats.map(([big, small], i) => (
+          <Reveal key={big} delay={i * 90}>
+            <div className="rounded-2xl border border-border bg-card/50 p-6 text-center">
+              <div className="font-mono text-4xl font-bold text-cyan">{big}</div>
+              <div className="mt-3 text-sm leading-relaxed text-muted-foreground">{small}</div>
+            </div>
+          </Reveal>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function Showcase() {
+  return (
+    <section id="product" className="border-t border-border/60 bg-navy/20">
+      <div className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
+        <Reveal>
+          <SectionHeading
+            eyebrow="See it in action"
+            title="One system, from first ring to repeat customer"
+            sub="Not a chatbot bolted onto a phone line — a full front office that answers, quotes, books, texts, and keeps the books."
+          />
+        </Reveal>
+        <ProductShowcase />
       </div>
     </section>
   );
@@ -302,13 +360,13 @@ function HowItWorks() {
     },
     {
       icon: CalendarCheck,
-      title: "Books the job",
-      body: "Checks your service area and real calendar availability, then books inside the hours you approve. Never invents prices.",
+      title: "Quotes & books",
+      body: "Computes the exact price from your approved rates, checks real availability, and books inside the hours you allow.",
     },
     {
       icon: MessageSquareText,
       title: "Texts & follows up",
-      body: "Instant confirmations, missed-call text-back, and staff alerts — fully STOP/HELP compliant out of the box.",
+      body: "Instant confirmations, missed-call text-back, reminders, and staff alerts — fully STOP/HELP compliant out of the box.",
     },
     {
       icon: TrendingUp,
@@ -318,87 +376,98 @@ function HowItWorks() {
   ];
   return (
     <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
-      <SectionHeading
-        eyebrow="How it works"
-        title="From missed ring to booked job"
-        sub="Your AI front desk runs the whole play — you just do the work you get paid for."
-      />
+      <Reveal>
+        <SectionHeading
+          eyebrow="How it works"
+          title="From missed ring to booked job"
+          sub="Your AI front desk runs the whole play — you just do the work you get paid for."
+        />
+      </Reveal>
       <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, i) => (
-          <div
-            key={step.title}
-            className="rounded-xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40"
-          >
-            <div className="flex items-center justify-between">
-              <span className="inline-flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue/80 to-cyan/80">
-                <step.icon className="size-5 text-white" aria-hidden />
-              </span>
-              <span className="font-mono text-xs text-steel">0{i + 1}</span>
+          <Reveal key={step.title} delay={i * 80}>
+            <div className="h-full rounded-xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue/80 to-cyan/80">
+                  <step.icon className="size-5 text-white" aria-hidden />
+                </span>
+                <span className="font-mono text-xs text-steel">0{i + 1}</span>
+              </div>
+              <h3 className="mt-4 font-display text-lg font-semibold">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </div>
-            <h3 className="mt-4 font-display text-lg font-semibold">{step.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-          </div>
+          </Reveal>
         ))}
       </div>
     </section>
   );
 }
 
-function Features() {
-  const features = [
+function Pillars() {
+  const pillars = [
     {
       icon: PhoneCall,
-      title: "24/7 AI receptionist",
-      body: "Answers instantly in a natural voice, trained on your services, hours, and service area. Always discloses it's an AI.",
-    },
-    {
-      icon: MessageSquareText,
-      title: "Missed-call text-back",
-      body: "Caller hangs up early? They get a text within seconds — before they dial your competitor.",
-    },
-    {
-      icon: CalendarCheck,
-      title: "Smart booking",
-      body: "Connects to your calendar and books only inside approved windows. Emergencies follow your rules.",
+      name: "AI Receptionist",
+      tagline: "Answers every call, day or night.",
+      features: [
+        "24/7 natural-voice answering, trained on your business",
+        "Smart booking, cancel & reschedule on your calendar",
+        "Exact, computed quotes — never invented prices",
+        "Missed-call text-back within seconds",
+        "Spam shield + warm transfer to a real person",
+      ],
     },
     {
       icon: Users,
-      title: "Built-in CRM",
-      body: "Every caller becomes a contact with full history — calls, texts, jobs, and notes on one timeline.",
+      name: "Smart CRM",
+      tagline: "Every caller becomes a tracked customer.",
+      features: [
+        "Auto-built contacts with full call & text history",
+        "Lead pipeline that advances as the AI quotes & books",
+        "Jobs, appointments & reminders in one place",
+        "Payment requests, deposits & invoices by text",
+        "Tamper-proof timeline for every interaction",
+      ],
     },
     {
-      icon: ShieldCheck,
-      title: "Spam shield",
-      body: "Robocalls and vendors get screened out and logged, never forwarded to your cell at 7 AM.",
-    },
-    {
-      icon: BellRing,
-      title: "Instant staff alerts",
-      body: "New lead, booked job, or urgent escalation — your team knows by text the moment it happens.",
+      icon: Bot,
+      name: "AI Business Assistant",
+      tagline: "Ask your business anything.",
+      features: [
+        "“How are we doing this week?” — answered instantly",
+        "“Who still needs a follow-up?”",
+        "Real analytics: answer rate, booking rate, revenue",
+        "Knowledge Hub — upload a price sheet, we extract it",
+        "Weekly call intelligence & recommendations",
+      ],
     },
   ];
   return (
     <section id="features" className="border-t border-border/60 bg-navy/25">
       <div className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
-        <SectionHeading
-          eyebrow="Features"
-          title="A front office that never sleeps"
-          sub="Built for owner-operators and small teams — not enterprise software you need a consultant to run."
-        />
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
-            <div
-              key={feature.title}
-              className="rounded-xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40"
-            >
-              <span className="inline-flex size-10 items-center justify-center rounded-lg border border-cyan/25 bg-cyan/10">
-                <feature.icon className="size-5 text-cyan" aria-hidden />
-              </span>
-              <h3 className="mt-4 font-display text-lg font-semibold">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {feature.body}
-              </p>
-            </div>
+        <Reveal>
+          <SectionHeading
+            eyebrow="Everything you get"
+            title="Three products in one subscription"
+            sub="Built for owner-operators and small teams — not enterprise software you need a consultant to run."
+          />
+        </Reveal>
+        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          {pillars.map((pillar, i) => (
+            <Reveal key={pillar.name} delay={i * 90}>
+              <div className="flex h-full flex-col rounded-2xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40">
+                <span className="inline-flex size-11 items-center justify-center rounded-xl border border-cyan/25 bg-cyan/10">
+                  <pillar.icon className="size-5.5 text-cyan" aria-hidden />
+                </span>
+                <h3 className="mt-4 font-display text-xl font-semibold">{pillar.name}</h3>
+                <p className="mt-1 text-sm text-steel">{pillar.tagline}</p>
+                <ul className="mt-5 space-y-2.5 border-t border-border/70 pt-5">
+                  {pillar.features.map((f) => (
+                    <CheckRow key={f}>{f}</CheckRow>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -406,109 +475,244 @@ function Features() {
   );
 }
 
-function Pricing() {
-  const plans = [
+function AddOns() {
+  // Mirrors the real catalog in src/lib/billing/addons.ts.
+  const addons = [
     {
-      name: "Starter",
-      price: "$99",
-      blurb: "Solo operators who never want to miss a call",
-      minutes: "250 AI minutes",
-      extras: ["Booking, cancel & reschedule", "Human transfer + Google Calendar", "Review requests", "1 user"],
-      popular: false,
+      icon: Repeat2,
+      name: "AI Outbound Assistant",
+      price: "+$49/mo",
+      blurb: "Proactive texts that bring work back in — quote follow-ups, win-backs, reminders.",
     },
     {
-      name: "Growth",
-      price: "$199",
-      blurb: "Teams that want more leads converted",
-      minutes: "500 AI minutes",
-      extras: ["Lead pipeline + timeline", "AI follow-ups & reminders", "Payment requests + analytics", "3 users"],
-      popular: false,
+      icon: MessageSquareText,
+      name: "Omnichannel AI Chat",
+      price: "+$29/mo",
+      blurb: "One AI brain across website chat, two-way SMS, and a unified inbox.",
+      badge: "New",
     },
     {
-      name: "Professional",
-      price: "$349",
-      blurb: "Growing teams that dispatch and need insight",
-      minutes: "900 AI minutes",
-      extras: ["Dispatch board + team calendar", "AI business insights", "Make/Zapier + website chat", "10 users"],
-      popular: true,
+      icon: Bot,
+      name: "AI Business Assistant",
+      price: "+$39/mo",
+      blurb: "Natural-language answers about your CRM — “who needs follow-up?”",
     },
     {
-      name: "Elite",
-      price: "$599",
-      blurb: "Multi-location operations at scale",
-      minutes: "1,500 AI minutes",
-      extras: ["Multiple locations & numbers", "Membership management", "API access", "25 users"],
-      popular: false,
+      icon: Sparkles,
+      name: "AI Growth Suite",
+      price: "+$100/mo",
+      blurb: "All three growth add-ons bundled — save $17/mo.",
+      badge: "Bundle",
     },
     {
-      name: "Enterprise",
-      price: "Custom",
-      blurb: "Large & multi-location organizations",
-      minutes: "Custom minutes",
-      extras: ["Dedicated onboarding", "Custom integrations", "Priority support"],
-      popular: false,
+      icon: Star,
+      name: "AI Reputation Manager",
+      price: "+$29/mo",
+      blurb: "More 5-star reviews, fewer public 1-stars, AI-drafted responses.",
+    },
+    {
+      icon: TrendingUp,
+      name: "AI Call Intelligence",
+      price: "+$19/mo",
+      blurb: "A weekly read on what your calls are telling you, with recommendations.",
     },
   ];
   return (
-    <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
-      <SectionHeading
-        eyebrow="Pricing"
-        title="Plans that pay for themselves"
-        sub="One recovered job usually covers the month. Annual billing saves 20%."
-      />
-      <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-        {plans.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative flex flex-col rounded-xl p-6 ${
-              plan.popular
-                ? "border-glow shadow-[0_16px_60px_-20px_rgba(0,229,255,0.4)]"
-                : "border border-border bg-card/60"
-            }`}
-          >
-            {plan.popular && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                Most popular
-              </span>
-            )}
-            <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="font-display text-3xl font-bold">{plan.price}</span>
-              {plan.price.startsWith("$") && (
-                <span className="text-sm text-muted-foreground">/mo</span>
-              )}
+    <section id="add-ons" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
+      <Reveal>
+        <SectionHeading
+          eyebrow="Add-ons"
+          title="Bolt on more growth, only when you need it"
+          sub="Optional modules that layer on any plan. Turn them on or off anytime."
+        />
+      </Reveal>
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {addons.map((addon, i) => (
+          <Reveal key={addon.name} delay={(i % 3) * 80}>
+            <div className="flex h-full flex-col rounded-xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex size-10 items-center justify-center rounded-lg border border-cyan/25 bg-cyan/10">
+                  <addon.icon className="size-5 text-cyan" aria-hidden />
+                </span>
+                {addon.badge && (
+                  <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
+                    {addon.badge}
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-4 font-display text-base font-semibold">{addon.name}</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{addon.blurb}</p>
+              <p className="mt-4 font-mono text-sm font-semibold text-cyan">{addon.price}</p>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{plan.blurb}</p>
-            <ul className="mt-4 flex-1 space-y-2 border-t border-border/70 pt-4 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2 font-medium text-foreground">
-                <Check className="size-3.5 shrink-0 text-cyan" strokeWidth={3} aria-hidden />
-                {plan.minutes}
-              </li>
-              {plan.extras.map((extra) => (
-                <li key={extra} className="flex items-center gap-2">
-                  <Check className="size-3.5 shrink-0 text-cyan/70" strokeWidth={3} aria-hidden />
-                  {extra}
-                </li>
-              ))}
-            </ul>
-            <a
-              href={EARLY_ACCESS_MAILTO}
-              className={`mt-5 inline-flex h-9 items-center justify-center rounded-lg text-sm font-semibold transition-all ${
-                plan.popular
-                  ? "bg-primary text-primary-foreground hover:brightness-110"
-                  : "border border-border text-foreground hover:border-cyan/50 hover:text-cyan"
-              }`}
-            >
-              Get early access
-            </a>
-          </div>
+          </Reveal>
         ))}
       </div>
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        All plans include call summaries, transcripts, SMS compliance (STOP/HELP), and
-        usage protection — no surprise overages.
-      </p>
     </section>
+  );
+}
+
+function Integrations() {
+  const tools = [
+    { icon: CalendarCheck, label: "Google Calendar" },
+    { icon: MessageSquareText, label: "Twilio" },
+    { icon: CreditCard, label: "Stripe" },
+    { icon: Workflow, label: "Make / Zapier" },
+    { icon: Sparkles, label: "OpenAI" },
+  ];
+  return (
+    <section className="border-y border-border/60 bg-navy/30">
+      <div className="mx-auto max-w-5xl px-6 py-14">
+        <p className="text-center font-mono text-[11px] uppercase tracking-[0.25em] text-steel">
+          Works with the tools you already use
+        </p>
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          {tools.map((t) => (
+            <span
+              key={t.label}
+              className="inline-flex items-center gap-2.5 rounded-xl border border-border/70 bg-card/40 px-4 py-2.5 text-sm font-medium text-steel"
+            >
+              <t.icon className="size-4 text-cyan" aria-hidden />
+              {t.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Comparison() {
+  const cols = ["Missed No More Pro", "Voicemail", "Answering service", "In-house hire"];
+  const rows: { label: string; values: (boolean | string)[] }[] = [
+    { label: "Answers 24/7", values: [true, false, true, false] },
+    { label: "Books jobs on your calendar", values: [true, false, false, true] },
+    { label: "Quotes the exact price", values: [true, false, false, true] },
+    { label: "Logs every lead in a CRM", values: [true, false, false, "Maybe"] },
+    { label: "Follows up by text", values: [true, false, false, "Maybe"] },
+    { label: "Never calls in sick", values: [true, true, true, false] },
+    { label: "Monthly cost", values: ["from $99", "$0", "$300+", "$3,000+"] },
+  ];
+  return (
+    <section className="mx-auto max-w-5xl px-6 py-20 lg:py-28">
+      <Reveal>
+        <SectionHeading
+          eyebrow="Why Missed No More Pro"
+          title="The front desk, without the front-desk overhead"
+        />
+      </Reveal>
+      <Reveal className="mt-12">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card/40">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border/60">
+                <th className="px-5 py-4 text-left font-medium text-muted-foreground">Capability</th>
+                {cols.map((c, i) => (
+                  <th
+                    key={c}
+                    className={`px-4 py-4 text-center font-display font-semibold ${
+                      i === 0 ? "text-cyan" : "text-muted-foreground"
+                    }`}
+                  >
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.label} className="border-b border-border/40 last:border-0">
+                  <td className="px-5 py-3.5 text-left font-medium text-foreground">{row.label}</td>
+                  {row.values.map((v, i) => (
+                    <td
+                      key={i}
+                      className={`px-4 py-3.5 text-center ${i === 0 ? "bg-cyan/5" : ""}`}
+                    >
+                      {typeof v === "boolean" ? (
+                        v ? (
+                          <Check className="mx-auto size-4 text-success" strokeWidth={3} aria-label="Yes" />
+                        ) : (
+                          <X className="mx-auto size-4 text-steel/50" aria-label="No" />
+                        )
+                      ) : (
+                        <span
+                          className={`font-mono text-xs ${i === 0 ? "font-semibold text-cyan" : "text-muted-foreground"}`}
+                        >
+                          {v}
+                        </span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+function ProofBand() {
+  return (
+    <section className="border-t border-border/60 bg-navy/20">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:py-28">
+        <Reveal>
+          <span className="inline-flex items-center gap-2 rounded-full border border-cyan/25 bg-cyan/5 px-3.5 py-1.5 text-xs font-medium text-cyan">
+            <Sparkles className="size-3.5" aria-hidden />
+            Early access — founding customers
+          </span>
+          <h2 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            Built by an operator who got tired of missing calls.
+          </h2>
+          <p className="mt-5 text-base leading-relaxed text-muted-foreground">
+            Missed No More Pro runs live today on a real roadside-assistance business — answering
+            calls, quoting tows and jumps to the dollar, booking jobs, and texting customers back.
+            We&rsquo;re onboarding a small group of founding businesses now and building the roadmap
+            with them.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <ButtonLink href={EARLY_ACCESS_MAILTO} large>
+              Become a founding customer <ArrowRight className="size-4" aria-hidden />
+            </ButtonLink>
+          </div>
+        </Reveal>
+        <Reveal delay={120}>
+          <div className="border-glow rounded-2xl p-6">
+            <p className="font-mono text-xs uppercase tracking-widest text-steel">Live pilot</p>
+            <div className="mt-4 space-y-3">
+              <ProofStat icon={PhoneCall} label="Answering calls 24/7" value="Live now" />
+              <ProofStat icon={Route} label="Exact quotes by driving distance" value="Per call" />
+              <ProofStat icon={KanbanSquare} label="Leads tracked to booked jobs" value="Automatic" />
+              <ProofStat icon={BellRing} label="Staff alerted on every lead" value="Instant" />
+            </div>
+            <p className="mt-5 border-t border-border/70 pt-4 text-xs leading-relaxed text-steel">
+              Customer results vary. We&rsquo;ll publish verified outcomes as founding customers
+              come online.
+            </p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function ProofStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
+        <Icon className="size-4 text-cyan" aria-hidden />
+        {label}
+      </span>
+      <span className="font-mono text-xs font-semibold text-foreground">{value}</span>
+    </div>
   );
 }
 
@@ -520,8 +724,8 @@ function FinalCta() {
           Stop paying for <span className="text-gradient">missed calls.</span>
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
-          Every unanswered ring is a job your competitor books. Put an AI front
-          desk on your phones — and never wonder what that voicemail cost you.
+          Every unanswered ring is a job your competitor books. Put an AI front desk on your phones
+          — and never wonder what that voicemail cost you.
         </p>
         <div className="mt-8 flex justify-center">
           <ButtonLink href={EARLY_ACCESS_MAILTO} large>
@@ -533,28 +737,6 @@ function FinalCta() {
   );
 }
 
-function SectionHeading({
-  eyebrow,
-  title,
-  sub,
-}: {
-  eyebrow: string;
-  title: string;
-  sub: string;
-}) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
-        {eyebrow}
-      </p>
-      <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-        {title}
-      </h2>
-      <p className="mt-4 text-base leading-relaxed text-muted-foreground">{sub}</p>
-    </div>
-  );
-}
-
 function SiteFooter() {
   return (
     <footer className="border-t border-border/60 bg-night">
@@ -563,29 +745,28 @@ function SiteFooter() {
           <div>
             <Logo />
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-              The AI front office for local service businesses. Every call
-              answered. Every lead captured.
+              The AI front office for local service businesses. Every call answered. Every lead
+              captured.
             </p>
           </div>
           <nav className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
             <div className="space-y-2">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-steel">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-steel">Product</p>
+              <a className="block text-muted-foreground transition-colors hover:text-foreground" href="#product">
                 Product
-              </p>
-              <a className="block text-muted-foreground transition-colors hover:text-foreground" href="#how-it-works">
-                How it works
               </a>
               <a className="block text-muted-foreground transition-colors hover:text-foreground" href="#features">
                 Features
+              </a>
+              <a className="block text-muted-foreground transition-colors hover:text-foreground" href="#add-ons">
+                Add-ons
               </a>
               <a className="block text-muted-foreground transition-colors hover:text-foreground" href="#pricing">
                 Pricing
               </a>
             </div>
             <div className="space-y-2">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-steel">
-                Legal
-              </p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-steel">Legal</p>
               <a className="block text-muted-foreground transition-colors hover:text-foreground" href="/privacy">
                 Privacy Policy
               </a>
@@ -598,8 +779,8 @@ function SiteFooter() {
             </div>
           </nav>
         </div>
-        <p className="mt-10 border-t border-border/60 pt-6 text-xs text-steel">
-          © 2026 Missed No More Pro. All rights reserved.
+        <p className="mt-10 flex items-center gap-1.5 border-t border-border/60 pt-6 text-xs text-steel">
+          <Minus className="size-3" aria-hidden />© 2026 Missed No More Pro. All rights reserved.
         </p>
       </div>
     </footer>

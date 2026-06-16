@@ -70,6 +70,7 @@
   --animate-fade-up: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-pulse-dot: pulse-dot 2.2s ease-in-out infinite;
   --animate-ring-wave: ring-wave 2.6s ease-out infinite;
+  --animate-marquee: marquee 42s linear infinite;
 
   @keyframes fade-up {
     from {
@@ -100,6 +101,29 @@
       opacity: 0;
     }
   }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      /* track holds two copies of the list; shift by exactly one copy */
+      transform: translateX(-50%);
+    }
+  }
+}
+
+/* Infinite niche marquee — pauses on hover, frozen under reduced-motion
+   (the global prefers-reduced-motion rule zeroes the animation duration). */
+.marquee-track {
+  animation: var(--animate-marquee);
+  will-change: transform;
+}
+.marquee-mask:hover .marquee-track {
+  animation-play-state: paused;
+}
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
 }
 
 html {
