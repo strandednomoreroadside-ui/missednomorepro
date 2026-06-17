@@ -17,7 +17,6 @@ import {
   Users,
   Workflow,
   X,
-  Zap,
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
@@ -129,11 +128,18 @@ function Hero() {
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28 lg:pt-24">
         <div>
           <p
-            className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-cyan/25 bg-cyan/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-cyan"
+            className="animate-fade-up flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.22em] text-steel"
             style={{ animationDelay: "0ms" }}
           >
-            <Zap className="size-3.5" aria-hidden />
-            AI Receptionist + Smart CRM + AI Business Assistant
+            <span className="font-semibold text-cyan">AI Receptionist</span>
+            <span className="text-border" aria-hidden>
+              /
+            </span>
+            <span>Smart CRM</span>
+            <span className="text-border" aria-hidden>
+              /
+            </span>
+            <span>AI Business Assistant</span>
           </p>
           <h1
             className="animate-fade-up mt-6 font-display text-5xl font-bold leading-[1.04] tracking-tight sm:text-6xl"
