@@ -35,6 +35,16 @@ export async function startCheckout(formData: FormData) {
   const stripe = getStripe();
   const existing = await getSubscription(tenantId);
 
+  // Already subscribed? Switch plans through the Customer Portal instead of
+  // stacking a second subscription on the same customer (Stripe Checkout in
+  // subscription mode always creates a NEW subscription). Only an entitled,
+  // existing subscription routes here; a canceled/stale-plan row still goes
+  // through Checkout to start fresh.
+  const ENTITLED = new Set(["active", "trialing", "past_due"]);
+  if (existing?.stripe_subscription_id && ENTITLED.has(existing.status)) {
+    return openBillingPortal();
+  }
+
   let checkoutUrl: string;
   try {
     // Reuse the Stripe customer when we have one; create it otherwise.

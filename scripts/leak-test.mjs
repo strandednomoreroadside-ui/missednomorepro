@@ -393,7 +393,7 @@ try {
   assert("B cannot see A's knowledge documents/suggestions", knowledgeLeak.length === 0);
 
   // 22. B cannot approve A's suggestion into B's own tenant.
-  const { error: crossApproveErr } = await b.client
+  const { error: crossKnowledgeErr } = await b.client
     .from("knowledge_suggestions")
     .update({ status: "approved" })
     .eq("document_id", aDoc.id);
@@ -404,7 +404,7 @@ try {
     .maybeSingle();
   assert(
     "B cannot approve A's knowledge suggestion",
-    !crossApproveErr ? stillPending?.status === "pending" : true
+    !crossKnowledgeErr ? stillPending?.status === "pending" : true
   );
 
   // ── Outbound engine: automations + queued sends ───────────────
