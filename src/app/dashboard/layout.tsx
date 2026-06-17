@@ -4,6 +4,7 @@ import {
   Bot,
   CalendarCheck,
   CreditCard,
+  Inbox,
   KanbanSquare,
   LayoutDashboard,
   MessageSquare,
@@ -79,6 +80,13 @@ export default async function DashboardLayout({
           >
             <MessageSquare className="size-4" aria-hidden />
             Messages
+          </Link>
+          <Link
+            href="/dashboard/inbox"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Inbox className="size-4" aria-hidden />
+            Inbox
           </Link>
           <Link
             href="/dashboard/automations"

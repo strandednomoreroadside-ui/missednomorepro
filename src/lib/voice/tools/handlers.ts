@@ -42,10 +42,15 @@ export interface ToolContext {
   admin: SupabaseClient;
   tenantId: string;
   businessId: string | null;
-  /** Our calls.id (uuid), not the provider's call id. */
-  callId: string;
+  /** Channel this tool call originated from. Voice keeps the call path
+   *  byte-for-byte identical; sms/web run the same tools without a call. */
+  channel: "voice" | "sms" | "web";
+  /** Our calls.id (uuid) for voice; null/absent for chat channels. */
+  callId?: string | null;
+  /** Our conversations.id (uuid) for chat; null/absent for voice. */
+  conversationId?: string | null;
   contactId: string | null;
-  /** Caller's E.164 number. */
+  /** Caller's E.164 number (voice/sms). May be empty for web chat. */
   fromNumber: string;
   businessName: string;
 }
@@ -86,6 +91,7 @@ function defineTool<S extends z.ZodType>(
 /** Set the call disposition only if it hasn't been decided yet (so an
  *  earlier mark_spam/escalate isn't clobbered by a later notify_staff). */
 async function setDispositionIfEmpty(ctx: ToolContext, disposition: string) {
+  if (!ctx.callId) return; // chat channels have no call row
   await ctx.admin
     .from("calls")
     .update({ disposition })
@@ -96,6 +102,7 @@ async function setDispositionIfEmpty(ctx: ToolContext, disposition: string) {
 
 /** Authoritative disposition (mark_spam / escalate override anything). */
 async function setDisposition(ctx: ToolContext, disposition: string) {
+  if (!ctx.callId) return; // chat channels have no call row
   await ctx.admin
     .from("calls")
     .update({ disposition })
@@ -104,6 +111,7 @@ async function setDisposition(ctx: ToolContext, disposition: string) {
 }
 
 async function linkCallToContact(ctx: ToolContext, contactId: string) {
+  if (!ctx.callId) return; // nothing to link on chat channels
   await ctx.admin
     .from("calls")
     .update({ contact_id: contactId })
@@ -413,7 +421,7 @@ const notifyStaff = defineTool(
       tenantId: ctx.tenantId,
       action: "voice.tool.notify_staff",
       entityType: "call",
-      entityId: ctx.callId,
+      entityId: ctx.callId ?? undefined,
       metadata: { urgency, staffCount: staff.length },
     });
 
@@ -457,7 +465,7 @@ const escalateToHuman = defineTool(
         tenant_id: ctx.tenantId,
         business_id: ctx.businessId,
         contact_id: ctx.contactId,
-        call_id: ctx.callId,
+        call_id: ctx.callId ?? null,
         type: "escalation",
         title: `Escalation: ${args.reason}`.slice(0, 200),
         details: summary,
@@ -488,7 +496,7 @@ const escalateToHuman = defineTool(
       tenantId: ctx.tenantId,
       action: "voice.tool.escalate_to_human",
       entityType: "call",
-      entityId: ctx.callId,
+      entityId: ctx.callId ?? undefined,
       metadata: { reason: args.reason, staffCount: staff.length },
     });
 
@@ -507,7 +515,7 @@ const markSpam = defineTool(
       tenantId: ctx.tenantId,
       action: "voice.tool.mark_spam",
       entityType: "call",
-      entityId: ctx.callId,
+      entityId: ctx.callId ?? undefined,
       metadata: { reason: args.reason ?? null },
     });
     return { status: "ok", data: { ok: true } };
@@ -527,7 +535,7 @@ const createFollowUpTask = defineTool(
         tenant_id: ctx.tenantId,
         business_id: ctx.businessId,
         contact_id: ctx.contactId,
-        call_id: ctx.callId,
+        call_id: ctx.callId ?? null,
         type: args.type,
         title: args.title,
         details: args.details ?? null,
@@ -821,7 +829,7 @@ const bookAppointment = defineTool(
         tenant_id: ctx.tenantId,
         business_id: business.id,
         contact_id: contactId,
-        call_id: ctx.callId,
+        call_id: ctx.callId ?? null,
         title: args.title,
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
@@ -898,12 +906,15 @@ const bookAppointment = defineTool(
       .single();
 
     // Disposition -> booked (don't override an earlier spam/escalated).
-    await ctx.admin
-      .from("calls")
-      .update({ disposition: "booked" })
-      .eq("id", ctx.callId)
-      .eq("tenant_id", ctx.tenantId)
-      .or("disposition.is.null,disposition.eq.lead");
+    // Voice only — chat channels have no call row.
+    if (ctx.callId) {
+      await ctx.admin
+        .from("calls")
+        .update({ disposition: "booked" })
+        .eq("id", ctx.callId)
+        .eq("tenant_id", ctx.tenantId)
+        .or("disposition.is.null,disposition.eq.lead");
+    }
 
     // Pipeline: this lead is now scheduled.
     await advanceLead(ctx.admin, ctx.tenantId, contactId, "scheduled");
@@ -1524,7 +1535,7 @@ const calculateQuoteTool = defineTool(
       tenantId: ctx.tenantId,
       action: "voice.tool.calculate_quote",
       entityType: "call",
-      entityId: ctx.callId,
+      entityId: ctx.callId ?? undefined,
       metadata: {
         service: svc.name,
         ok: result.ok,

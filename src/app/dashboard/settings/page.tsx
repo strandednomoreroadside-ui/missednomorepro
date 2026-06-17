@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { randomUUID } from "node:crypto";
+import Link from "next/link";
 import {
   BellRing,
+  Bot,
   CalendarCheck,
   CheckCircle2,
+  Globe,
   MessageSquare,
   Phone,
   PhoneCall,
@@ -20,14 +24,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { requireActiveOrg } from "@/lib/auth";
+import { getEntitlements } from "@/lib/billing/entitlements";
+import { env } from "@/lib/env";
 import { isGoogleConfigured } from "@/lib/google/credentials";
 import { formatUsPhone } from "@/lib/phone";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import {
   connectGoogleCalendar,
   disconnectGoogleCalendar,
   updateBookingConfirmation,
+  updateChatSettings,
   updateReminders,
   updateTextBack,
 } from "./actions";
@@ -94,7 +102,7 @@ export default async function SettingsPage({
       ? supabase
           .from("sms_settings")
           .select(
-            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template"
+            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key"
           )
           .eq("business_id", business.id)
           .maybeSingle()
@@ -122,6 +130,27 @@ export default async function SettingsPage({
     | null;
   const calConnected = cal?.status === "connected";
   const googleConfigured = isGoogleConfigured();
+
+  // ── Omnichannel chat (Phase 10) ──
+  const chatEntitled = (await getEntitlements(active.organization_id)).has("omnichannel_chat");
+  const webChatEnabled = (sms?.web_chat_enabled ?? false) as boolean;
+  const webGreeting = (sms?.web_greeting ?? "Hi! How can we help you today?") as string;
+  const widgetAccent = (sms?.widget_accent ?? "#00E5FF") as string;
+  const twoWaySmsAi = (sms?.two_way_sms_ai_enabled ?? false) as boolean;
+  let widgetKey = (sms?.widget_key ?? null) as string | null;
+  // Ensure a widget key exists so the embed snippet is always valid.
+  if (chatEntitled && business && !widgetKey) {
+    widgetKey = randomUUID().replace(/-/g, "");
+    const admin = createAdminClient();
+    await admin
+      .from("sms_settings")
+      .update({ widget_key: widgetKey })
+      .eq("business_id", business.id)
+      .eq("tenant_id", active.organization_id);
+  }
+  const embedSnippet = widgetKey
+    ? `<script src="${env.NEXT_PUBLIC_APP_URL}/widget.js" data-key="${widgetKey}" async></script>`
+    : "";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -369,6 +398,114 @@ export default async function SettingsPage({
             />
             <Button type="submit">Save</Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* ── Omnichannel AI Chat (Phase 10 add-on) ── */}
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Globe className="size-4 text-cyan" aria-hidden />
+            Omnichannel AI Chat
+            <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
+              Add-on
+            </span>
+          </CardTitle>
+          <CardDescription>
+            Add a website chat widget and let the AI answer texts both ways — all in one{" "}
+            <Link href="/dashboard/inbox" className="text-cyan hover:underline">
+              Inbox
+            </Link>
+            . The same AI brain as your receptionist (it never invents prices or books outside your
+            rules).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!chatEntitled ? (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3.5 py-3 text-sm text-muted-foreground">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+              <span>
+                Omnichannel AI Chat is a +$29/mo add-on (also in the Growth Suite bundle). Enable it
+                on the{" "}
+                <Link href="/dashboard/billing" className="text-cyan hover:underline">
+                  billing page
+                </Link>{" "}
+                to turn on website chat and two-way AI texting.
+              </span>
+            </div>
+          ) : (
+            <form action={updateChatSettings} className="space-y-5">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="web_chat_enabled"
+                  defaultChecked={webChatEnabled}
+                  className="mt-1 accent-cyan"
+                />
+                <span>
+                  <span className="font-medium text-foreground">Website chat widget</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Show a chat bubble on your website that the AI answers instantly.
+                  </span>
+                </span>
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Greeting</span>
+                <Textarea
+                  name="web_greeting"
+                  defaultValue={webGreeting}
+                  rows={2}
+                  maxLength={240}
+                  className="mt-1"
+                  aria-label="Web chat greeting"
+                />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Accent color</span>
+                <Input
+                  type="text"
+                  name="widget_accent"
+                  defaultValue={widgetAccent}
+                  className="mt-1 w-40 font-mono"
+                  aria-label="Widget accent color (hex)"
+                  placeholder="#00E5FF"
+                />
+              </label>
+
+              <label className="flex items-start gap-3 border-t border-border/60 pt-4 text-sm">
+                <input
+                  type="checkbox"
+                  name="two_way_sms_ai_enabled"
+                  defaultChecked={twoWaySmsAi}
+                  className="mt-1 accent-cyan"
+                />
+                <span>
+                  <span className="font-medium text-foreground">Two-way AI texting</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    When someone texts your number, the AI replies and books just like on a call.
+                    STOP always wins; you can take over any thread from the Inbox.
+                  </span>
+                </span>
+              </label>
+
+              <Button type="submit">Save</Button>
+            </form>
+          )}
+
+          {chatEntitled && embedSnippet && (
+            <div className="mt-5 border-t border-border/60 pt-4">
+              <p className="text-sm font-medium text-foreground">Embed snippet</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Paste this once before <code className="text-cyan">{"</body>"}</code> on your
+                website. It only shows when website chat is on above.
+              </p>
+              <pre className="mt-2 overflow-x-auto rounded-lg border border-border/60 bg-night/60 p-3 font-mono text-[11px] text-steel">
+                {embedSnippet}
+              </pre>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

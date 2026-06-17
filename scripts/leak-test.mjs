@@ -460,6 +460,70 @@ try {
   const { data: bPays } = await b.client.from("payments").select("tenant_id");
   const payLeak = (bPays ?? []).filter((r) => r.tenant_id === a.orgId);
   assert("B cannot see A's payments", payLeak.length === 0);
+
+  // ── Phase 10: omnichannel chat (conversations + messages) ─────
+  // Server seeds A's chat settings (with a widget key), a conversation,
+  // and an AI message.
+  const { error: smsSetErr } = await admin.from("sms_settings").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    widget_key: `wk_leak_${ts}`,
+  });
+  if (smsSetErr) throw new Error(`seed sms_settings: ${smsSetErr.message}`);
+  const { data: aConvo, error: convoSeedErr } = await admin
+    .from("conversations")
+    .insert({
+      tenant_id: a.orgId,
+      business_id: aBiz.id,
+      channel: "web",
+      web_visitor_id: `v_leak_${ts}`,
+      customer_name: "Secret Web Visitor",
+    })
+    .select("id")
+    .single();
+  if (convoSeedErr) throw new Error(`seed conversation: ${convoSeedErr.message}`);
+  await admin.from("conversation_messages").insert({
+    tenant_id: a.orgId,
+    conversation_id: aConvo.id,
+    role: "ai",
+    body_redacted: "secret reply",
+  });
+
+  // 26. B sees none of A's conversations or messages.
+  const { data: bConvos } = await b.client.from("conversations").select("tenant_id");
+  const { data: bConvoMsgs } = await b.client
+    .from("conversation_messages")
+    .select("tenant_id");
+  const chatLeak = [...(bConvos ?? []), ...(bConvoMsgs ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's conversations/messages", chatLeak.length === 0);
+
+  // 27. B cannot inject a staff reply into A's conversation.
+  const { error: injectErr } = await b.client.from("conversation_messages").insert({
+    tenant_id: a.orgId,
+    conversation_id: aConvo.id,
+    role: "staff",
+    body_redacted: "INJECTED",
+  });
+  assert("B cannot inject a message into A's conversation", !!injectErr);
+
+  // 28. A's widget key (the only public widget credential) doesn't leak to B.
+  const { data: bSettings } = await b.client
+    .from("sms_settings")
+    .select("tenant_id, widget_key");
+  const keyLeak = (bSettings ?? []).filter((r) => r.tenant_id === a.orgId);
+  assert("B cannot read A's widget key / chat settings", keyLeak.length === 0);
+
+  // 29. Even in their own tenant, members can't forge AI/customer turns —
+  //     only 'staff' replies are member-insertable (the rest are server-only).
+  const { error: forgeAiErr } = await a.client.from("conversation_messages").insert({
+    tenant_id: a.orgId,
+    conversation_id: aConvo.id,
+    role: "ai",
+    body_redacted: "forged AI line",
+  });
+  assert("Members cannot forge AI/customer chat messages", !!forgeAiErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

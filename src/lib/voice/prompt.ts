@@ -57,7 +57,7 @@ function formatTime(t: string | null): string {
   return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-function formatHours(hours: BusinessHour[]): string {
+export function formatHours(hours: BusinessHour[]): string {
   if (hours.length === 0) return "Not specified.";
   const byDow = new Map(hours.map((h) => [h.day_of_week, h]));
   return DAYS.map(({ dow, label }) => {
@@ -67,7 +67,7 @@ function formatHours(hours: BusinessHour[]): string {
   }).join("\n");
 }
 
-function formatServices(services: Service[]): string {
+export function formatServices(services: Service[]): string {
   const active = services.filter((s) => s.active);
   if (active.length === 0) return "No services configured.";
   return active
@@ -75,7 +75,7 @@ function formatServices(services: Service[]): string {
     .join("\n");
 }
 
-function formatServiceArea(areas: ServiceArea[]): string {
+export function formatServiceArea(areas: ServiceArea[]): string {
   const active = areas.filter((a) => a.active);
   const zips = active.filter((a) => a.type === "zip" && a.zip_code).map((a) => a.zip_code);
   const cities = active
@@ -87,11 +87,29 @@ function formatServiceArea(areas: ServiceArea[]): string {
   return parts.length ? parts.join("\n") : "No service area configured.";
 }
 
-function formatFaqs(faqs: Faq[]): string {
+export function formatFaqs(faqs: Faq[]): string {
   const active = faqs.filter((f) => f.active).slice(0, MAX_INLINE_FAQS);
   if (active.length === 0) return "";
   const list = active.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n");
   return `\n# Known answers (use these; if a question isn't here, call search_knowledge_base)\n${list}\n`;
+}
+
+/**
+ * §5.1 pricing rule body (without the leading number) — SHARED by the voice
+ * prompt and the omnichannel chat prompt so the "never invent a price"
+ * guardrail can never drift between channels.
+ */
+export function pricingRuleBody(quotingEnabled: boolean): string {
+  return quotingEnabled
+    ? `NEVER invent, estimate, round, or hint at a price from your own head — not even "around" or "starting at". To answer ANY question about cost/price/"how much", you MUST call calculate_quote and tell the caller ONLY the exact total it returns. If it returns ok=false, follow its guidance (ask for the missing info, or offer to take details for the owner). Never say a number that did not come from calculate_quote.`
+    : `NEVER invent, estimate, or hint at a price, fee, rate, or range — not even "around" or "starting at". For ANY question about cost/price/"how much": say "Our owner will text you an exact quote shortly," collect the best number, and call create_follow_up_task with type "quote_request". Do not guess a number under any circumstances.`;
+}
+
+/** §5.1 booking rule body (without the leading number) — shared, as above. */
+export function bookingRuleBody(bookingEnabled: boolean): string {
+  return bookingEnabled
+    ? `BOOKING: only offer or confirm appointment times that check_calendar_availability returned for the day the caller wants. NEVER invent a time or guess availability, and only book a time the caller explicitly agreed to. A time outside business hours is rejected automatically — never promise one. Never take payment to "hold" a slot.`
+    : `NEVER book, schedule, or confirm an appointment time. If they want to schedule, take the details, say "the team will confirm a time with you," and call notify_staff.`;
 }
 
 /**
@@ -113,17 +131,13 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
   const quotingEnabled = input.quotingEnabled ?? false;
   const transferEnabled = Boolean(input.transferNumber);
 
-  const rule2 = quotingEnabled
-    ? `2. NEVER invent, estimate, round, or hint at a price from your own head — not even "around" or "starting at". To answer ANY question about cost/price/"how much", you MUST call calculate_quote and tell the caller ONLY the exact total it returns. If it returns ok=false, follow its guidance (ask for the missing info, or offer to take details for the owner). Never say a number that did not come from calculate_quote.`
-    : `2. NEVER invent, estimate, or hint at a price, fee, rate, or range — not even "around" or "starting at". For ANY question about cost/price/"how much": say "Our owner will text you an exact quote shortly," collect the best number, and call create_follow_up_task with type "quote_request". Do not guess a number under any circumstances.`;
+  const rule2 = `2. ${pricingRuleBody(quotingEnabled)}`;
 
   const pricingStep = quotingEnabled
     ? "Pricing: when the caller asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then tell them the exact total it returns. Never quote from memory — see rule 2."
     : "Pricing questions → rule 2.";
 
-  const rule4 = bookingEnabled
-    ? `4. BOOKING: only offer or confirm appointment times that check_calendar_availability returned for the day the caller wants. NEVER invent a time or guess availability, and only book a time the caller explicitly agreed to. A time outside business hours is rejected automatically — never promise one. Never take payment to "hold" a slot.`
-    : `4. NEVER book, schedule, or confirm an appointment time. If they want to schedule, take the details, say "the team will confirm a time with you," and call notify_staff.`;
+  const rule4 = `4. ${bookingRuleBody(bookingEnabled)}`;
 
   const hoursLabel = bookingEnabled
     ? "Business hours (you may only book inside these windows):"

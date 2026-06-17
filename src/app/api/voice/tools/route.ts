@@ -98,6 +98,7 @@ export async function POST(request: Request) {
     admin,
     tenantId: call.tenant_id,
     businessId: call.business_id ?? null,
+    channel: "voice",
     callId: call.id,
     contactId: call.contact_id ?? null,
     fromNumber: call.from_number ?? "",

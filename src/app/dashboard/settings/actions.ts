@@ -103,6 +103,42 @@ export async function updateReminders(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/** Update omnichannel chat settings (Phase 10): website widget + two-way
+ *  AI SMS. Members may manage their own sms_settings (RLS). */
+export async function updateChatSettings(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const webEnabled = formData.get("web_chat_enabled") === "on";
+  const smsAi = formData.get("two_way_sms_ai_enabled") === "on";
+  const greeting = String(formData.get("web_greeting") ?? "").trim();
+  const accent = String(formData.get("widget_accent") ?? "").trim();
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  const patch: Record<string, unknown> = {
+    web_chat_enabled: webEnabled,
+    two_way_sms_ai_enabled: smsAi,
+  };
+  if (greeting) patch.web_greeting = greeting;
+  if (/^#[0-9a-fA-F]{3,8}$/.test(accent)) patch.widget_accent = accent;
+
+  await supabase
+    .from("sms_settings")
+    .update(patch)
+    .eq("business_id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 /**
  * Start the Google Calendar OAuth flow (M9). Sets a CSRF state cookie and
  * redirects to Google's consent screen. The connection is finished in
