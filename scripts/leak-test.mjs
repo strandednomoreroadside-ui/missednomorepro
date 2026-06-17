@@ -524,6 +524,37 @@ try {
     body_redacted: "forged AI line",
   });
   assert("Members cannot forge AI/customer chat messages", !!forgeAiErr);
+
+  // ── Ph12: invitations + work assignment isolation ─────────────
+  const { error: invSeedErr } = await admin.from("invitations").insert({
+    tenant_id: a.orgId,
+    email: "newhire@example.com",
+    role: "member",
+    token: `tok_leak_${ts}`,
+  });
+  if (invSeedErr) throw new Error(`seed invitation: ${invSeedErr.message}`);
+
+  // 30. B cannot see A's invitations (can't discover tokens).
+  const { data: bInvites } = await b.client.from("invitations").select("tenant_id, token");
+  const inviteLeak = (bInvites ?? []).filter((r) => r.tenant_id === a.orgId);
+  assert("B cannot see A's invitations", inviteLeak.length === 0);
+
+  // 31. B cannot forge an invitation into A's tenant.
+  const { error: forgeInviteErr } = await b.client.from("invitations").insert({
+    tenant_id: a.orgId,
+    email: "intruder@example.com",
+    role: "admin",
+    token: `tok_forge_${ts}`,
+  });
+  assert("B cannot create an invitation into A's tenant", !!forgeInviteErr);
+
+  // 32. B cannot assign (or otherwise edit) A's jobs.
+  const { data: bAssign } = await b.client
+    .from("jobs")
+    .update({ assigned_to: null })
+    .eq("id", aJob?.id ?? a.orgId)
+    .select();
+  assert("B cannot assign A's jobs", (bAssign ?? []).length === 0);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

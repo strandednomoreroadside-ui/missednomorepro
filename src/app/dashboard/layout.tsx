@@ -3,7 +3,9 @@ import {
   BookOpen,
   Bot,
   CalendarCheck,
+  CalendarRange,
   CreditCard,
+  Hash,
   Inbox,
   KanbanSquare,
   LayoutDashboard,
@@ -12,6 +14,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  UserPlus,
   Users,
   Wand2,
 } from "lucide-react";
@@ -103,6 +106,13 @@ export default async function DashboardLayout({
             Jobs
           </Link>
           <Link
+            href="/dashboard/dispatch"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <CalendarRange className="size-4" aria-hidden />
+            Dispatch
+          </Link>
+          <Link
             href="/dashboard/assistant"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
           >
@@ -115,6 +125,20 @@ export default async function DashboardLayout({
           >
             <BookOpen className="size-4" aria-hidden />
             Knowledge Hub
+          </Link>
+          <Link
+            href="/dashboard/team"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <UserPlus className="size-4" aria-hidden />
+            Team
+          </Link>
+          <Link
+            href="/dashboard/numbers"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Hash className="size-4" aria-hidden />
+            Numbers
           </Link>
           <Link
             href="/dashboard/billing"
