@@ -1439,10 +1439,11 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
     };
   }
 
-  let say =
-    `Your total comes to ${dollars(r.total)} — ` +
-    r.lines.map((l) => `${dollars(l.amount)} for ${l.label.toLowerCase()}`).join(", ") +
-    ".";
+  // Speak the total only — the operator doesn't want the line-item breakdown
+  // read out loud (the itemized lines are still returned in `breakdown` for the
+  // record/dashboard). Variable-part + conditional surcharges stay: they're
+  // necessary disclosures, not a breakdown of the base price.
+  let say = `Your total comes to ${dollars(r.total)}.`;
   if (r.variablePart) {
     say += ` Plus the cost of the ${r.variablePart}, which we confirm before dispatch.`;
   }

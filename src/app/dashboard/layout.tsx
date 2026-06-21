@@ -9,11 +9,13 @@ import {
   Inbox,
   KanbanSquare,
   LayoutDashboard,
+  LineChart,
   MessageSquare,
   PhoneCall,
   Send,
   Settings,
   ShieldCheck,
+  Star,
   UserPlus,
   Users,
   Wand2,
@@ -125,6 +127,20 @@ export default async function DashboardLayout({
           >
             <BookOpen className="size-4" aria-hidden />
             Knowledge Hub
+          </Link>
+          <Link
+            href="/dashboard/reputation"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Star className="size-4" aria-hidden />
+            Reputation
+          </Link>
+          <Link
+            href="/dashboard/insights"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <LineChart className="size-4" aria-hidden />
+            Insights
           </Link>
           <Link
             href="/dashboard/team"

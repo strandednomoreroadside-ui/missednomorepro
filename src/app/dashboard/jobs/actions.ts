@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireActiveOrg } from "@/lib/auth";
 import { advanceLead } from "@/lib/crm/pipeline";
+import { requestReview } from "@/lib/reputation/review";
 import { enqueueFollowup } from "@/lib/sms/outbound-engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -83,6 +84,15 @@ export async function updateJobStatus(formData: FormData): Promise<void> {
         contactId: job.contact_id,
         kind: "maintenance",
         dedupeKey: `maintenance:${jobId}`,
+      });
+
+      // Reputation Manager (separate add-on): the gated review request — a
+      // no-op unless the add-on is active AND reputation is toggled on.
+      await requestReview(admin, {
+        tenantId,
+        businessId: job.business_id,
+        contactId: job.contact_id,
+        jobId,
       });
     }
   }

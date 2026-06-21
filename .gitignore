@@ -35,3 +35,10 @@ Thumbs.db
 # Saved browser pages — may contain account identifiers/secrets
 Account home*.html
 Account home*_files/
+
+# Sentry Config File
+.env.sentry-build-plugin
+
+# Python bytecode caches (from local skill scripts)
+__pycache__/
+*.pyc

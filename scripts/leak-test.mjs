@@ -555,6 +555,48 @@ try {
     .eq("id", aJob?.id ?? a.orgId)
     .select();
   assert("B cannot assign A's jobs", (bAssign ?? []).length === 0);
+
+  // ── Ph14: reputation (reviews) + insights isolation ───────────
+  const { error: revSeedErr } = await admin.from("reviews").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    contact_id: aContact.id,
+    rating: 2,
+    status: "feedback",
+    feedback_redacted: "private complaint",
+  });
+  if (revSeedErr) throw new Error(`seed review: ${revSeedErr.message}`);
+
+  const { error: insSeedErr } = await admin.from("insight_reports").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    period_start: new Date(Date.now() - 7 * 86400000).toISOString(),
+    period_end: new Date().toISOString(),
+    payload: { metrics: {} },
+  });
+  if (insSeedErr) throw new Error(`seed insight report: ${insSeedErr.message}`);
+
+  // 33. B cannot read A's reviews (private feedback must not leak).
+  const { data: bReviews } = await b.client.from("reviews").select("tenant_id");
+  assert(
+    "B cannot see A's reviews / private feedback",
+    (bReviews ?? []).filter((r) => r.tenant_id === a.orgId).length === 0
+  );
+
+  // 34. B cannot forge a review into A's tenant (writes are server-only).
+  const { error: forgeReviewErr } = await b.client.from("reviews").insert({
+    tenant_id: a.orgId,
+    rating: 5,
+    status: "rated",
+  });
+  assert("B cannot write reviews into A's tenant", !!forgeReviewErr);
+
+  // 35. B cannot read A's insight reports.
+  const { data: bInsights } = await b.client.from("insight_reports").select("tenant_id");
+  assert(
+    "B cannot see A's insight reports",
+    (bInsights ?? []).filter((r) => r.tenant_id === a.orgId).length === 0
+  );
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

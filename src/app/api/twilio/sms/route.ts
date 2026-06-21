@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { runChatTurn } from "@/lib/chat/handle";
 import { encryptText } from "@/lib/crypto";
+import { handleReviewReply } from "@/lib/reputation/review";
 import { redactPii } from "@/lib/redact";
 import { isSuppressed, sendCustomerSms } from "@/lib/sms/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -176,6 +177,28 @@ export async function POST(request: Request) {
     const reply = `${businessName}: reply here and our team will help. Msg & data rates may apply. Reply STOP to opt out, START to resume.`;
     await logReply(admin, { tenantId, businessId, contactId, to: from, body: reply, kind: "help" });
     return twimlResponse(messageTwiml(reply));
+  }
+
+  // ── Reputation gate (Reputation Manager add-on) ─────────────────
+  // If this contact has an open review request, a "1-5" reply (or the
+  // private feedback that follows a low rating) is handled here — happy
+  // customers get the public review link, unhappy ones go to the owner.
+  // Runs before the AI so a rating isn't swallowed by chat. STOP already
+  // short-circuited above; replies here are transactional.
+  const review = await handleReviewReply(admin, { tenantId, businessId, contactId, body });
+  if (review.handled) {
+    if (review.reply) {
+      await sendCustomerSms(admin, {
+        tenantId,
+        businessId,
+        contactId,
+        toPhone: from,
+        body: review.reply,
+        kind: "review",
+        requireConsent: false,
+      });
+    }
+    return empty();
   }
 
   // ── Two-way AI SMS (Phase 10, omnichannel_chat add-on) ──────────

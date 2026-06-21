@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { env } from "@/lib/env";
+import { generateWeeklyInsights } from "@/lib/insights/call-intelligence";
 import { processOutboundQueue } from "@/lib/sms/outbound-engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -25,7 +26,15 @@ export async function GET(request: Request) {
   try {
     const admin = createAdminClient();
     const result = await processOutboundQueue(admin);
-    return NextResponse.json({ ok: true, ...result });
+
+    // Weekly Call Intelligence digests piggyback this daily cron (Vercel
+    // Hobby allows only 2 crons). Generate on Mondays for entitled tenants.
+    let insights = 0;
+    if (new Date().getUTCDay() === 1) {
+      insights = await generateWeeklyInsights(admin);
+    }
+
+    return NextResponse.json({ ok: true, ...result, insights });
   } catch (err) {
     const message = err instanceof Error ? err.message : "outbound run failed";
     console.error("[cron/outbound]", message);
