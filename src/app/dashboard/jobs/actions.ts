@@ -52,7 +52,9 @@ export async function updateJobStatus(formData: FormData): Promise<void> {
     const stage = (count ?? 0) > 0 ? "repeat" : "completed";
     await advanceLead(supabase, tenantId, job.contact_id, stage);
 
-    // Tag the contact as a Customer (idempotent).
+    // Tag the contact as a Customer, and auto-VIP loyal repeat customers
+    // (Ph13: 3+ completed jobs). Both idempotent.
+    const completedJobs = (count ?? 0) + 1; // prior completed + this one
     const { data: contact } = await supabase
       .from("contacts")
       .select("tags")
@@ -60,10 +62,13 @@ export async function updateJobStatus(formData: FormData): Promise<void> {
       .eq("tenant_id", tenantId)
       .maybeSingle();
     const tags = (contact?.tags as string[] | null) ?? [];
-    if (!tags.includes("Customer")) {
+    const next = [...tags];
+    if (!next.includes("Customer")) next.push("Customer");
+    if (completedJobs >= 3 && !next.includes("vip")) next.push("vip");
+    if (next.length !== tags.length) {
       await supabase
         .from("contacts")
-        .update({ tags: [...tags, "Customer"] })
+        .update({ tags: next })
         .eq("id", job.contact_id)
         .eq("tenant_id", tenantId);
     }

@@ -131,6 +131,38 @@ export async function updateContact(formData: FormData) {
   redirect(`${back}?saved=1`);
 }
 
+/** One-click VIP toggle (Ph13). VIP is just the "vip" tag — also auto-applied
+ *  on a loyalty threshold when a job completes (see jobs/actions.ts). */
+export async function toggleVip(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const id = text(formData, "id");
+  const back = `/dashboard/contacts/${id}`;
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("tags")
+    .eq("id", id)
+    .eq("tenant_id", active.organization_id)
+    .maybeSingle();
+  if (!contact) failTo(back, "Contact not found.");
+
+  const tags = (contact.tags as string[] | null) ?? [];
+  const next = tags.includes("vip")
+    ? tags.filter((t) => t !== "vip")
+    : [...tags, "vip"];
+
+  const { error } = await supabase
+    .from("contacts")
+    .update({ tags: next })
+    .eq("id", id)
+    .eq("tenant_id", active.organization_id);
+  if (error) failTo(back, error.message);
+
+  redirect(`${back}?saved=1`);
+}
+
 export async function deleteContact(formData: FormData) {
   await requireActiveOrg();
   const supabase = await createClient();

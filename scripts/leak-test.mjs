@@ -597,6 +597,32 @@ try {
     "B cannot see A's insight reports",
     (bInsights ?? []).filter((r) => r.tenant_id === a.orgId).length === 0
   );
+
+  // ── Ph13: MMS media attachments isolation ─────────────────────
+  const { error: mediaSeedErr } = await admin.from("media_attachments").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    contact_id: aContact.id,
+    source: "mms",
+    content_type: "image/jpeg",
+    storage_path: `${a.orgId}/leak.jpg`,
+  });
+  if (mediaSeedErr) throw new Error(`seed media: ${mediaSeedErr.message}`);
+
+  // 36. B cannot see A's photos (no path to other tenants' customer images).
+  const { data: bMedia } = await b.client.from("media_attachments").select("tenant_id");
+  assert(
+    "B cannot see A's MMS media attachments",
+    (bMedia ?? []).filter((r) => r.tenant_id === a.orgId).length === 0
+  );
+
+  // 37. B cannot forge a media attachment into A's tenant (writes server-only).
+  const { error: forgeMediaErr } = await b.client.from("media_attachments").insert({
+    tenant_id: a.orgId,
+    source: "mms",
+    storage_path: `${a.orgId}/forged.jpg`,
+  });
+  assert("B cannot write media attachments into A's tenant", !!forgeMediaErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

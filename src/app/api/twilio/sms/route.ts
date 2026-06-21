@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { runChatTurn } from "@/lib/chat/handle";
 import { encryptText } from "@/lib/crypto";
+import { formatUsPhone } from "@/lib/phone";
 import { handleReviewReply } from "@/lib/reputation/review";
+import { countMedia, ingestInboundMedia } from "@/lib/sms/media";
 import { redactPii } from "@/lib/redact";
 import { isSuppressed, sendCustomerSms } from "@/lib/sms/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -113,23 +115,50 @@ export async function POST(request: Request) {
     .eq("tenant_id", tenantId)
     .eq("phone", from)
     .maybeSingle();
-  const contactId = contact?.id ?? null;
+  let contactId = contact?.id ?? null;
+
+  // A texted-in photo is a strong lead signal — make sure it has a contact to
+  // hang on, creating a lightweight one for an unknown sender (Ph13 MMS).
+  const mediaCount = countMedia(params);
+  if (mediaCount > 0 && !contactId) {
+    const { data: created } = await admin
+      .from("contacts")
+      .insert({ tenant_id: tenantId, name: formatUsPhone(from) ?? from, phone: from })
+      .select("id")
+      .single();
+    contactId = created?.id ?? null;
+  }
 
   // Log the inbound message (triggers the contact's SMS timeline event).
-  await admin.from("messages").insert({
-    tenant_id: tenantId,
-    business_id: businessId,
-    contact_id: contactId,
-    direction: "inbound",
-    from_number: from,
-    to_number: to,
-    body_redacted: redactPii(body).redacted,
-    body_encrypted: encryptText(body),
-    status: "received",
-    kind: "reply",
-    consent_checked: false,
-    provider_message_id: messageSid || null,
-  });
+  const { data: message } = await admin
+    .from("messages")
+    .insert({
+      tenant_id: tenantId,
+      business_id: businessId,
+      contact_id: contactId,
+      direction: "inbound",
+      from_number: from,
+      to_number: to,
+      body_redacted: redactPii(body).redacted,
+      body_encrypted: encryptText(body),
+      status: "received",
+      kind: "reply",
+      consent_checked: false,
+      provider_message_id: messageSid || null,
+    })
+    .select("id")
+    .single();
+
+  // Store any attached photos (best-effort; never blocks message handling).
+  if (mediaCount > 0) {
+    await ingestInboundMedia(admin, {
+      tenantId,
+      businessId,
+      contactId,
+      messageId: (message?.id as string) ?? null,
+      params,
+    });
+  }
 
   const keyword = body.split(/\s+/)[0]?.toUpperCase() ?? "";
 

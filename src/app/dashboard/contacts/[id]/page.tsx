@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   CreditCard,
+  ImageIcon,
   MessageSquare,
   NotebookPen,
   PhoneCall,
   Sparkles,
+  Star,
   UserRound,
 } from "lucide-react";
 
@@ -34,6 +36,7 @@ import {
   createLead,
   deleteContact,
   requestPayment,
+  toggleVip,
   updateContact,
   updateLeadStatus,
 } from "../actions";
@@ -90,8 +93,11 @@ const EVENT_ICONS: Record<string, typeof NotebookPen> = {
   lead: Sparkles,
   call: PhoneCall,
   sms: MessageSquare,
+  media: ImageIcon,
   contact_created: UserRound,
 };
+
+type MediaRow = { id: string; content_type: string | null; created_at: string };
 
 const LEAD_STATUSES = [
   "new_lead",
@@ -151,12 +157,22 @@ export default async function ContactDetailPage({
       .limit(50),
   ]);
 
-  const { data: paymentRows } = await supabase
-    .from("payments")
-    .select("id, kind, amount_cents, description, status, payment_url, created_at")
-    .eq("contact_id", id)
-    .order("created_at", { ascending: false });
+  const [{ data: paymentRows }, { data: mediaRows }] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("id, kind, amount_cents, description, status, payment_url, created_at")
+      .eq("contact_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("media_attachments")
+      .select("id, content_type, created_at")
+      .eq("contact_id", id)
+      .not("storage_path", "is", null)
+      .order("created_at", { ascending: false }),
+  ]);
   const payments = (paymentRows ?? []) as PaymentRow[];
+  const media = (mediaRows ?? []) as MediaRow[];
+  const isVip = c.tags.includes("vip");
   const ltvCents = payments
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + p.amount_cents, 0);
@@ -172,17 +188,31 @@ export default async function ContactDetailPage({
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold tracking-tight">{c.name}</h1>
+        {isVip && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 text-xs font-medium text-cyan">
+            <Star className="size-3 fill-cyan" aria-hidden /> VIP
+          </span>
+        )}
         {c.phone && (
           <span className="font-mono text-sm text-steel">{formatUsPhone(c.phone)}</span>
         )}
-        {c.tags.map((t) => (
-          <span
-            key={t}
-            className="rounded-full border border-border/70 px-2 py-0.5 text-xs text-steel"
-          >
-            {t}
-          </span>
-        ))}
+        {c.tags
+          .filter((t) => t !== "vip")
+          .map((t) => (
+            <span
+              key={t}
+              className="rounded-full border border-border/70 px-2 py-0.5 text-xs text-steel"
+            >
+              {t}
+            </span>
+          ))}
+        <form action={toggleVip} className="ml-auto">
+          <input type="hidden" name="id" value={c.id} />
+          <Button type="submit" variant="ghost" size="sm" className="text-xs">
+            <Star className={`size-3.5 ${isVip ? "fill-cyan text-cyan" : ""}`} aria-hidden />
+            {isVip ? "Remove VIP" : "Mark VIP"}
+          </Button>
+        </form>
       </div>
 
       {error && <div className="mt-5"><FormBanner kind="error">{error}</FormBanner></div>}
@@ -432,6 +462,43 @@ export default async function ContactDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {/* ── Photos texted in (Ph13 MMS intake) ── */}
+          {media.length > 0 && (
+            <Card className="bg-card/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 font-display text-base">
+                  <ImageIcon className="size-4 text-cyan" aria-hidden />
+                  Photos
+                </CardTitle>
+                <CardDescription>
+                  Images this customer texted in — handy for sizing up the job.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {media.map((m) => (
+                    <a
+                      key={m.id}
+                      href={`/api/media/${m.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative aspect-square overflow-hidden rounded-lg border border-border/60 bg-night/40"
+                      title={new Date(m.created_at).toLocaleString()}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/api/media/${m.id}`}
+                        alt="Customer photo"
+                        className="size-full object-cover transition-transform group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* ── Right: notes + timeline ── */}

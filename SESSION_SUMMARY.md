@@ -70,6 +70,16 @@ The last two add-ons, deferring the pieces that need external setup (Google Busi
 
 ---
 
+## 6. Phase 13 — MMS photo intake + VIP ✅ (built — build+typecheck green; needs migration + operator test; committed with Ph14? no — separate)
+
+LTV already shipped in Ph8; this finishes the slice.
+
+- **Migration `20260628090000_mms_media.sql`:** `media_attachments` (members read / server writes only) + a **private `mms-media` Storage bucket** (service-role only).
+- **MMS intake** (`src/lib/sms/media.ts`): the inbound webhook downloads texted-in photos with the Twilio creds, stores them privately, links each to the contact + message, and adds a `media` timeline event. An MMS from an unknown number auto-creates a lightweight contact. Served via the auth-checked proxy `/api/media/[id]`.
+- **Contact page:** a **Photos** card (thumbnails) + a one-click **VIP** toggle/badge. **VIP auto-applies on the 3rd completed job.**
+- **Leak test → checks 36–37** (B can't read A's photos or forge an attachment). No new env.
+- **Operator TODO:** apply `20260628090000_mms_media.sql` (creates the bucket), redeploy, then text a photo to the number and confirm it appears on the contact.
+
 ## Cross-cutting Notes
 - **Workflow:** migrations are applied by the operator via the Supabase SQL editor, then redeploy (Vercel auto-deploys on push to `main`). Deployed code that selects new columns errors until the migration is applied — apply before/with each deploy.
 - **Margin discipline:** every add-on is LLM/text-based (pennies); SMS stays metered + STOP-gated.
