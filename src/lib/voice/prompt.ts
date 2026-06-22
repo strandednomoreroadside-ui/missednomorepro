@@ -20,6 +20,9 @@ import type { VoiceAgentConfig } from "./types";
 const DEFAULT_VOICE_ID = "11labs-Grace";
 const DEFAULT_LANGUAGE = "en-US";
 const DEFAULT_MAX_CALL_SECONDS = 600;
+/** Bump to force a one-time re-sync of all agents when we change voice tuning
+ *  (STT/TTS settings that live on the provider agent, not in the prompt). */
+const TUNING_VERSION = 1;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -223,6 +226,7 @@ ${wrapUp}`;
   const voiceId = input.agent?.voiceId || DEFAULT_VOICE_ID;
   const language = input.agent?.language || DEFAULT_LANGUAGE;
   const maxCallSeconds = input.agent?.maxCallSeconds || DEFAULT_MAX_CALL_SECONDS;
+  const boostedKeywords = buildBoostedKeywords(input);
 
   const promptHash = createHash("sha256")
     .update(
@@ -234,6 +238,8 @@ ${wrapUp}`;
         maxCallSeconds,
         tools: VOICE_TOOLS.map((t) => t.name),
         transferNumber: input.transferNumber ?? null,
+        boostedKeywords,
+        tuningVersion: TUNING_VERSION,
       })
     )
     .digest("hex");
@@ -247,6 +253,22 @@ ${wrapUp}`;
     maxCallSeconds,
     tools: VOICE_TOOLS,
     transferNumber: input.transferNumber ?? null,
+    boostedKeywords,
     promptHash,
   };
+}
+
+/** Bias the speech-to-text toward the proper nouns a caller will actually say
+ *  — the business name, the services it offers, and the towns it serves — so
+ *  "Strongsville" or "lockout" aren't transcribed as something else. */
+function buildBoostedKeywords(input: PromptInput): string[] {
+  const out = new Set<string>();
+  const add = (s: string | null | undefined) => {
+    const v = (s ?? "").trim();
+    if (v.length >= 2 && v.length <= 40) out.add(v);
+  };
+  add(input.business.name);
+  for (const s of input.services) add(s.name);
+  for (const a of input.areas) if (a.type === "city") add(a.city);
+  return [...out].slice(0, 50);
 }

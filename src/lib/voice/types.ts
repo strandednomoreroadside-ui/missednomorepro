@@ -35,6 +35,9 @@ export interface VoiceAgentConfig {
   tools: VoiceToolDef[];
   /** E.164 number to warm-transfer live callers to (a human), or null. */
   transferNumber: string | null;
+  /** Proper nouns the STT should bias toward — the business name, its service
+   *  names, and the towns it serves — so callers' words aren't misheard. */
+  boostedKeywords: string[];
   /** Stable hash of the above — used to skip no-op re-syncs. */
   promptHash: string;
 }

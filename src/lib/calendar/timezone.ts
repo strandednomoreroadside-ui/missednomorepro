@@ -95,27 +95,38 @@ export function addDays(
   return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
 }
 
+/** Intl can emit a narrow no-break space (U+202F) or NBSP before AM/PM on some
+ *  ICU builds (e.g. Vercel's serverless runtime). TTS engines mis-vocalize it,
+ *  so these spoken labels normalize it to a plain space. */
+function cleanSpoken(s: string): string {
+  return s.replace(/[    ]/g, " ");
+}
+
 /** "Tuesday, July 7 at 9:00 AM" in `tz`. */
 export function formatSlotLabel(date: Date, tz: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
+  return cleanSpoken(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date)
+  );
 }
 
 /** "9:00 AM" in `tz` (compact, for slot lists). */
 export function formatTimeLabel(date: Date, tz: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
+  return cleanSpoken(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date)
+  );
 }
 
 /** Prompt dynamic-variable strings — date (YYYY-MM-DD), weekday name, and

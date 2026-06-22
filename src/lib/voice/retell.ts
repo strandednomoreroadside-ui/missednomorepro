@@ -157,6 +157,7 @@ export class RetellVoiceProvider implements VoiceProvider {
         webhook_url: webhookUrl(),
         max_call_duration_ms: config.maxCallSeconds * 1000,
         end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
+        boosted_keywords: config.boostedKeywords.length ? config.boostedKeywords : null,
       });
       return {
         providerAgentId: existing.providerAgentId,
@@ -179,6 +180,7 @@ export class RetellVoiceProvider implements VoiceProvider {
       webhook_url: webhookUrl(),
       max_call_duration_ms: config.maxCallSeconds * 1000,
       end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
+      boosted_keywords: config.boostedKeywords.length ? config.boostedKeywords : null,
       agent_name: config.name,
     });
 
