@@ -1,12 +1,13 @@
-# Session Summary — Missed No More Pro (June 21, 2026)
+# Session Summary — Missed No More Pro (June 21–22, 2026)
 
 This session: reviewed, verified, and shipped the two uncommitted batches that
 had been sitting in the working tree (voice tuning + the M10 hardening "beta
-gate"), then verified the beta gate against the live database.
+gate"), verified the beta gate against the live database, then fixed the Stripe
+webhook (the prior session's billing-sync bug) and clarified Sentry setup.
 
 ---
 
-## 1. Voice tuning ✅ (commit `85795da`, pushed → deploying)
+## 1. Voice tuning ✅ (commit `85795da`, pushed + deployed)
 
 Four files — `src/lib/voice/{types,prompt,retell}.ts` + `src/lib/calendar/timezone.ts`:
 
@@ -22,7 +23,7 @@ Four files — `src/lib/voice/{types,prompt,retell}.ts` + `src/lib/calendar/time
 
 ---
 
-## 2. M10 hardening — the beta gate ✅ (commit `6b9174e`, pushed → deploying)
+## 2. M10 hardening — the beta gate ✅ (commit `6b9174e`, pushed + deployed)
 
 **Decision: adopted the existing batch** (reviewed + verified + finished) rather
 than rebuilding — it was coherent, complete, and built clean. Reviewed
@@ -67,41 +68,94 @@ pages. **`npm run typecheck` + `npm run build` both green.**
 
 ---
 
-## 4. Remaining to fully close the beta gate (operator §14 — external setup)
+## 4. Stripe webhook fixes ✅ (commits `26bf713` + stale-endpoint cleanup)
 
-- ⬜ **Resend:** create the account → verify the sending-domain DNS → set
-  `RESEND_API_KEY` + `RESEND_FROM` in Vercel. *Until then, usage-alert and
-  receipt emails silently no-op (by design); the SMS half of alerts still fires.*
-- ⬜ **Re-run `/admin/billing-setup`** to register the new `invoice.paid`
-  webhook event (may need to delete + recreate the Stripe webhook endpoint so it
-  picks the event up). This also addresses the stale-webhook issue from the
-  prior session.
-- ⬜ Confirm `SENTRY_DSN` in Vercel.
-- ⬜ Set up `support@missednomorepro.com` forwarding.
+The prior session's symptom — "billing stopped syncing after June 12" — plus the
+operator's report that re-running `/admin/billing-setup` *didn't* add
+`invoice.paid`. Root-caused and fixed:
+
+- **Bug:** `runStripeSetup` only ever *created* the webhook endpoint; if one
+  already existed it skipped it entirely, so events added to the list later
+  (`invoice.paid`) never landed on the existing endpoint. **Fixed** — it now
+  reconciles `enabled_events` **in place** when any are missing; an in-place
+  update keeps the same signing secret (no Vercel change). Re-running the button
+  is now enough.
+- **`invoice.paid` added directly** to the production endpoint
+  (`we_…l0HD` → `missednomorepro.com/api/stripe/webhook`) via a one-off script;
+  signing secret unchanged. It now listens for all 5 events.
+- **Found + deleted a stale duplicate endpoint** pointing at an old Supabase Edge
+  Function (`…supabase.co/functions/v1/stripeWebhook`). Two endpoints both
+  receiving subscription events is the most likely reason billing stopped
+  syncing — easy to have copied the *wrong* endpoint's signing secret into
+  Vercel. Only the real production endpoint remains now.
+- Added `scripts/stripe-webhook-check.mjs` (read-only diagnostic: endpoint
+  URL / status / events).
+- **⚠️ Remaining (operator):** in Stripe → Developers → Webhooks → the
+  `missednomorepro.com/...` endpoint → reveal the **Signing secret** and confirm
+  it matches `STRIPE_WEBHOOK_SECRET` in Vercel. The local value starts with
+  `whsec_Jh…`. If the dashboard's value differs, paste it into Vercel + redeploy
+  — that's the actual fix for the sync gap.
+
+---
+
+## 5. Sentry — already live; the real Vercel item is the auth token
+
+Investigated the "confirm `SENTRY_DSN` in Vercel" checklist line:
+
+- **The DSN is hardcoded** in all 3 configs (`sentry.server.config.ts`,
+  `src/instrumentation-client.ts`, `sentry.edge.config.ts`), and **nothing reads
+  the `SENTRY_DSN` env var** (`env.SENTRY_DSN` has zero usages). So **error
+  tracking already works in production** — no Vercel env is required for it, and
+  adding `SENTRY_DSN` to Vercel would be a no-op. (DSNs aren't secret; hardcoding
+  is what Sentry's own wizard does.) The schema var is vestigial.
+- The genuinely useful Vercel var is **`SENTRY_AUTH_TOKEN`** — `next.config.ts`
+  runs `withSentryConfig` (org `stranded-no-more-roadside-assi`, project
+  `javascript-nextjs`), which uploads source maps **only if a token is present**.
+  Without it the build silently skips upload and crash reports show minified
+  code. Optional but recommended before beta (see walkthrough handed to operator).
+
+---
+
+## 6. Beta-gate checklist (operator §14 — external setup)
+
+- ✅ **Migration applied** + **leak test 41/41**.
+- ✅ **Resend** — account created + `RESEND_API_KEY`/`RESEND_FROM` in Vercel.
+- ✅ **Support email** — `support@missednomorepro.com` via Zoho Mail.
+- ✅ **Stripe webhook** — `invoice.paid` registered; setup button self-heals;
+  stale duplicate endpoint deleted.
+- ⚠️ **Verify the Stripe signing secret** matches Vercel (§4 above) — likely the
+  billing-sync fix.
+- ⬜ **`SENTRY_AUTH_TOKEN`** in Vercel (optional — readable stack traces). DSN
+  itself needs nothing.
 - ⬜ **Stripe live-mode keys** in Vercel (flips out of test mode).
 - ⬜ **25 red-team calls** + confirm 0% pricing hallucination.
 - ⬜ Supabase Pro (backups) + Vercel Pro at the first paying customer.
 
 ---
 
-## 5. Still open (not blockers)
+## 7. Still open (not blockers)
 
 - **Pronunciation dictionary** for specific mis-said words — needs the operator's
   exact examples (the word + how it currently sounds).
 - **Faster-LLM latency swap** (`gpt-4.1` → a faster model) — fold into the
   red-team so the §5.1 hard rules are re-verified after the swap.
 - **Live-call check of the voice tuning** — confirm boosted keywords improve
-  recognition and the time reads cleanly, once the deploy lands.
+  recognition and the time reads cleanly.
 
 ---
 
 ## Next session — pick up here
 
-1. As the operator completes §14 external setup (Resend, Stripe live), verify
-   each end-to-end (a real test alert email, a live-mode test charge + receipt).
-2. Run / walk the operator through the 25 red-team calls; collect mispronounced
-   words → Retell pronunciation dictionary; evaluate the faster-LLM swap.
-3. Live-call verification of the voice tuning.
+1. **Write the 25-call red-team checklist** (try to make the AI invent a price,
+   book outside hours, claim it's human, text an opted-out number, etc. — each
+   with a clear pass/fail), then run / walk the operator through it.
+2. Confirm the operator verified the Stripe signing secret; if billing still
+   doesn't sync, trigger a test webhook event and trace it.
+3. Collect mispronounced words → Retell pronunciation dictionary; evaluate the
+   faster-LLM swap as part of the red-team.
+4. Live-call verification of the voice tuning.
+5. When the operator adds Stripe live keys, verify a live-mode test charge +
+   receipt end-to-end.
 
 ---
 
@@ -110,8 +164,9 @@ pages. **`npm run typecheck` + `npm run build` both green.**
 - **Workflow:** migrations applied by the operator via the Supabase SQL editor;
   Vercel auto-deploys on push to `main`. Apply each migration before/with the
   deploy that selects its new columns.
-- **Commit hygiene:** the long-standing uncommitted batch is now fully resolved
-  — the working tree is clean, shipped as two separate commits (`85795da`,
-  `6b9174e`).
+- **Commit hygiene:** the long-standing uncommitted batch is fully resolved — the
+  working tree is clean. This session shipped: `85795da` (voice tuning),
+  `6b9174e` (M10), `7750b1e` (M10 docs), `26bf713` (webhook self-heal),
+  plus doc + stale-endpoint-cleanup commits.
 - **Margin discipline:** M10 adds no new per-unit cost beyond the gated,
   idempotent alert SMS/email; Sentry trace sampling dropped to 0.1 in prod.
