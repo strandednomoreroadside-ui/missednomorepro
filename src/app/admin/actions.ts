@@ -56,3 +56,36 @@ export async function assignPhoneNumber(formData: FormData) {
 
   redirect("/admin?assigned=1");
 }
+
+/**
+ * Platform kill switch (M10 / §15): force a tenant's AI receptionist off
+ * (their calls forward to the owner) or back on — for a misbehaving or
+ * abusive tenant. Only ADMIN_EMAILS may do this.
+ */
+export async function setTenantAiEnabled(formData: FormData) {
+  if (!(await isPlatformAdmin())) {
+    redirect("/dashboard");
+  }
+  const user = await getUser();
+
+  const tenantId = String(formData.get("tenant_id") ?? "").trim();
+  const enabled = String(formData.get("enabled") ?? "") === "1";
+  if (!tenantId) redirect("/admin");
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("businesses")
+    .update({ ai_enabled: enabled })
+    .eq("tenant_id", tenantId);
+  if (error) redirect(`/admin?error=${encodeURIComponent(error.message)}`);
+
+  await logAudit({
+    tenantId,
+    actorUserId: user?.id,
+    action: enabled ? "ai.enabled_by_admin" : "ai.disabled_by_admin",
+    entityType: "business",
+    entityId: tenantId,
+  });
+
+  redirect("/admin");
+}

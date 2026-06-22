@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalShell } from "@/components/legal-shell";
+import { GOVERNING_LAW_STATE, SUPPORT_EMAIL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalShell title="Terms of Service" effectiveDate="June 11, 2026">
+    <LegalShell title="Terms of Service" effectiveDate="June 21, 2026">
       <section>
         <h2>1. The service</h2>
         <p className="mt-3">
@@ -102,9 +103,13 @@ export default function TermsPage() {
         <p className="mt-3">
           We may update these terms; material changes will be notified in the
           dashboard or by email, and the current version always appears on this
-          page. These terms are governed by the laws of the United States and
-          the state where Missed No More Pro is organized. Questions: contact
-          support via the address listed on this website.
+          page. These terms are governed by the laws of the State of{" "}
+          {GOVERNING_LAW_STATE}, United States, without regard to its conflict-of-law
+          rules. Questions: email{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-cyan hover:underline">
+            {SUPPORT_EMAIL}
+          </a>
+          .
         </p>
       </section>
     </LegalShell>

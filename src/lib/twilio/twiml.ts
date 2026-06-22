@@ -59,6 +59,15 @@ export function dialSipTwiml(sipUri: string): string {
   return `<Dial><Sip>${xmlEscape(sipUri)}</Sip></Dial>`;
 }
 
+/** Forward the caller to a real phone (the §14 kill switch / cost-cap
+ *  path). When the AI is turned off or a usage/spend cap trips, we ring
+ *  the owner's phone instead of dropping the call or burning minutes. */
+export function dialNumberTwiml(number: string): string {
+  // No callerId override — <Dial> presents the original caller's number to
+  // the owner by default, so they see who's actually calling.
+  return `<Dial timeout="25">${xmlEscape(number)}</Dial>`;
+}
+
 /** Media-stream bridge (kept for stream-based providers / Path B). Twilio
  *  streams audio straight to the provider's websocket. */
 export function connectStreamTwiml(streamUrl: string): string {

@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { encryptText } from "@/lib/crypto";
 import { redactPii } from "@/lib/redact";
 import { recordUsage } from "@/lib/billing/usage";
+import { checkAndSendUsageAlerts } from "@/lib/billing/usage-alerts";
 
 import type { CallAnalysis } from "./types";
 
@@ -133,6 +134,9 @@ export async function applyCallEnded(
   if (data.recordingUrl) patch.recording_url = data.recordingUrl;
 
   await admin.from("calls").update(patch).eq("id", call.id).eq("tenant_id", call.tenant_id);
+
+  // Fire any newly-crossed usage-alert thresholds (best-effort, idempotent).
+  if (minutes > 0) await checkAndSendUsageAlerts(admin, call.tenant_id);
 }
 
 /**

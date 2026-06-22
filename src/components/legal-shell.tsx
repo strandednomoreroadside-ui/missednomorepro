@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 export function LegalShell({
   title,
@@ -37,7 +38,12 @@ export function LegalShell({
       </main>
       <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-6 py-8 text-xs text-steel">
-          <span>© 2026 Missed No More Pro. All rights reserved.</span>
+          <span>
+            © 2026 Missed No More Pro. All rights reserved. ·{" "}
+            <a className="transition-colors hover:text-foreground" href={`mailto:${SUPPORT_EMAIL}`}>
+              {SUPPORT_EMAIL}
+            </a>
+          </span>
           <span className="flex gap-4">
             <Link className="transition-colors hover:text-foreground" href="/privacy">
               Privacy

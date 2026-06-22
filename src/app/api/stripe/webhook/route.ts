@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { syncSubscription } from "@/lib/billing/sync";
+import { sendPaymentReceipt, sendSubscriptionReceipt } from "@/lib/email/receipts";
 
 /**
  * Stripe webhook (master plan §9): signature-verified and idempotent.
@@ -67,7 +68,14 @@ export async function POST(req: Request) {
               .eq("id", paymentId)
               .eq("tenant_id", tenantId);
           }
+          // Receipt to the payer (best-effort; no-ops if Resend is off).
+          await sendPaymentReceipt(session);
         }
+        break;
+      }
+      case "invoice.paid": {
+        // Subscription charge succeeded (first + renewals) → email a receipt.
+        await sendSubscriptionReceipt(admin, event.data.object as Stripe.Invoice);
         break;
       }
       case "customer.subscription.created":

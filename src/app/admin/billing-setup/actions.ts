@@ -133,6 +133,7 @@ export async function runStripeSetup() {
       url: webhookUrl,
       enabled_events: [
         "checkout.session.completed",
+        "invoice.paid",
         "customer.subscription.created",
         "customer.subscription.updated",
         "customer.subscription.deleted",

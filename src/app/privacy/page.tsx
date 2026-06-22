@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalShell } from "@/components/legal-shell";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" effectiveDate="June 11, 2026">
+    <LegalShell title="Privacy Policy" effectiveDate="June 21, 2026">
       <section>
         <h2>1. Who we are</h2>
         <p className="mt-3">
@@ -137,8 +138,12 @@ export default function PrivacyPage() {
         <h2>10. Changes and contact</h2>
         <p className="mt-3">
           We may update this policy as the service evolves; the current version
-          and effective date always appear on this page. Questions or requests:
-          contact our support team via the address listed on this website.
+          and effective date always appear on this page. Questions, access
+          requests, or deletion requests: email us at{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-cyan hover:underline">
+            {SUPPORT_EMAIL}
+          </a>
+          .
         </p>
       </section>
     </LegalShell>

@@ -50,6 +50,9 @@ const envSchema = z.object({
 
   // Email + monitoring (Milestone M10)
   RESEND_API_KEY: z.string().min(1).optional(),
+  // From address for transactional email (usage alerts, receipts). Must be
+  // on a Resend-verified sending domain. e.g. "Missed No More Pro <alerts@missednomorepro.com>"
+  RESEND_FROM: z.string().min(1).optional(),
   SENTRY_DSN: z.string().min(1).optional(),
 
   // Platform admin (M2): comma-separated emails allowed into /admin

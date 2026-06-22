@@ -34,6 +34,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   connectGoogleCalendar,
   disconnectGoogleCalendar,
+  updateAiSwitch,
   updateBookingConfirmation,
   updateChatSettings,
   updateReminders,
@@ -86,11 +87,13 @@ export default async function SettingsPage({
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name")
+    .select("id, name, ai_enabled, forward_number")
     .eq("tenant_id", active.organization_id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  const aiEnabled = (business?.ai_enabled ?? true) as boolean;
+  const forwardNumber = (business?.forward_number ?? "") as string;
 
   const [{ data: numbers }, { data: sms }, { data: calendar }] = await Promise.all([
     supabase
@@ -220,6 +223,60 @@ export default async function SettingsPage({
               ))}
             </ul>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Bot className="size-4 text-cyan" aria-hidden />
+            AI receptionist
+          </CardTitle>
+          <CardDescription>
+            Your master on/off switch. When the AI is off, callers ring the
+            phone below instead — so a real person always picks up. Turn it
+            off for vacations, outages, or whenever you want to take calls
+            yourself.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={updateAiSwitch} className="space-y-4">
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="ai_enabled"
+                defaultChecked={aiEnabled}
+                className="mt-1 accent-cyan"
+              />
+              <span>
+                <span className="font-medium text-foreground">
+                  AI answers my calls
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  When off (or when you hit your plan&rsquo;s minutes), calls
+                  forward to your phone — never to voicemail.
+                </span>
+              </span>
+            </label>
+            <label className="block text-sm">
+              <span className="text-muted-foreground">
+                Forward calls to this phone
+              </span>
+              <Input
+                type="tel"
+                name="forward_number"
+                defaultValue={forwardNumber}
+                placeholder="+1 440 555 0199"
+                className="mt-1 w-56 font-mono"
+                aria-label="Forward-to number"
+              />
+              <span className="mt-1 block text-xs text-steel">
+                Leave blank to use your first staff-alert number. If neither is
+                set, callers hear your voicemail greeting.
+              </span>
+            </label>
+            <Button type="submit">Save</Button>
+          </form>
         </CardContent>
       </Card>
 

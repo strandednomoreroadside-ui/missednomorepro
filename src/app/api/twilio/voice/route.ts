@@ -1,7 +1,9 @@
+import { voiceAllowed } from "@/lib/billing/cost-controls";
 import { currentZonedStrings } from "@/lib/calendar/timezone";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  dialNumberTwiml,
   dialSipTwiml,
   greetingTwiml,
   twimlResponse,
@@ -11,6 +13,34 @@ import { getVoiceProvider } from "@/lib/voice";
 import { ensureAgentSynced, type AgentBusiness } from "@/lib/voice/agent-sync";
 
 import { forbidden, parseValidTwilioRequest } from "./shared";
+
+/** The business shape this route needs — AgentBusiness + the M10 kill
+ *  switch / forward fields. */
+type VoiceBusiness = AgentBusiness & {
+  ai_enabled: boolean;
+  forward_number: string | null;
+};
+
+const BUSINESS_COLUMNS =
+  "id, tenant_id, name, industry, timezone, status, ai_enabled, forward_number";
+
+/** Where to ring when the AI is paused or a cost cap trips: the owner's
+ *  configured forward number, else the first notify-on-lead staff phone. */
+async function resolveForwardNumber(
+  admin: ReturnType<typeof createAdminClient>,
+  business: VoiceBusiness
+): Promise<string | null> {
+  if (business.forward_number) return business.forward_number;
+  const { data } = await admin
+    .from("staff_contacts")
+    .select("phone")
+    .eq("business_id", business.id)
+    .eq("notify_on_lead", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as { phone?: string } | null)?.phone ?? null;
+}
 
 /**
  * Twilio inbound-voice webhook. The entry point for every call (master
@@ -46,24 +76,24 @@ export async function POST(request: Request) {
   }
 
   // Resolve the business (the dialed number's, else the tenant's first).
-  let business: AgentBusiness | null = null;
+  let business: VoiceBusiness | null = null;
   if (number.business_id) {
     const { data } = await admin
       .from("businesses")
-      .select("id, tenant_id, name, industry, timezone, status")
+      .select(BUSINESS_COLUMNS)
       .eq("id", number.business_id)
       .maybeSingle();
-    business = (data as AgentBusiness | null) ?? null;
+    business = (data as VoiceBusiness | null) ?? null;
   }
   if (!business) {
     const { data } = await admin
       .from("businesses")
-      .select("id, tenant_id, name, industry, timezone, status")
+      .select(BUSINESS_COLUMNS)
       .eq("tenant_id", number.tenant_id)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    business = (data as AgentBusiness | null) ?? null;
+    business = (data as VoiceBusiness | null) ?? null;
   }
   const businessName = business?.name ?? "our team";
 
@@ -74,6 +104,46 @@ export async function POST(request: Request) {
     .eq("tenant_id", number.tenant_id)
     .eq("phone", from)
     .maybeSingle();
+
+  // ── Kill switch + cost caps (§14/§15): forward to the owner ───
+  // Owner/admin turned the AI off, or a usage/spend cap tripped → ring the
+  // owner's phone instead of the AI (no surprise bill, call still answered).
+  if (business) {
+    let blockReason: string | null = null;
+    if (business.ai_enabled === false) {
+      blockReason = "ai_disabled";
+    } else if (business.status === "live") {
+      const gate = await voiceAllowed(admin, business.tenant_id);
+      if (!gate.allowed) blockReason = gate.reason;
+    }
+    if (blockReason) {
+      const forwardTo = await resolveForwardNumber(admin, business);
+      if (forwardTo) {
+        const disposition = blockReason === "ai_disabled" ? "forwarded" : "capped";
+        await admin.from("calls").upsert(
+          {
+            tenant_id: business.tenant_id,
+            business_id: business.id,
+            contact_id: contact?.id ?? null,
+            provider: "twilio",
+            provider_call_id: callSid,
+            twilio_call_sid: callSid,
+            direction: "inbound",
+            from_number: from,
+            to_number: to,
+            status: "in-progress",
+            disposition,
+            ai_handled: false,
+          },
+          { onConflict: "provider_call_id", ignoreDuplicates: true }
+        );
+        console.info(`[twilio] forwarding to owner (${blockReason}) for ${to}`);
+        return twimlResponse(dialNumberTwiml(forwardTo));
+      }
+      // No number to forward to — fall through to the voicemail greeting.
+      console.warn(`[twilio] ${blockReason} but no forward number for ${to}`);
+    }
+  }
 
   // ── AI path: live business + configured provider ──────────────
   if (

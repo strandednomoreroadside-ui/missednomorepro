@@ -11,6 +11,7 @@ import { env } from "@/lib/env";
 import { deleteConnection } from "@/lib/google/connection";
 import { isGoogleConfigured } from "@/lib/google/credentials";
 import { buildConsentUrl } from "@/lib/google/oauth";
+import { normalizeUsPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -65,6 +66,40 @@ export async function updateBookingConfirmation(formData: FormData) {
     .from("sms_settings")
     .update({ booking_confirmation_template: template })
     .eq("business_id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
+/** AI receptionist kill switch (M10 / §14). When off — or when a usage/
+ *  spend cap trips — inbound calls forward to forward_number instead of the
+ *  AI. Members may manage their own business (RLS). */
+export async function updateAiSwitch(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const enabled = formData.get("ai_enabled") === "on";
+  const rawForward = String(formData.get("forward_number") ?? "").trim();
+  // Blank clears it; otherwise normalize to E.164 (ignore unparseable input
+  // rather than saving junk the dialer can't ring).
+  const forward = rawForward ? normalizeUsPhone(rawForward) : null;
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  const patch: Record<string, unknown> = { ai_enabled: enabled };
+  if (rawForward === "" || forward) patch.forward_number = forward;
+
+  await supabase
+    .from("businesses")
+    .update(patch)
+    .eq("id", business.id)
     .eq("tenant_id", active.organization_id);
 
   revalidatePath("/dashboard/settings");

@@ -16,7 +16,7 @@ import { env } from "@/lib/env";
 import { formatUsPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { assignPhoneNumber } from "./actions";
+import { assignPhoneNumber, setTenantAiEnabled } from "./actions";
 
 export const metadata: Metadata = { title: "Platform admin" };
 // Live service-role reads — never prerender at build time.
@@ -58,7 +58,7 @@ export default async function AdminPage({
     admin.from("organization_members").select("organization_id"),
     admin
       .from("businesses")
-      .select("tenant_id, status, setup_states ( current_step, launched_at )"),
+      .select("tenant_id, status, ai_enabled, setup_states ( current_step, launched_at )"),
     admin.from("phone_numbers").select("tenant_id, phone_number"),
   ]);
 
@@ -75,6 +75,7 @@ export default async function AdminPage({
   // Setup status per org: launched, in-progress (with bookmark), or
   // not started — incomplete setups are the ones to chase (Phase 3).
   const setupByOrg = new Map<string, string>();
+  const aiByOrg = new Map<string, boolean>();
   for (const b of businesses ?? []) {
     const state = Array.isArray(b.setup_states) ? b.setup_states[0] : b.setup_states;
     setupByOrg.set(
@@ -85,6 +86,7 @@ export default async function AdminPage({
           ? `at “${state.current_step}”`
           : "started"
     );
+    aiByOrg.set(b.tenant_id, (b as { ai_enabled?: boolean }).ai_enabled !== false);
   }
 
   const memberCounts = new Map<string, number>();
@@ -135,6 +137,7 @@ export default async function AdminPage({
                     <th className="pb-2 pr-4">Status</th>
                     <th className="pb-2 pr-4">Setup</th>
                     <th className="pb-2 pr-4">Phone</th>
+                    <th className="pb-2 pr-4">AI</th>
                     <th className="pb-2 pr-4">Members</th>
                     <th className="pb-2">Created</th>
                   </tr>
@@ -168,6 +171,33 @@ export default async function AdminPage({
                         {numberByOrg.has(org.id)
                           ? formatUsPhone(numberByOrg.get(org.id) ?? null)
                           : "—"}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <form action={setTenantAiEnabled} className="flex items-center gap-2">
+                          <input type="hidden" name="tenant_id" value={org.id} />
+                          <input
+                            type="hidden"
+                            name="enabled"
+                            value={aiByOrg.get(org.id) ? "0" : "1"}
+                          />
+                          {aiByOrg.get(org.id) ? (
+                            <button
+                              type="submit"
+                              className="rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs text-success hover:bg-success/20"
+                              title="AI is on — click to force off (forwards calls to owner)"
+                            >
+                              on
+                            </button>
+                          ) : (
+                            <button
+                              type="submit"
+                              className="rounded-full border border-alert/40 bg-alert/10 px-2 py-0.5 text-xs text-alert hover:bg-alert/20"
+                              title="AI is off — click to turn back on"
+                            >
+                              off
+                            </button>
+                          )}
+                        </form>
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-muted-foreground">
                         {memberCounts.get(org.id) ?? 0}

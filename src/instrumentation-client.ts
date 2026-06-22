@@ -4,28 +4,25 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+import { scrubEvent } from "@/lib/observability/scrub";
+
 Sentry.init({
   dsn: "https://e3a3d94f0dae19b75ce49865b0b07555@o4511583013044224.ingest.us.sentry.io/4511583017959424",
 
-  // Add optional integrations for additional features
-  integrations: [Sentry.replayIntegration()],
+  // Replay masks all text + blocks media so customer data on CRM pages
+  // (names, phones, transcripts) never leaves the browser.
+  integrations: [Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true })],
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
-  // Enable logs to be sent to Sentry
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1,
   enableLogs: true,
 
-  // Define how likely Replay events are sampled.
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
-
-  // Define how likely Replay events are sampled when an error occurs.
+  // Don't record normal sessions on a PII-heavy CRM — only on errors.
+  replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1.0,
 
-  // Enable sending user PII (Personally Identifiable Information)
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
+  // §9/§14: never send PII; scrub any that slips into an event.
+  sendDefaultPii: false,
+  beforeSend: scrubEvent,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

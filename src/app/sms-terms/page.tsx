@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalShell } from "@/components/legal-shell";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "SMS Terms & Conditions",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function SmsTermsPage() {
   return (
-    <LegalShell title="SMS Terms & Conditions" effectiveDate="June 11, 2026">
+    <LegalShell title="SMS Terms & Conditions" effectiveDate="June 21, 2026">
       <section>
         <h2>1. Program description</h2>
         <p className="mt-3">
@@ -55,8 +56,12 @@ export default function SmsTermsPage() {
       <section>
         <h2>4. Help (HELP)</h2>
         <p className="mt-3">
-          Reply <strong>HELP</strong> at any time for assistance, or contact our
-          support team at the support address listed on this website.
+          Reply <strong>HELP</strong> at any time for assistance, or email our
+          support team at{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-cyan underline-offset-4 hover:underline">
+            {SUPPORT_EMAIL}
+          </a>
+          .
         </p>
       </section>
 

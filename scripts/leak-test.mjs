@@ -623,6 +623,104 @@ try {
     storage_path: `${a.orgId}/forged.jpg`,
   });
   assert("B cannot write media attachments into A's tenant", !!forgeMediaErr);
+
+  // ── M10: follow-up tasks, tool calls, messages, suppressions,
+  //        usage alerts ────────────────────────────────────────────
+  // Server seeds A's records (these power the receptionist + cost
+  // controls and were the tables flagged as not-yet-isolation-tested).
+  const { data: aCall } = await admin
+    .from("calls")
+    .select("id")
+    .eq("tenant_id", a.orgId)
+    .eq("provider_call_id", `CAleaktest${ts}`)
+    .single();
+  await admin.from("follow_up_tasks").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    contact_id: aContact.id,
+    type: "callback",
+    title: "Secret callback task",
+  });
+  await admin.from("tool_calls").insert({
+    tenant_id: a.orgId,
+    call_id: aCall.id,
+    tool_name: "lookup_contact",
+  });
+  await admin.from("messages").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    contact_id: aContact.id,
+    direction: "outbound",
+    to_number: "+15555550123",
+    body_redacted: "secret outbound sms",
+  });
+  await admin.from("sms_suppressions").insert({
+    tenant_id: a.orgId,
+    phone: "+15555550123",
+  });
+  const periodStart = new Date(
+    Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)
+  ).toISOString();
+  const { error: alertSeedErr } = await admin.from("usage_alerts").insert({
+    tenant_id: a.orgId,
+    kind: "voice_minutes",
+    period_start: periodStart,
+    threshold: 50,
+  });
+  if (alertSeedErr) throw new Error(`seed usage_alert: ${alertSeedErr.message}`);
+
+  // 38. B sees none of A's follow-up tasks, tool calls, or messages.
+  const { data: bTasks } = await b.client.from("follow_up_tasks").select("tenant_id");
+  const { data: bToolCalls } = await b.client.from("tool_calls").select("tenant_id");
+  const { data: bMsgs } = await b.client.from("messages").select("tenant_id");
+  const m10Leak = [...(bTasks ?? []), ...(bToolCalls ?? []), ...(bMsgs ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's follow-up tasks / tool calls / messages", m10Leak.length === 0);
+
+  // 39. B sees none of A's suppression list or usage alerts.
+  const { data: bSupp } = await b.client.from("sms_suppressions").select("tenant_id");
+  const { data: bAlerts } = await b.client.from("usage_alerts").select("tenant_id");
+  const suppLeak = [...(bSupp ?? []), ...(bAlerts ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's suppression list / usage alerts", suppLeak.length === 0);
+
+  // 40. Tool calls, messages, suppressions, and usage alerts are all
+  //     server-written — even A (a member/owner) can't forge them.
+  const forgeAttempts = await Promise.all([
+    a.client.from("tool_calls").insert({
+      tenant_id: a.orgId,
+      call_id: aCall.id,
+      tool_name: "forged",
+    }),
+    a.client.from("messages").insert({
+      tenant_id: a.orgId,
+      direction: "outbound",
+      body_redacted: "forged",
+    }),
+    a.client.from("sms_suppressions").insert({ tenant_id: a.orgId, phone: "+15555550199" }),
+    a.client.from("usage_alerts").insert({
+      tenant_id: a.orgId,
+      kind: "sms",
+      period_start: periodStart,
+      threshold: 80,
+    }),
+  ]);
+  assert(
+    "Members cannot forge tool calls / messages / suppressions / usage alerts",
+    forgeAttempts.every((r) => !!r.error)
+  );
+
+  // 41. B cannot inject a follow-up task into A's tenant (the one M10
+  //     table members CAN write — but only inside their own tenant).
+  const { error: injectTaskErr } = await b.client.from("follow_up_tasks").insert({
+    tenant_id: a.orgId,
+    business_id: aBiz.id,
+    type: "general",
+    title: "INJECTED TASK",
+  });
+  assert("B cannot inject a follow-up task into A's tenant", !!injectTaskErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {

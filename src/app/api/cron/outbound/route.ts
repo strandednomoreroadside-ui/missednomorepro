@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { sweepUsageAlerts } from "@/lib/billing/usage-alerts";
 import { env } from "@/lib/env";
 import { generateWeeklyInsights } from "@/lib/insights/call-intelligence";
 import { processOutboundQueue } from "@/lib/sms/outbound-engine";
@@ -27,6 +28,10 @@ export async function GET(request: Request) {
     const admin = createAdminClient();
     const result = await processOutboundQueue(admin);
 
+    // Daily usage-alert sweep (§15) — catches SMS-driven thresholds and
+    // idle tenants the per-call check wouldn't have reached.
+    const alertsSwept = await sweepUsageAlerts(admin);
+
     // Weekly Call Intelligence digests piggyback this daily cron (Vercel
     // Hobby allows only 2 crons). Generate on Mondays for entitled tenants.
     let insights = 0;
@@ -34,7 +39,7 @@ export async function GET(request: Request) {
       insights = await generateWeeklyInsights(admin);
     }
 
-    return NextResponse.json({ ok: true, ...result, insights });
+    return NextResponse.json({ ok: true, ...result, alertsSwept, insights });
   } catch (err) {
     const message = err instanceof Error ? err.message : "outbound run failed";
     console.error("[cron/outbound]", message);
