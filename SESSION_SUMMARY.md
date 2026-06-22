@@ -128,6 +128,25 @@ cost controls/kill switch ✅, Sentry ✅, webhooks idempotent ✅, PII scrub �
 
 ---
 
+## 8b. Timezone display fix ✅ (June 22)
+
+Operator noticed dashboard times were off. Cause: display pages called
+`toLocaleString()`/`toLocaleTimeString()` with **no `timeZone`**, so on Vercel
+(UTC servers) call/message/timeline times rendered in UTC, not the business's
+local time. (Booking, availability, reminders, and dispatch already used the
+business tz — only the read-only display side drifted.) Fixed: added
+`formatDateTimeInZone`/`formatDateInZone`/`formatTimeInZone` to
+`lib/calendar/timezone.ts` + a `getBusinessTimezone()` helper
+(`lib/business/timezone.ts`, reads `businesses.timezone`, falls back to
+`America/New_York`), applied to calls list + detail, messages, contact detail
+(timeline/media/consent/lead), contacts list, billing renewal, reputation.
+**Per-business** — each company's dashboard shows its own local time. The live
+business is set to `America/New_York` (Eastern, confirmed). Only remaining
+bare-format spot is `setup/_components/launch.tsx` (date-only, one-time, client
+component — left as-is). build + typecheck green.
+
+---
+
 ## 8. Still open (not blockers)
 
 - Pronunciation dictionary — needs the operator's exact mis-said words.
