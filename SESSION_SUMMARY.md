@@ -3,8 +3,9 @@
 This session: reviewed, verified, and shipped the two uncommitted batches (voice
 tuning + the M10 hardening "beta gate"), verified the beta gate against the live
 database, fixed the Stripe webhook (the prior session's billing-sync bug),
-clarified + completed Sentry setup, and ran a grounded pre-launch readiness
-review. **Stopping point — picking back up shortly.**
+clarified + completed Sentry setup, ran a grounded pre-launch readiness review,
+and fixed dashboard timestamps to show each business's local timezone.
+**Stopping point — prep next steps (red-team → Stripe live flip) later.**
 
 ---
 
@@ -128,7 +129,7 @@ cost controls/kill switch ✅, Sentry ✅, webhooks idempotent ✅, PII scrub �
 
 ---
 
-## 8b. Timezone display fix ✅ (June 22)
+## 8. Timezone display fix ✅ (June 22)
 
 Operator noticed dashboard times were off. Cause: display pages called
 `toLocaleString()`/`toLocaleTimeString()` with **no `timeZone`**, so on Vercel
@@ -147,7 +148,7 @@ component — left as-is). build + typecheck green.
 
 ---
 
-## 8. Still open (not blockers)
+## 9. Still open (not blockers)
 
 - Pronunciation dictionary — needs the operator's exact mis-said words.
 - Faster-LLM latency swap (`gpt-4.1` → faster) — fold into the red-team.
@@ -176,9 +177,11 @@ component — left as-is). build + typecheck green.
 - **Workflow:** migrations applied by operator via Supabase SQL editor; Vercel
   auto-deploys on push to `main`. Apply each migration before/with the deploy
   that selects its new columns.
-- **Commit hygiene:** working tree clean. This session shipped: `85795da` (voice
-  tuning), `6b9174e` (M10), `7750b1e` (M10 docs), `26bf713` (webhook self-heal),
-  + doc / stale-endpoint-cleanup / `scripts/prelaunch-check.mjs` commits.
-- **New diagnostics:** `scripts/stripe-webhook-check.mjs`, `scripts/prelaunch-check.mjs`.
+- **Commit hygiene:** working tree clean. Key commits this session, in order:
+  `85795da` voice tuning · `6b9174e` M10 hardening · `7750b1e` M10 docs ·
+  `26bf713` Stripe webhook self-heal · `b511583` prelaunch-check script ·
+  `6ddfb66` timezone display fix (+ several docs commits in between).
+- **New diagnostics (read-only):** `scripts/stripe-webhook-check.mjs`,
+  `scripts/prelaunch-check.mjs` (re-run before the live flip).
 - **Margin discipline:** M10 adds no per-unit cost beyond gated/idempotent alert
   SMS+email; Sentry trace sampling 0.1 in prod.
