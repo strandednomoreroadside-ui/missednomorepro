@@ -88,10 +88,12 @@ cost controls/kill switch ✅, Sentry ✅, webhooks idempotent ✅, PII scrub �
   `/admin/billing-setup` in live mode (creates LIVE products/prices/webhook) →
   (4) operator copies the **new live webhook signing secret** into Vercel
   `STRIPE_WEBHOOK_SECRET`. Hold until after the red-team passes.
-- **Confirm `CRON_SECRET` is set in Vercel (Production).** If missing, the cron
-  endpoints 401 in prod ([reminders/route.ts:16-22](src/app/api/cron/reminders/route.ts)) and **reminders,
-  follow-up texts, review requests, usage alerts, and weekly insights all
-  silently never run.** Not present in local `.env.local` — verify in Vercel.
+- ✅ **`CRON_SECRET` confirmed deployed in Vercel** (operator, June 22). One
+  secret authenticates BOTH crons by design — Vercel sends
+  `Authorization: Bearer <CRON_SECRET>` to every path in `vercel.json`, and both
+  `reminders` + `outbound` routes read the same `env.CRON_SECRET`. So reminders,
+  follow-up texts, review requests, usage alerts, and weekly insights are all
+  live. (Not in local `.env.local`, which is fine — it's a Vercel-only secret.)
 
 ### 6.2 🟡 Strongly recommended for beta
 - **Supabase Pro now** (not "at first paying customer") — real CRM data /
@@ -119,7 +121,7 @@ cost controls/kill switch ✅, Sentry ✅, webhooks idempotent ✅, PII scrub �
   email (Zoho) · ✅ Stripe `invoice.paid` + self-heal + stale endpoint deleted ·
   ✅ Sentry error tracking + `SENTRY_AUTH_TOKEN`.
 - ⚠️ Verify Stripe signing secret matches Vercel (or just set it fresh at live flip).
-- ⬜ Confirm `CRON_SECRET` in Vercel.
+- ✅ `CRON_SECRET` in Vercel (one secret authenticates both crons by design).
 - ⬜ Supabase Pro · ⬜ set forward_number · ⬜ uptime monitor · ⬜ Google OAuth verify.
 - ⬜ **Stripe live-mode flip** (§6.1 sequence — after red-team).
 - ⬜ **25 red-team calls** + confirm 0% pricing hallucination.
@@ -142,8 +144,8 @@ cost controls/kill switch ✅, Sentry ✅, webhooks idempotent ✅, PII scrub �
 2. When red-team passes → **do the Stripe live flip** (§6.1): Claude removes the
    `getStripe()` test-key guard, then operator adds live keys + re-runs
    billing-setup + sets the new live webhook secret.
-3. Confirm operator did the 2-minute items: `CRON_SECRET` in Vercel,
-   forward_number set, uptime monitor, (Supabase Pro at beta start).
+3. Confirm operator did the remaining items: forward_number set, uptime monitor,
+   (Supabase Pro at beta start). [`CRON_SECRET` ✅ done.]
 4. Collect mispronounced words → Retell pronunciation dictionary; evaluate the
    faster-LLM swap.
 5. Live-call verification of the voice tuning.
