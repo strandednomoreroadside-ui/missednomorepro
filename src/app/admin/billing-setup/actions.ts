@@ -124,20 +124,38 @@ export async function runStripeSetup() {
   }
 
   // ── Webhook endpoint on the production URL ─────────────────────
+  // Single source of truth for the events our handler processes.
+  const WEBHOOK_EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
+    "checkout.session.completed",
+    "invoice.paid",
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+  ];
   const webhookUrl = `${await productionBaseUrl()}/api/stripe/webhook`;
   const endpoints = await stripe.webhookEndpoints.list({ limit: 100 });
-  if (endpoints.data.some((e) => e.url === webhookUrl)) {
-    log.push(`= Webhook endpoint already registered: ${webhookUrl}`);
+  const existingEndpoint = endpoints.data.find((e) => e.url === webhookUrl);
+  if (existingEndpoint) {
+    // Endpoint exists — reconcile its event list IN PLACE so adding an event
+    // later (e.g. invoice.paid) only needs a re-run, not a delete+recreate.
+    // An in-place update keeps the same signing secret (no Vercel change).
+    const current = existingEndpoint.enabled_events ?? [];
+    const missing = current.includes("*")
+      ? []
+      : WEBHOOK_EVENTS.filter((ev) => !current.includes(ev));
+    if (missing.length === 0) {
+      log.push(`= Webhook endpoint already registered: ${webhookUrl}`);
+    } else {
+      const merged = Array.from(new Set<string>([...current, ...WEBHOOK_EVENTS]));
+      await stripe.webhookEndpoints.update(existingEndpoint.id, {
+        enabled_events: merged as Stripe.WebhookEndpointUpdateParams.EnabledEvent[],
+      });
+      log.push(`~ Webhook endpoint updated (+${missing.join(", ")}): ${webhookUrl}`);
+    }
   } else {
     const endpoint = await stripe.webhookEndpoints.create({
       url: webhookUrl,
-      enabled_events: [
-        "checkout.session.completed",
-        "invoice.paid",
-        "customer.subscription.created",
-        "customer.subscription.updated",
-        "customer.subscription.deleted",
-      ],
+      enabled_events: WEBHOOK_EVENTS,
     });
     webhookSecret = endpoint.secret ?? null;
     log.push(`+ Webhook endpoint created: ${webhookUrl}`);
