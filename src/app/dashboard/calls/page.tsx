@@ -10,6 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { requireActiveOrg } from "@/lib/auth";
+import { getBusinessTimezone } from "@/lib/business/timezone";
+import { formatDateTimeInZone } from "@/lib/calendar/timezone";
 import { formatUsPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -53,6 +55,7 @@ function one<T>(value: T | T[] | null): T | null {
 export default async function CallsPage() {
   const { active } = await requireActiveOrg();
   const supabase = await createClient();
+  const tz = await getBusinessTimezone(active.organization_id);
 
   const { data, error } = await supabase
     .from("calls")
@@ -121,7 +124,7 @@ export default async function CallsPage() {
                         )}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {new Date(call.started_at).toLocaleString()} ·{" "}
+                        {formatDateTimeInZone(call.started_at, tz)} ·{" "}
                         <span className="font-mono">
                           {fmtDuration(call.duration_seconds)}
                         </span>

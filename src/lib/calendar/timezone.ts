@@ -163,3 +163,50 @@ export function parseTimeString(s: string): { hour: number; minute: number } | n
   if (hour > 23 || minute > 59) return null;
   return { hour, minute };
 }
+
+/** Fallback timezone when a business hasn't set one (Eastern). */
+export const DEFAULT_TZ = "America/New_York";
+
+function asDate(d: Date | string): Date {
+  return typeof d === "string" ? new Date(d) : d;
+}
+
+/**
+ * Display formatters for dashboard timestamps — ALWAYS render in the
+ * business's timezone, never the server's (Vercel runs UTC, so a bare
+ * `toLocaleString()` would show the wrong time). Pass the business's IANA
+ * `tz` (e.g. "America/New_York").
+ */
+
+/** "Jun 22, 2026, 9:14 AM" in `tz`. */
+export function formatDateTimeInZone(d: Date | string, tz: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(asDate(d));
+}
+
+/** "Jun 22, 2026" in `tz`. */
+export function formatDateInZone(d: Date | string, tz: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(asDate(d));
+}
+
+/** "9:14 AM" in `tz`. */
+export function formatTimeInZone(d: Date | string, tz: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(asDate(d));
+}

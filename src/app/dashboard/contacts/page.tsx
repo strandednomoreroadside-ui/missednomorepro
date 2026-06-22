@@ -13,6 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requireActiveOrg } from "@/lib/auth";
+import { getBusinessTimezone } from "@/lib/business/timezone";
+import { formatDateInZone } from "@/lib/calendar/timezone";
 import { formatUsPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,6 +47,7 @@ export default async function ContactsPage({
 
   const { active } = await requireActiveOrg();
   const supabase = await createClient();
+  const tz = await getBusinessTimezone(active.organization_id);
 
   let query = supabase
     .from("contacts")
@@ -165,7 +168,7 @@ export default async function ContactsPage({
                         )}
                       </td>
                       <td className="py-2.5 text-xs text-muted-foreground">
-                        {new Date(c.created_at).toLocaleDateString()}
+                        {formatDateInZone(c.created_at, tz)}
                       </td>
                     </tr>
                   ))}

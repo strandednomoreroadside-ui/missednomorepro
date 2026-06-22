@@ -27,6 +27,8 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { requireActiveOrg } from "@/lib/auth";
+import { getBusinessTimezone } from "@/lib/business/timezone";
+import { formatDateInZone, formatDateTimeInZone } from "@/lib/calendar/timezone";
 import { formatUsPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 
@@ -130,8 +132,9 @@ export default async function ContactDetailPage({
   const error = typeof sp.error === "string" ? sp.error : null;
   const saved = sp.saved === "1";
 
-  await requireActiveOrg();
+  const { active } = await requireActiveOrg();
   const supabase = await createClient();
+  const tz = await getBusinessTimezone(active.organization_id);
 
   const { data: contact } = await supabase
     .from("contacts")
@@ -276,7 +279,7 @@ export default async function ContactDetailPage({
                     <span className="font-medium text-foreground">OK to text this contact</span>
                     <span className="mt-0.5 block text-xs text-muted-foreground">
                       {c.consent_timestamp
-                        ? `Last changed ${new Date(c.consent_timestamp).toLocaleDateString()} (${c.consent_source ?? "unknown"}).`
+                        ? `Last changed ${formatDateInZone(c.consent_timestamp, tz)} (${c.consent_source ?? "unknown"}).`
                         : "Off until they agree — texting without consent is blocked platform-wide."}
                     </span>
                   </span>
@@ -320,7 +323,7 @@ export default async function ContactDetailPage({
                           )}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {l.source} · {new Date(l.created_at).toLocaleDateString()}
+                          {l.source} · {formatDateInZone(l.created_at, tz)}
                         </p>
                       </div>
                       <form action={updateLeadStatus} className="flex items-center gap-2">
@@ -484,7 +487,7 @@ export default async function ContactDetailPage({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group relative aspect-square overflow-hidden rounded-lg border border-border/60 bg-night/40"
-                      title={new Date(m.created_at).toLocaleString()}
+                      title={formatDateTimeInZone(m.created_at, tz)}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -552,7 +555,7 @@ export default async function ContactDetailPage({
                           <p className="text-sm leading-snug text-foreground">{e.summary}</p>
                           <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-steel">
                             {e.event_type.replace("_", " ")} ·{" "}
-                            {new Date(e.created_at).toLocaleString()}
+                            {formatDateTimeInZone(e.created_at, tz)}
                           </p>
                         </div>
                       </li>

@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { FormBanner } from "@/components/form-banner";
 import { requireActiveOrg } from "@/lib/auth";
+import { getBusinessTimezone } from "@/lib/business/timezone";
+import { formatDateInZone } from "@/lib/calendar/timezone";
 import { PLAN_META, PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
 import {
   ADDON_META,
@@ -41,6 +43,7 @@ export default async function BillingPage({
   const { active } = await requireActiveOrg();
   const canManage = active.role === "owner" || active.role === "admin";
 
+  const tz = await getBusinessTimezone(active.organization_id);
   const sub = await getSubscription(active.organization_id);
   const plan = effectivePlan(sub);
   const limits = await getPlanLimits(plan);
@@ -147,7 +150,7 @@ export default async function BillingPage({
               </span>
               {sub?.current_period_end && (
                 <span>
-                  renews {new Date(sub.current_period_end).toLocaleDateString()}
+                  renews {formatDateInZone(sub.current_period_end, tz)}
                 </span>
               )}
             </div>

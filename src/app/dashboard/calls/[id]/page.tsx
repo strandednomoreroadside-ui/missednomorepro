@@ -18,6 +18,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { requireActiveOrg } from "@/lib/auth";
+import { getBusinessTimezone } from "@/lib/business/timezone";
+import { formatDateTimeInZone, formatTimeInZone } from "@/lib/calendar/timezone";
 import { formatUsPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -125,6 +127,7 @@ export default async function CallDetailPage({ params }: { params: Params }) {
   const { id } = await params;
   const { active } = await requireActiveOrg();
   const supabase = await createClient();
+  const tz = await getBusinessTimezone(active.organization_id);
 
   const { data: callData } = await supabase
     .from("calls")
@@ -204,7 +207,7 @@ export default async function CallDetailPage({ params }: { params: Params }) {
         {contact && (
           <span className="font-mono text-steel">{formatUsPhone(call.from_number)} · </span>
         )}
-        {new Date(call.started_at).toLocaleString()} ·{" "}
+        {formatDateTimeInZone(call.started_at, tz)} ·{" "}
         <span className="font-mono">{fmtDuration(call.duration_seconds)}</span>
       </p>
 
@@ -318,7 +321,7 @@ export default async function CallDetailPage({ params }: { params: Params }) {
                           )}
                         </p>
                         <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-steel">
-                          {tc.tool_name} · {new Date(tc.created_at).toLocaleTimeString()}
+                          {tc.tool_name} · {formatTimeInZone(tc.created_at, tz)}
                         </p>
                       </div>
                     </li>

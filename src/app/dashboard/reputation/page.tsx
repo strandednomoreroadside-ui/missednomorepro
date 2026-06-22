@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { requireActiveOrg } from "@/lib/auth";
+import { getBusinessTimezone } from "@/lib/business/timezone";
 import { getEntitlements } from "@/lib/billing/entitlements";
+import { formatDateInZone } from "@/lib/calendar/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 import { updateReputation } from "./actions";
@@ -35,6 +37,7 @@ const STATUS_LABEL: Record<ReviewRow["status"], string> = {
 export default async function ReputationPage() {
   const { active } = await requireActiveOrg();
   const tenantId = active.organization_id;
+  const tz = await getBusinessTimezone(tenantId);
   const ent = await getEntitlements(tenantId);
 
   if (!ent.has("reputation_manager")) {
@@ -233,10 +236,7 @@ export default async function ReputationPage() {
                       {STATUS_LABEL[r.status]}
                     </div>
                     <div className="mt-0.5 text-[11px] text-steel">
-                      {new Date(r.created_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {formatDateInZone(r.created_at, tz)}
                     </div>
                   </div>
                 </li>
