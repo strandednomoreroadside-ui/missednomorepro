@@ -1,86 +1,117 @@
-# Session Summary — Missed No More Pro (June 17, 2026)
+# Session Summary — Missed No More Pro (June 21, 2026)
 
-A working session covering Phase 10, a landing-page makeover, a billing bug fix, Phase 11+12, and the start of the add-on suite (Phase 14).
-
----
-
-## 1. Landing Page Makeover ✅ (shipped + live)
-
-Rebuilt `src/app/page.tsx` into a full tech/SaaS sales page on the existing dark brand system (no palette/font change), with reusable pieces in `src/components/landing/`.
-
-- **New sections:** niche marquee, "the math of a missed call," **product showcase bento** (dashboard / quote / inbox / pipeline mockups), 3-pillar feature breakdown, **add-ons grid** (mirrors the real catalog), integrations, comparison table, honest founder/early-access proof band (no fabricated quotes), **monthly/annual pricing toggle** + overage note, FAQ accordion, mobile menu.
-- **Hero tweak (operator feedback):** replaced the generic icon-pill badge with a distinctive mono kicker — `AI RECEPTIONIST / SMART CRM / AI BUSINESS ASSISTANT`.
-- Verified at 1440px / 375px (no horizontal scroll), no console errors, reduced-motion respected, pricing toggle works.
-- **Commits:** `ae7263b` (makeover), `bad19ab` (hero kicker).
+This session: reviewed, verified, and shipped the two uncommitted batches that
+had been sitting in the working tree (voice tuning + the M10 hardening "beta
+gate"), then verified the beta gate against the live database.
 
 ---
 
-## 2. Phase 10 — Omnichannel AI Chat ✅ (shipped + verified)
+## 1. Voice tuning ✅ (commit `85795da`, pushed → deploying)
 
-The **+$29 `omnichannel_chat` add-on**: one AI brain across **website chat + two-way AI SMS**, with a **unified inbox**.
+Four files — `src/lib/voice/{types,prompt,retell}.ts` + `src/lib/calendar/timezone.ts`:
 
-- **Architecture:** reused the §10 voice "tool brain" via a **channel-aware `ToolContext`** (`callId` now optional + `channel: voice|sms|web` + `conversationId`; call-only writes guarded). **Voice path is byte-for-byte unchanged** — the §5.1 rule text is now shared (`pricingRuleBody` / `bookingRuleBody`) so voice + chat can't drift, and the prompt hash is unchanged (no Retell re-sync churn).
-- **Migration `20260625090000_omnichannel_chat.sql`:** `conversations` + `conversation_messages` (encrypted+redacted bodies; members read / staff-reply insert only), chat columns on `sms_settings` (`widget_key`, `web_chat_enabled`, `two_way_sms_ai_enabled`, greeting, accent), `tool_calls.call_id` nullable + `conversation_id`, chat timeline trigger.
-- **Surfaces:** `src/lib/chat/*` (gpt-4.1-mini tool loop, tenant resolved server-side); public `/api/chat/web` (CORS, `widget_key` auth, rate-limited) + embeddable `public/widget.js`; two-way SMS branch in `/api/twilio/sms` (after STOP/START/HELP, gated, STOP wins); unified inbox `/dashboard/inbox` + nav (take-over toggle, close, polling); Settings card + embed snippet.
-- **Verified:** build/typecheck green; **leak test 29/29** (added conversation isolation, no cross-tenant injection, widget-key non-leak, no forged AI turns).
-- **Deferred:** Facebook Messenger; emailed/automated Stripe metered charging.
-- **Commit:** `f1e96d0`.
-
----
-
-## 3. Billing Bug Fix ✅ (resolved)
-
-**Symptom:** operator subscribed to a plan; Stripe processed it but the app showed "no active plan."
-
-**Two root causes found:**
-1. **Stripe webhook stopped delivering after June 12** — today's Elite purchase produced zero webhook events on our side, so it never synced. (Operator-side fix: verify the webhook endpoint + that `STRIPE_WEBHOOK_SECRET` in Vercel matches Stripe's signing secret.)
-2. **Four stacked active test subscriptions** + the DB row stuck on the old `scale` plan (post-re-tier → maps to `none`).
-
-**Actions taken (operator-authorized):**
-- Canceled the 3 stale test subs (book/revenue/scale); only `plan_elite_monthly` remains active.
-- Set the DB record to the real **Elite** subscription (active, renews 2026-07-17).
-- **Code fix:** `startCheckout` now routes an already-subscribed tenant to the **Customer Portal** to switch plans instead of stacking a new subscription. Also fixed a pre-existing duplicate-variable syntax error that had been breaking the leak test.
-- **Commit:** `102ad51`.
+- **STT keyword boosting** — `buildBoostedKeywords()` biases Retell toward the
+  business name, its service names, and the towns it serves; passed as
+  `boosted_keywords` on agent create/update. `TUNING_VERSION` is folded into
+  `promptHash`, so the live agent **re-syncs once on the next call** after deploy.
+- **Spoken-time fix** — `cleanSpoken()` normalizes exotic spaces
+  (NBSP / U+202F / U+2009 / U+200A) to a plain space in the spoken time labels,
+  fixing the "k in the time" TTS artifact (Vercel's ICU emits a narrow no-break
+  space before AM/PM).
+- No migration; safe to deploy on its own.
 
 ---
 
-## 4. Phase 11 + 12 (core) ✅ (shipped + verified)
+## 2. M10 hardening — the beta gate ✅ (commit `6b9174e`, pushed → deploying)
 
-Bundled **Dispatch/scheduling + Team (multi-user) & Numbers**.
+**Decision: adopted the existing batch** (reviewed + verified + finished) rather
+than rebuilding — it was coherent, complete, and built clean. Reviewed
+end-to-end: migration, `cost-controls.ts`, `usage-alerts.ts`, `email/`
+(Resend + receipts), `observability/scrub.ts`, the voice-route kill switch,
+the Stripe webhook, the admin + settings AI toggles, and the finalized legal
+pages. **`npm run typecheck` + `npm run build` both green.**
 
-- **Migration `20260626090000_dispatch_team.sql`:** `jobs.assigned_to` + `appointments.assigned_to` (→ `staff_contacts`); `invitations` table; `accept_invitation(token)` SECURITY DEFINER RPC (the only client path into an existing org).
-- **Ph11 Dispatch** (`/dashboard/dispatch`, gated `dispatch_board` / `team_calendar`): day/week board merging the day's appointments + jobs, assign-to-staff, job status (reuses `updateJobStatus`), "text a tech their day" via `sendStaffSms`.
-- **Ph12 Team** (`/dashboard/team`, gated `multi_user`): members + roles, invite-by-link (email delivery deferred — no Resend yet), change role / remove (owners immutable to prevent lockout), revoke; public `/invite/[token]` accept page. **Numbers** (`/dashboard/numbers`): read-only list.
-- **Verified:** build green; **leak test 32/32** (invitation isolation, no cross-tenant invite forgery, no cross-tenant job assignment); `accept_invitation` RPC confirmed deployed + locked to authenticated users.
-- **Deferred (operator-agreed):** full multi-location (would refactor every "first business" call site — risky pre-M10) and customer membership plans. Tier flags already exist for later.
-- **Commit:** `2939add`.
+- **Migration `20260629090000_m10_hardening.sql`:** `businesses.{ai_enabled,
+  forward_number}` (kill switch + forward target), per-tier + per-tenant
+  spend/overage caps on `plan_limits`/`subscriptions`, and the `usage_alerts`
+  idempotency ledger (RLS + explicit grants; unique on
+  `(tenant_id,kind,period_start,threshold)`).
+- **Kill switch + cap → forward-to-owner** in `/api/twilio/voice`, checked
+  BEFORE the AI path; logged disposition `forwarded`/`capped`. Owner toggle in
+  Settings (`updateAiSwitch`) + platform-admin toggle in `/admin`
+  (`setTenantAiEnabled`, audit-logged).
+- **`voiceAllowed()` cost gate** — monthly minutes + daily spend cap + overage
+  cap; **errs OPEN** so a hiccup never drops calls.
+- **Usage alerts** 50/80/100/120% over **SMS + email**, idempotent via the
+  ledger; fired at call-end (`finalize.ts`) + a daily sweep in the outbound cron.
+- **Resend email** (thin raw-fetch, no-ops without a key) + **billing receipts**
+  in the Stripe webhook (`invoice.paid` for subs, `checkout.session.completed`
+  mode=payment for one-offs); `invoice.paid` added to billing-setup events.
+- **Sentry PII scrub** across all 3 configs (`sendDefaultPii:false` + shared
+  `beforeSend`); replay masks all text, sessions off, traces 0.1 in prod.
+- **Legal pages finalized** (`support@missednomorepro.com`, Ohio governing law).
+- **Leak test → checks 38–41** (follow-up tasks / tool calls / messages /
+  suppressions / usage alerts isolation + forge-blocks).
 
 ---
 
-## 5. Phase 14 — Add-on Suite ✅ (built — build+typecheck green; needs migration + operator test; not yet committed)
+## 3. Production verification ✅
 
-The last two add-ons, deferring the pieces that need external setup (Google Business Profile verification, Resend email).
-
-- **Migration `20260627090000_addons_suite.sql`:** `insight_reports` (Call Intelligence), `reviews` (Reputation), reputation columns on `sms_settings`. **Operator TODO: apply this migration.**
-- **Call Intelligence (+$19, `call_intelligence`):** `src/lib/insights/call-intelligence.ts` — weekly metrics from existing call/lead/job/tool data + one cheap gpt-4.1-mini digest. Generation **piggybacks the daily outbound cron on a Monday gate** (stays within Vercel Hobby's 2-cron limit). In-app `/dashboard/insights` page + a "Refresh report" action.
-- **Reputation Manager (+$29, `reputation_manager`):** `src/lib/reputation/review.ts` — the reputation gate over SMS. On **job completion** (`jobs/actions.ts#updateJobStatus`) `requestReview` fires (gated on the add-on AND the per-business `reputation_enabled` toggle; idempotent per job; runs the full consent gate so STOP wins) and opens a `reviews` row. The **inbound SMS webhook** (`/api/twilio/sms`) runs `handleReviewReply` **after STOP/START/HELP, before the AI branch**: a 1–5 reply to an open request → 4–5 gets the public review link (`businesses.gbp_url` preferred, else Facebook URL) + marks `rated`; 1–3 → `feedback` state, owner alerted via `notify_on_lead` staff, and the customer's next message is captured as private `feedback_redacted` (never auto-posted publicly). `/dashboard/reputation` page = stats + settings (toggle, request template, Facebook fallback) + recent-reviews list with private feedback. Nav links added (Reputation, Insights).
-- **Leak test:** extended to **checks 33–35** (B can't read A's reviews/private-feedback or insight reports; B can't forge a review into A's tenant). **Rerun `scripts/leak-test.mjs` after the migration is applied.**
-- **Deferred:** GBP-API auto-replies (needs Google verification) + emailed reports (needs Resend).
-- **Margin:** at most a request + one reply text per job; reports are one LLM call/tenant/week.
+- **Migration confirmed applied in prod** — direct read-only check confirmed
+  `businesses.{ai_enabled,forward_number}`, the `plan_limits`/`subscriptions`
+  cap columns, and `usage_alerts` all exist. (This is why "push both" was safe.)
+- **Leak test re-run → 41/41 PASS**, including the new M10 isolation checks.
+  Tenant isolation holds in production.
+- `ai_enabled` defaults to `true`, so the live business stays AI-on — the kill
+  switch won't accidentally forward calls.
 
 ---
 
-## 6. Phase 13 — MMS photo intake + VIP ✅ (built — build+typecheck green; needs migration + operator test; committed with Ph14? no — separate)
+## 4. Remaining to fully close the beta gate (operator §14 — external setup)
 
-LTV already shipped in Ph8; this finishes the slice.
+- ⬜ **Resend:** create the account → verify the sending-domain DNS → set
+  `RESEND_API_KEY` + `RESEND_FROM` in Vercel. *Until then, usage-alert and
+  receipt emails silently no-op (by design); the SMS half of alerts still fires.*
+- ⬜ **Re-run `/admin/billing-setup`** to register the new `invoice.paid`
+  webhook event (may need to delete + recreate the Stripe webhook endpoint so it
+  picks the event up). This also addresses the stale-webhook issue from the
+  prior session.
+- ⬜ Confirm `SENTRY_DSN` in Vercel.
+- ⬜ Set up `support@missednomorepro.com` forwarding.
+- ⬜ **Stripe live-mode keys** in Vercel (flips out of test mode).
+- ⬜ **25 red-team calls** + confirm 0% pricing hallucination.
+- ⬜ Supabase Pro (backups) + Vercel Pro at the first paying customer.
 
-- **Migration `20260628090000_mms_media.sql`:** `media_attachments` (members read / server writes only) + a **private `mms-media` Storage bucket** (service-role only).
-- **MMS intake** (`src/lib/sms/media.ts`): the inbound webhook downloads texted-in photos with the Twilio creds, stores them privately, links each to the contact + message, and adds a `media` timeline event. An MMS from an unknown number auto-creates a lightweight contact. Served via the auth-checked proxy `/api/media/[id]`.
-- **Contact page:** a **Photos** card (thumbnails) + a one-click **VIP** toggle/badge. **VIP auto-applies on the 3rd completed job.**
-- **Leak test → checks 36–37** (B can't read A's photos or forge an attachment). No new env.
-- **Operator TODO:** apply `20260628090000_mms_media.sql` (creates the bucket), redeploy, then text a photo to the number and confirm it appears on the contact.
+---
 
-## Cross-cutting Notes
-- **Workflow:** migrations are applied by the operator via the Supabase SQL editor, then redeploy (Vercel auto-deploys on push to `main`). Deployed code that selects new columns errors until the migration is applied — apply before/with each deploy.
-- **Margin discipline:** every add-on is LLM/text-based (pennies); SMS stays metered + STOP-gated.
-- **Outstanding operator items:** apply `20260627090000_addons_suite.sql` when the add-on suite is finished; fix the Stripe webhook config so future billing changes sync automatically.
+## 5. Still open (not blockers)
+
+- **Pronunciation dictionary** for specific mis-said words — needs the operator's
+  exact examples (the word + how it currently sounds).
+- **Faster-LLM latency swap** (`gpt-4.1` → a faster model) — fold into the
+  red-team so the §5.1 hard rules are re-verified after the swap.
+- **Live-call check of the voice tuning** — confirm boosted keywords improve
+  recognition and the time reads cleanly, once the deploy lands.
+
+---
+
+## Next session — pick up here
+
+1. As the operator completes §14 external setup (Resend, Stripe live), verify
+   each end-to-end (a real test alert email, a live-mode test charge + receipt).
+2. Run / walk the operator through the 25 red-team calls; collect mispronounced
+   words → Retell pronunciation dictionary; evaluate the faster-LLM swap.
+3. Live-call verification of the voice tuning.
+
+---
+
+## Cross-cutting notes
+
+- **Workflow:** migrations applied by the operator via the Supabase SQL editor;
+  Vercel auto-deploys on push to `main`. Apply each migration before/with the
+  deploy that selects its new columns.
+- **Commit hygiene:** the long-standing uncommitted batch is now fully resolved
+  — the working tree is clean, shipped as two separate commits (`85795da`,
+  `6b9174e`).
+- **Margin discipline:** M10 adds no new per-unit cost beyond the gated,
+  idempotent alert SMS/email; Sentry trace sampling dropped to 0.1 in prod.
