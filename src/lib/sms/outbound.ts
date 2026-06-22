@@ -100,10 +100,57 @@ async function insertMessage(
   return data.id;
 }
 
+/**
+ * Twilio error codes that mean the recipient has opted out at the
+ * carrier/Twilio level (a STOP that never reached our webhook — e.g. the
+ * Messaging Service's Advanced Opt-Out is on, or they opted out before we
+ * ever tracked them). When we see one we self-heal: record the number on our
+ * own suppression list + drop consent so we never attempt it again. Repeated
+ * blocked sends are what hurt account standing, so this is the real fix.
+ *   21610 — recipient unsubscribed (replied STOP)
+ *   21211 — invalid 'To' (kept out; not opt-out)
+ */
+const OPT_OUT_CODES = new Set([21610]);
+
+async function recordCarrierOptOut(
+  admin: SupabaseClient,
+  tenantId: string,
+  phone: string
+): Promise<void> {
+  await admin
+    .from("sms_suppressions")
+    .upsert(
+      { tenant_id: tenantId, phone, reason: "stop" },
+      { onConflict: "tenant_id,phone", ignoreDuplicates: true }
+    );
+  await admin
+    .from("contacts")
+    .update({
+      consent_sms: false,
+      consent_source: "carrier_stop",
+      consent_timestamp: new Date().toISOString(),
+    })
+    .eq("tenant_id", tenantId)
+    .eq("phone", phone);
+}
+
 /** Log a 'queued' row, send via Twilio, then update status + Sid. */
 async function logAndSend(admin: SupabaseClient, row: MessageRow): Promise<SmsSendResult> {
   const id = await insertMessage(admin, row, "queued", null);
   const res = await sendTwilioSms({ to: row.toPhone, body: row.body });
+
+  // Carrier-level opt-out: suppress locally so this never happens twice.
+  if (!res.ok && res.code != null && OPT_OUT_CODES.has(res.code)) {
+    await recordCarrierOptOut(admin, row.tenantId, row.toPhone);
+    if (id) {
+      await admin
+        .from("messages")
+        .update({ status: "blocked", error: `opted_out (${res.code})` })
+        .eq("id", id);
+    }
+    return { sent: false, blocked: true, reason: "suppressed_carrier", messageId: id ?? undefined };
+  }
+
   if (id) {
     await admin
       .from("messages")

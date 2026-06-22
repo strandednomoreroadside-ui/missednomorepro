@@ -6,6 +6,8 @@ export interface TwilioSmsResult {
   ok: boolean;
   sid: string | null;
   error: string | null;
+  /** Twilio's numeric error code (e.g. 21610 = recipient opted out). */
+  code: number | null;
 }
 
 /**
@@ -24,7 +26,7 @@ export async function sendTwilioSms(opts: {
 }): Promise<TwilioSmsResult> {
   const sid = env.TWILIO_ACCOUNT_SID;
   const token = env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) return { ok: false, sid: null, error: "twilio_not_configured" };
+  if (!sid || !token) return { ok: false, sid: null, error: "twilio_not_configured", code: null };
 
   const params = new URLSearchParams({ To: opts.to, Body: opts.body });
   if (env.TWILIO_MESSAGING_SERVICE_SID) {
@@ -32,7 +34,7 @@ export async function sendTwilioSms(opts: {
   } else if (env.TWILIO_PHONE_NUMBER) {
     params.set("From", env.TWILIO_PHONE_NUMBER);
   } else {
-    return { ok: false, sid: null, error: "no_from_or_service" };
+    return { ok: false, sid: null, error: "no_from_or_service", code: null };
   }
 
   try {
@@ -50,15 +52,16 @@ export async function sendTwilioSms(opts: {
     const json = (await res.json().catch(() => ({}))) as {
       sid?: string;
       message?: string;
+      code?: number;
     };
     if (!res.ok) {
       const error = json?.message ?? `http_${res.status}`;
       console.error(`[twilio] sms failed (${res.status}): ${error}`);
-      return { ok: false, sid: null, error: String(error) };
+      return { ok: false, sid: null, error: String(error), code: json?.code ?? null };
     }
-    return { ok: true, sid: json?.sid ?? null, error: null };
+    return { ok: true, sid: json?.sid ?? null, error: null, code: null };
   } catch (err) {
     console.error("[twilio] sms error:", err);
-    return { ok: false, sid: null, error: String(err) };
+    return { ok: false, sid: null, error: String(err), code: null };
   }
 }
