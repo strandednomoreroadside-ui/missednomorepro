@@ -30,6 +30,7 @@ import { Reveal } from "@/components/landing/reveal";
 import { CheckRow, ProductShowcase } from "@/components/landing/showcase";
 import { getFounderSlotsTakenSafe } from "@/lib/billing/founder";
 import { env } from "@/lib/env";
+import { DEMO_PHONE_DISPLAY, DEMO_PHONE_E164 } from "@/lib/constants";
 
 const TITLE =
   "AI Phone Assistant, Receptionist & CRM for Local Service Businesses";
@@ -133,6 +134,7 @@ export default async function LandingPage() {
         <NicheMarquee />
         <MissedCallMath />
         <Showcase />
+        <LiveDemo />
         <AiPhoneAssistantSeo />
         <HowItWorks />
         <Pillars />
@@ -340,6 +342,57 @@ function AiPhoneAssistantSeo() {
               Read the AI phone assistant guide <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
           </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function LiveDemo() {
+  return (
+    <section id="live-demo" className="relative border-y border-border/60 bg-card/20">
+      <div className="mx-auto max-w-4xl px-6 py-20 text-center sm:py-24">
+        <Reveal>
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
+            Hear it live
+          </p>
+          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            Call the AI yourself.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
+            This is a live Missed No More Pro demo answering as Summit Home Services.
+            Call it, ask for a price, and hear the same receptionist your customers can get.
+          </p>
+
+          <div className="mt-9 inline-flex flex-col items-center gap-2 rounded-2xl border border-border/70 bg-night/50 px-8 py-6 shadow-[0_24px_80px_-32px_rgba(0,107,255,0.4)]">
+            <span className="flex items-center gap-2.5">
+              <span className="relative flex size-2.5">
+                <span className="animate-ring-wave absolute inline-flex size-full rounded-full bg-cyan" />
+                <span className="animate-pulse-dot relative inline-flex size-2.5 rounded-full bg-cyan" />
+              </span>
+              <span className="font-mono text-xs uppercase tracking-widest text-cyan">
+                Live 24/7
+              </span>
+            </span>
+            <a
+              href={`tel:${DEMO_PHONE_E164}`}
+              className="font-display text-3xl font-bold tracking-tight text-foreground transition-colors hover:text-cyan sm:text-4xl"
+            >
+              {DEMO_PHONE_DISPLAY}
+            </a>
+          </div>
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <ButtonLink href={`tel:${DEMO_PHONE_E164}`} large>
+              <PhoneCall className="size-4" aria-hidden /> Call the demo
+            </ButtonLink>
+            <ButtonLink href={`sms:${DEMO_PHONE_E164}`} variant="outline" large>
+              <MessageSquareText className="size-4" aria-hidden /> Text the AI
+            </ButtonLink>
+          </div>
+          <p className="mt-5 font-mono text-xs uppercase tracking-wider text-steel">
+            Live product demo. Standard call and message rates apply.
+          </p>
         </Reveal>
       </div>
     </section>
