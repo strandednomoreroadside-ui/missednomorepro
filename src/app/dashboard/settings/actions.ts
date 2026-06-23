@@ -12,6 +12,7 @@ import { deleteConnection } from "@/lib/google/connection";
 import { isGoogleConfigured } from "@/lib/google/credentials";
 import { buildConsentUrl } from "@/lib/google/oauth";
 import { normalizeUsPhone } from "@/lib/phone";
+import { sendStaffSms } from "@/lib/sms/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { AGENT_BUSINESS_COLUMNS, ensureAgentSynced, type AgentBusiness } from "@/lib/voice/agent-sync";
@@ -495,6 +496,47 @@ export async function connectGoogleCalendar() {
   const url = buildConsentUrl(state);
   if (!url) redirect("/dashboard/settings?calendar=unconfigured");
   redirect(url);
+}
+
+/**
+ * Self-check (M10): text the owner so they can confirm outbound SMS works end
+ * to end. Goes to forward_number, else the first lead-alert staff number.
+ * Uses the admin client + sendStaffSms (internal recipient, logged, no consent
+ * gate). Feedback comes back via the ?test= banner.
+ */
+export async function sendTestText() {
+  const { active } = await requireActiveOrg();
+  const admin = createAdminClient();
+
+  const { data: business } = await admin
+    .from("businesses")
+    .select("id, name, forward_number")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) redirect("/dashboard/settings?test=nobusiness");
+
+  let to = (business.forward_number as string | null) ?? null;
+  if (!to) {
+    const { data: staff } = await admin
+      .from("staff_contacts")
+      .select("phone")
+      .eq("tenant_id", active.organization_id)
+      .eq("notify_on_lead", true)
+      .limit(1);
+    to = (staff?.[0]?.phone as string | null) ?? null;
+  }
+  if (!to) redirect("/dashboard/settings?test=nonumber");
+
+  const res = await sendStaffSms(admin, {
+    tenantId: active.organization_id,
+    businessId: business.id as string,
+    toPhone: to,
+    body: `✅ Test from ${business.name ?? "your business"} — Missed No More Pro texting is working. (No action needed.)`,
+  });
+
+  redirect(`/dashboard/settings?test=${res.sent ? "sent" : "failed"}`);
 }
 
 /** Disconnect Google Calendar: revoke at Google + delete our row (M9). */

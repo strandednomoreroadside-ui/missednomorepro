@@ -39,6 +39,7 @@ import {
   connectGoogleCalendar,
   disconnectGoogleCalendar,
   updateAiNotes,
+  sendTestText,
   updateAiSwitch,
   updateBookingConfirmation,
   updateCallbackIvr,
@@ -89,15 +90,26 @@ const CALENDAR_BANNERS: Record<string, { ok: boolean; text: string }> = {
   error: { ok: false, text: "Something went wrong connecting your calendar. Please try again." },
 };
 
+const TEST_BANNERS: Record<string, { ok: boolean; text: string }> = {
+  sent: { ok: true, text: "Test text sent — check your phone. If it doesn't arrive, your number or A2P registration may need attention." },
+  failed: { ok: false, text: "We couldn't send the test text. Check that your business number has SMS enabled." },
+  nonumber: { ok: false, text: "Set a forward-to number (or a lead-alert staff number) first, then send a test." },
+  nobusiness: { ok: false, text: "Finish the setup wizard first." },
+};
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string }>;
+  searchParams: Promise<{ calendar?: string; test?: string }>;
 }) {
   const { active } = await requireActiveOrg();
   const supabase = await createClient();
   const params = await searchParams;
-  const banner = params.calendar ? CALENDAR_BANNERS[params.calendar] : undefined;
+  const banner = params.calendar
+    ? CALENDAR_BANNERS[params.calendar]
+    : params.test
+      ? TEST_BANNERS[params.test]
+      : undefined;
 
   const { data: business } = await supabase
     .from("businesses")
@@ -582,6 +594,27 @@ export default async function SettingsPage({
       <Card className="mt-4 bg-card/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-display text-base">
+            <MessageSquare className="size-4 text-cyan" aria-hidden />
+            Test your setup
+          </CardTitle>
+          <CardDescription>
+            Send yourself a text to confirm your number can send messages. It
+            goes to your forward-to number above (or your first staff-alert
+            number) and shows up under Messages.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={sendTestText}>
+            <Button type="submit" variant="outline">
+              Send me a test text
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
             <CalendarCheck className="size-4 text-cyan" aria-hidden />
             Calendar booking
           </CardTitle>
@@ -623,6 +656,13 @@ export default async function SettingsPage({
               <p className="mb-3 text-sm text-muted-foreground">
                 Your AI will offer only open times inside your business hours and
                 never double-book.
+              </p>
+              <p className="mb-3 rounded-lg border border-border/40 bg-night/40 px-3.5 py-2.5 text-xs text-muted-foreground">
+                Heads up: during our beta Google still shows an{" "}
+                <span className="text-foreground">&ldquo;unverified app&rdquo;</span>{" "}
+                screen. That&rsquo;s expected and safe — click{" "}
+                <span className="text-foreground">Advanced → Go to Missed No More Pro</span>{" "}
+                to continue. We only request calendar access.
               </p>
               <Button type="submit">Connect Google Calendar</Button>
             </form>

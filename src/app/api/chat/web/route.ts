@@ -93,7 +93,10 @@ export async function GET(request: Request) {
     .eq("id", conversationId)
     .eq("tenant_id", settings.tenant_id)
     .maybeSingle();
-  if (!convo || (visitorId && convo.web_visitor_id && convo.web_visitor_id !== visitorId)) {
+  // Require the visitor to present their own id, and require it to match the
+  // thread's. (The widget always sends it.) This stops reading a thread by a
+  // leaked/guessed conversationId alone.
+  if (!convo || !visitorId || (convo.web_visitor_id && convo.web_visitor_id !== visitorId)) {
     return json({ ok: false, error: "not found" }, 404);
   }
 
