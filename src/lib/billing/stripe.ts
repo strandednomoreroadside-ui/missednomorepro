@@ -12,9 +12,15 @@ export function getStripe(): Stripe {
       "Stripe is not configured — STRIPE_SECRET_KEY missing (BUILD_GUIDE M0)."
     );
   }
-  // Live-mode unlocked at launch (M10 go-live). Test (sk_test_) and live
-  // (sk_live_) keys both work — whichever is in the environment decides the
-  // mode, so prod stays in test until live keys are swapped into Vercel.
+  // Test and live secret keys are both supported; reject malformed values.
+  if (
+    !env.STRIPE_SECRET_KEY.startsWith("sk_test_") &&
+    !env.STRIPE_SECRET_KEY.startsWith("sk_live_") &&
+    !env.STRIPE_SECRET_KEY.startsWith("rk_test_") &&
+    !env.STRIPE_SECRET_KEY.startsWith("rk_live_")
+  ) {
+    throw new Error("STRIPE_SECRET_KEY is not a valid Stripe secret key (expected sk_/rk_ prefix).");
+  }
   stripeSingleton ??= new Stripe(env.STRIPE_SECRET_KEY);
   return stripeSingleton;
 }
