@@ -29,6 +29,7 @@ export const VOICE_TOOL_NAMES = [
   "cancel_appointment",
   "reschedule_appointment",
   "calculate_quote",
+  "find_tow_destination",
 ] as const;
 
 export type VoiceToolName = (typeof VOICE_TOOL_NAMES)[number];
@@ -316,6 +317,36 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         },
       },
       required: ["service", "location"],
+    },
+  },
+  {
+    name: "find_tow_destination",
+    description:
+      "For a TOW when the caller has no specific drop-off in mind and wants the nearest mechanic, " +
+      "auto-repair, tire shop, body shop, dealership, gas station, or auto-parts store. Returns 1–2 real " +
+      "nearby options (name, address, driving miles). Provide what KIND of place (place_type) and the " +
+      "caller's pickup location (near). Read the options back and let the caller choose, THEN call " +
+      "calculate_quote for the tow with the chosen place's address as the destination. Never name a " +
+      "business or distance you didn't get from this tool.",
+    parameters: {
+      type: "object",
+      properties: {
+        place_type: {
+          type: "string",
+          description:
+            "Kind of place to tow to, e.g. 'mechanic', 'auto repair', 'tire shop', 'body shop', 'dealership', 'gas station'.",
+        },
+        near: {
+          type: "string",
+          description:
+            "The caller's current location / tow pickup — a full street address, or nearest cross-street + city.",
+        },
+        limit: {
+          type: "integer",
+          description: "How many options to offer (1–3). Default 2.",
+        },
+      },
+      required: ["place_type", "near"],
     },
   },
 ];

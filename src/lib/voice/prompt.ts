@@ -137,7 +137,7 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
   const rule2 = `2. ${pricingRuleBody(quotingEnabled)}`;
 
   const pricingStep = quotingEnabled
-    ? "Pricing: when the caller asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then tell them the exact total it returns. Never quote from memory — see rule 2."
+    ? 'Pricing: when the caller asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then tell them the exact total it returns. Never quote from memory — see rule 2. For a TOW where the caller doesn\'t have a drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
     : "Pricing questions → rule 2.";
 
   const rule4 = `4. ${bookingRuleBody(bookingEnabled)}`;

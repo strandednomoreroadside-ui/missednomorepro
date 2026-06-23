@@ -48,7 +48,7 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
     : "";
 
   const pricingStep = quotingEnabled
-    ? "Pricing: when the customer asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then give them the exact total it returns. Never quote from memory — see rule 2."
+    ? 'Pricing: when the customer asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then give them the exact total it returns. Never quote from memory — see rule 2. For a TOW with no drop-off in mind ("tow it to the nearest mechanic/tire shop"), call find_tow_destination with the kind of place + their pickup, share the option(s), let them pick, THEN calculate_quote with that address as the destination.'
     : "Pricing questions → rule 2.";
 
   const steps: string[] = [

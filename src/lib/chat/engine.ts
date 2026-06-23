@@ -36,6 +36,7 @@ const CHAT_TOOL_NAMES = new Set<string>([
   "cancel_appointment",
   "reschedule_appointment",
   "calculate_quote",
+  "find_tow_destination",
 ]);
 
 const CHAT_TOOLS = VOICE_TOOLS.filter((t) => CHAT_TOOL_NAMES.has(t.name)).map((t) => ({

@@ -24,7 +24,13 @@ import {
 } from "@/lib/calendar/timezone";
 import { deleteEvent, freeBusy, insertEvent } from "@/lib/google/calendar";
 import { getConnection, getValidAccessToken, isConnected } from "@/lib/google/connection";
-import { drivingDistanceMiles } from "@/lib/maps/client";
+import {
+  drivingDistanceMiles,
+  drivingDistanceMilesMulti,
+  findNearbyPlaces,
+  geocodeAddress,
+  isMapsConfigured,
+} from "@/lib/maps/client";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
 import { calculateQuote, type QuoteResult, type ServicePrice } from "@/lib/pricing/engine";
 import { bundleQuotingEnabled, loadPricing } from "@/lib/pricing/loader";
@@ -1570,6 +1576,117 @@ const calculateQuoteTool = defineTool(
   }
 );
 
+// ── find_tow_destination (real nearby drop-offs for a tow) ─────
+
+/** Map a caller's loose phrasing to a good Places query, biased automotive. */
+const PLACE_QUERIES: { match: string; query: string }[] = [
+  { match: "tire", query: "tire shop" },
+  { match: "body", query: "auto body shop" },
+  { match: "collision", query: "auto body shop" },
+  { match: "dealer", query: "car dealership" },
+  { match: "gas", query: "gas station" },
+  { match: "fuel", query: "gas station" },
+  { match: "parts", query: "auto parts store" },
+  { match: "mechanic", query: "auto repair shop" },
+  { match: "repair", query: "auto repair shop" },
+  { match: "garage", query: "auto repair shop" },
+  { match: "shop", query: "auto repair shop" },
+  { match: "auto", query: "auto repair shop" },
+];
+function placeQuery(placeType: string): string {
+  const t = placeType.trim().toLowerCase();
+  for (const { match, query } of PLACE_QUERIES) if (t.includes(match)) return query;
+  return placeType.trim();
+}
+
+/** "4 miles", "less than a mile", or "" when distance is unknown. */
+function spokenMiles(m: number | null): string {
+  if (m == null) return "";
+  const r = Math.round(m);
+  if (r < 1) return ", less than a mile away";
+  return `, about ${r} mile${r === 1 ? "" : "s"} away`;
+}
+
+const findTowDestinationTool = defineTool(
+  z.object({
+    place_type: z.string().min(1).max(60),
+    near: z.string().min(1).max(300),
+    limit: z.coerce.number().int().min(1).max(3).optional(),
+  }),
+  async (ctx, args) => {
+    if (!isMapsConfigured()) {
+      return {
+        status: "ok",
+        data: {
+          ok: false,
+          reason: "maps_unavailable",
+          say: "I can't look that up right now — is there a specific place you'd like the vehicle towed to?",
+        },
+      };
+    }
+
+    const pickup = await geocodeAddress(args.near);
+    if (!pickup) {
+      return {
+        status: "ok",
+        data: {
+          ok: false,
+          reason: "location_unclear",
+          say: "I couldn't pin down your location — what's the street address or nearest cross-street and city?",
+        },
+      };
+    }
+
+    const found = await findNearbyPlaces(pickup, placeQuery(args.place_type), { max: 8 });
+    if (!found.length) {
+      return {
+        status: "ok",
+        data: {
+          ok: false,
+          reason: "none_found",
+          say: `I couldn't find a ${args.place_type} nearby — is there a specific place you'd like me to send the tow to?`,
+        },
+      };
+    }
+
+    // Rank by real driving distance from the pickup (one Distance Matrix call).
+    const miles = await drivingDistanceMilesMulti(
+      pickup,
+      found.map((p) => ({ lat: p.lat, lng: p.lng, formatted: p.address }))
+    );
+    const ranked = found
+      .map((p, i) => ({ ...p, miles: miles[i] }))
+      .sort((a, b) => (a.miles ?? Number.MAX_VALUE) - (b.miles ?? Number.MAX_VALUE))
+      .slice(0, args.limit ?? 2);
+
+    const options = ranked.map((r) => ({
+      name: r.name,
+      address: r.address,
+      miles: r.miles != null ? Math.round(r.miles * 10) / 10 : null,
+    }));
+
+    await logAudit({
+      tenantId: ctx.tenantId,
+      action: "voice.tool.find_tow_destination",
+      entityType: "call",
+      entityId: ctx.callId ?? undefined,
+      metadata: { place_type: args.place_type, near: args.near, returned: options.length },
+    });
+
+    let say: string;
+    if (options.length === 1) {
+      const o = options[0];
+      say = `The closest is ${o.name}${spokenMiles(o.miles)}. Want me to set the tow to go there?`;
+    } else {
+      const parts = options.map((o) => `${o.name}${spokenMiles(o.miles)}`);
+      const last = parts.pop();
+      say = `The closest options are ${parts.join(", ")}, and ${last}. Which would you like me to tow it to?`;
+    }
+
+    return { status: "ok", data: { ok: true, options, say } };
+  }
+);
+
 export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   lookup_contact: lookupContact,
   create_contact: createContact,
@@ -1585,4 +1702,5 @@ export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   cancel_appointment: cancelAppointment,
   reschedule_appointment: rescheduleAppointment,
   calculate_quote: calculateQuoteTool,
+  find_tow_destination: findTowDestinationTool,
 };
