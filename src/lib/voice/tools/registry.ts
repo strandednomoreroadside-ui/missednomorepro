@@ -197,7 +197,9 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
     description:
       "Find open appointment times on a given day before you offer any time to the caller. NEVER guess or " +
       "invent availability — always call this and offer only the slots it returns. Pass the date the caller " +
-      "wants. Returns a short list of open start times (already inside business hours and not double-booked).",
+      "wants. Returns a short list of open start times (already inside business hours and not double-booked). " +
+      "If the requested day is full or already past, it automatically returns the NEXT available times instead " +
+      "(rolled_forward=true) — offer those and tell the caller which day each is on; don't say there's no availability.",
     parameters: {
       type: "object",
       properties: {

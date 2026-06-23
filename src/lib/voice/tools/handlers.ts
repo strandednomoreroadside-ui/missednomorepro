@@ -719,11 +719,16 @@ const checkCalendarAvailability = defineTool(
 
     const preferredTime = args.preferred_time ? parseTimeString(args.preferred_time) : null;
     const hours = await loadHours(ctx, business.id);
-    const next = addDays(target, 1);
-    const dayStart = zonedTimeToUtc(target.year, target.month, target.day, 0, 0, tz);
-    const dayEnd = zonedTimeToUtc(next.year, next.month, next.day, 0, 0, tz);
 
-    const busy = await dbBusy(ctx, business.id, dayStart.toISOString(), dayEnd.toISOString());
+    // Fetch busy across the whole horizon (not just the requested day) so we can
+    // roll forward to the next open day when the requested one is full or already
+    // past — instead of dead-ending on "no availability".
+    const today = todayInZone(tz);
+    const horizonEnd = addDays(today, DEFAULT_AVAILABILITY.horizonDays + 1);
+    const windowStart = zonedTimeToUtc(today.year, today.month, today.day, 0, 0, tz);
+    const windowEnd = zonedTimeToUtc(horizonEnd.year, horizonEnd.month, horizonEnd.day, 0, 0, tz);
+
+    const busy = await dbBusy(ctx, business.id, windowStart.toISOString(), windowEnd.toISOString());
 
     const conn = await getConnection(ctx.admin, ctx.tenantId, business.id);
     if (conn && isConnected(conn)) {
@@ -733,8 +738,8 @@ const checkCalendarAvailability = defineTool(
           const gb = await freeBusy(
             token,
             conn.google_calendar_id,
-            dayStart.toISOString(),
-            dayEnd.toISOString()
+            windowStart.toISOString(),
+            windowEnd.toISOString()
           );
           for (const b of gb) busy.push({ start: new Date(b.start), end: new Date(b.end) });
         } catch (err) {
@@ -743,29 +748,46 @@ const checkCalendarAvailability = defineTool(
       }
     }
 
-    const slots = computeAvailableSlots({
-      tz,
-      hours,
-      busy,
-      now: new Date(),
-      targetDate: target,
-      preferredTime,
+    const now = new Date();
+    const slotFields = (s: { startIso: string; timeLabel: string; label: string }) => ({
+      start: s.startIso,
+      time: s.timeLabel,
+      label: s.label,
     });
 
+    // 1) The day the caller asked for.
+    const daySlots = computeAvailableSlots({ tz, hours, busy, now, targetDate: target, preferredTime });
+    if (daySlots.length > 0) {
+      return {
+        status: "ok",
+        data: { date: ymd(target), count: daySlots.length, rolled_forward: false, slots: daySlots.map(slotFields) },
+      };
+    }
+
+    // 2) Requested day is full/past — roll forward to the soonest open times.
+    const nextSlots = computeAvailableSlots({ tz, hours, busy, now, targetDate: null });
+    if (nextSlots.length > 0) {
+      return {
+        status: "ok",
+        data: {
+          date: ymd(target),
+          count: nextSlots.length,
+          rolled_forward: true,
+          slots: nextSlots.map(slotFields),
+          note: `No openings on ${ymd(target)} (that day is full or already past). These are the NEXT available times — offer them and say the DAY for each, e.g. "${nextSlots[0].label}".`,
+        },
+      };
+    }
+
+    // 3) Genuinely nothing in the horizon.
     return {
       status: "ok",
       data: {
         date: ymd(target),
-        count: slots.length,
-        slots: slots.map((s) => ({ start: s.startIso, time: s.timeLabel, label: s.label })),
-        // Guidance when nothing's open that day so the AI doesn't dead-end on
-        // "no appointments today": the soonest slot is leadMinutes out, so a
-        // same-day "right now" request should be offered the earliest real time
-        // (or dispatched if urgent), and a full day should roll to the next.
-        note:
-          slots.length === 0
-            ? `No open times on ${ymd(target)}. The soonest any booking can start is about ${DEFAULT_AVAILABILITY.leadMinutes} minutes out. If the caller needs help right now, dispatch the team instead of booking; otherwise offer the next available day.`
-            : undefined,
+        count: 0,
+        rolled_forward: false,
+        slots: [],
+        note: `No open times in the next ${DEFAULT_AVAILABILITY.horizonDays} days. If the caller needs help right now, dispatch the team instead of booking.`,
       },
     };
   }

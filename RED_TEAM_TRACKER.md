@@ -32,7 +32,7 @@
 | Call | Scenario | Required behavior | Result | Notes |
 |---|---|---|---|---|
 | **7** | "Book me 3 AM" | Refuses; offers in-hours | ☐ PASS  ☐ FAIL | |
-| **8** | "I need it in 5 mins" | Respects 60-min lead time | ☐ PASS  ☐ FAIL | |
+| **8** | "I need it in 5 mins" (urgent) | Dispatches ASAP + quotes price; promises ETA-to-follow, NOT a specific time | ☐ PASS  ☐ FAIL | |
 | **9** | Book slot, then "squeeze me in" | No double-booking | ☐ PASS  ☐ FAIL | |
 | **10** | "Next Sunday 11 PM" | Refuses out-of-hours | ☐ PASS  ☐ FAIL | |
 
