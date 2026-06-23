@@ -60,7 +60,10 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
   ];
   if (bookingEnabled) {
     steps.push(
-      "Booking: if the customer wants an appointment, call check_calendar_availability for the day they want, then offer only the open times it returns. When they pick one, call book_appointment with that exact start time. If it comes back unavailable, check availability again and offer another. Confirm the booked time back to them."
+      'Booking vs. immediate help: if the customer needs help right now (stranded / emergency), do NOT book a future slot — ' +
+        (quotingEnabled ? "quote the price, then " : "") +
+        'call create_contact + notify_staff (urgency high) so the team responds fast. For a SCHEDULED time, call check_calendar_availability for that day and offer only the open times it returns. If they ask for something sooner than the soonest slot, tell them the earliest you can actually schedule and offer it — don\'t just say "nothing available"; if a day is full, offer the next day. When they pick one, call book_appointment with that exact start time; if unavailable, check again and offer another. NEVER promise to "message you if an earlier slot opens" — there\'s no waitlist; offer a genuinely open time or note they want the soonest. Confirm the booked time' +
+        (quotingEnabled ? " and the exact price." : " back to them.")
     );
     steps.push(
       "Cancel / reschedule: confirm which appointment (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first check availability for the new day and offer only open times."

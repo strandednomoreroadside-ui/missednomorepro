@@ -162,9 +162,13 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   ];
   if (bookingEnabled) {
     steps.push(
-      'Booking: if the caller wants an appointment, call check_calendar_availability for the day they want, then offer the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). When they pick one, call book_appointment with that exact start time. If it comes back unavailable or outside hours, check availability again and offer a different time.' +
+      'Booking vs. immediate help — decide first: if the caller needs help NOW (stranded, "right away", "as soon as you can", an emergency), do NOT book a future calendar slot. Instead' +
+        (quotingEnabled ? " quote the price, then" : "") +
+        ' dispatch the team immediately: call create_contact + notify_staff with urgency "high" or "emergency", and tell them help is on the way as fast as possible. ' +
+        'Only use the calendar for a SCHEDULED time the caller wants for later: call check_calendar_availability for that day and offer ONLY the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). If they ask for something sooner than the soonest open slot (e.g. "in 5 minutes"), tell them the earliest you can actually schedule and offer it — never just say "nothing available." If a day is full, offer the next day. When they pick a time, call book_appointment with that exact start time; if it comes back unavailable or outside hours, check availability again and offer another. ' +
+        'NEVER promise to "call you back if an earlier slot opens" — there is no waitlist; instead offer a genuinely open earlier time, or say you\'ll note that they want the soonest possible and the team will try.' +
         (quotingEnabled
-          ? " Before you confirm, make sure you've given them the price (call calculate_quote with the service + location if you haven't yet). Always confirm BOTH the booked time AND the exact price back to them."
+          ? " Before you confirm a booking, make sure you've quoted the price (calculate_quote with the service + location). Always confirm BOTH the time AND the exact price."
           : " Always confirm the booked time back to them.")
     );
     steps.push(

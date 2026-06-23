@@ -758,6 +758,14 @@ const checkCalendarAvailability = defineTool(
         date: ymd(target),
         count: slots.length,
         slots: slots.map((s) => ({ start: s.startIso, time: s.timeLabel, label: s.label })),
+        // Guidance when nothing's open that day so the AI doesn't dead-end on
+        // "no appointments today": the soonest slot is leadMinutes out, so a
+        // same-day "right now" request should be offered the earliest real time
+        // (or dispatched if urgent), and a full day should roll to the next.
+        note:
+          slots.length === 0
+            ? `No open times on ${ymd(target)}. The soonest any booking can start is about ${DEFAULT_AVAILABILITY.leadMinutes} minutes out. If the caller needs help right now, dispatch the team instead of booking; otherwise offer the next available day.`
+            : undefined,
       },
     };
   }
