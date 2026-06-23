@@ -137,7 +137,7 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
   const rule2 = `2. ${pricingRuleBody(quotingEnabled)}`;
 
   const pricingStep = quotingEnabled
-    ? 'Pricing: when the caller asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then tell them the exact total it returns. Never quote from memory — see rule 2. For a TOW where the caller doesn\'t have a drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
+    ? 'Pricing — ALWAYS quote proactively: the moment you know the service and the caller\'s location (for a tow, also the drop-off), call calculate_quote and tell them the exact total it returns. Do NOT wait for them to ask the price — give it to them as you confirm the service and address, before you book or hand off to the team. Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2). For a TOW where the caller has no drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
     : "Pricing questions → rule 2.";
 
   const rule4 = `4. ${bookingRuleBody(bookingEnabled)}`;
@@ -162,14 +162,19 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   ];
   if (bookingEnabled) {
     steps.push(
-      'Booking: if the caller wants an appointment, call check_calendar_availability for the day they want, then offer the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). When they pick one, call book_appointment with that exact start time. If it comes back unavailable or outside hours, check availability again and offer a different time. Always confirm the booked time back to them.'
+      'Booking: if the caller wants an appointment, call check_calendar_availability for the day they want, then offer the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). When they pick one, call book_appointment with that exact start time. If it comes back unavailable or outside hours, check availability again and offer a different time.' +
+        (quotingEnabled
+          ? " Before you confirm, make sure you've given them the price (call calculate_quote with the service + location if you haven't yet). Always confirm BOTH the booked time AND the exact price back to them."
+          : " Always confirm the booked time back to them.")
     );
     steps.push(
       'Cancel / reschedule: if a caller wants to change or cancel an existing appointment, confirm which one (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first call check_calendar_availability for the new day and offer only open times. If the tool reports it can\'t find their appointment, take their details and call notify_staff. A confirmation text is sent automatically (if they\'re opted in).'
     );
   }
   steps.push(
-    "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line spoken summary so the team can call back fast."
+    quotingEnabled
+      ? "When you have name + number + need and it's a real, in-area lead: FIRST give them their exact price (call calculate_quote with the service + location if you haven't already this call), then call create_contact and notify_staff with a one-line spoken summary so the team can dispatch fast. Don't end on 'the team will call you' without giving the price."
+      : "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line spoken summary so the team can call back fast."
   );
   steps.push(
     transferEnabled
@@ -184,8 +189,12 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   const howTo = steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
 
   const wrapUpNext = bookingEnabled
-    ? '(the booked time, or "the team will call you right back at <number>")'
-    : '("The team will call you right back at <number>.")';
+    ? quotingEnabled
+      ? '(the price you quoted and the booked time — or, if you took it as a lead, the price plus "the team will be in touch at <number>")'
+      : '(the booked time, or "the team will call you right back at <number>")'
+    : quotingEnabled
+      ? '(the price you quoted, then "the team will be in touch at <number>")'
+      : '("The team will call you right back at <number>.")';
   const wrapUp =
     `Confirm what happens next ${wrapUpNext}, thank them by name if you have it, give a brief goodbye, ` +
     "then END THE CALL right away by calling end_call. Do NOT stay on the line, re-ask if there's anything else more than once, or wait in silence after the caller's need is handled.";

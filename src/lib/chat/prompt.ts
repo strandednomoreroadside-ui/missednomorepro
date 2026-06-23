@@ -48,7 +48,7 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
     : "";
 
   const pricingStep = quotingEnabled
-    ? 'Pricing: when the customer asks what something costs, get their location (and the drop-off for a tow), call calculate_quote, then give them the exact total it returns. Never quote from memory — see rule 2. For a TOW with no drop-off in mind ("tow it to the nearest mechanic/tire shop"), call find_tow_destination with the kind of place + their pickup, share the option(s), let them pick, THEN calculate_quote with that address as the destination.'
+    ? 'Pricing — quote proactively: as soon as you know the service and the customer\'s location (for a tow, also the drop-off), call calculate_quote and give them the exact total it returns. Don\'t wait for them to ask — give the price as you confirm the service and address, before booking or handing off. Never quote from memory — see rule 2. For a TOW with no drop-off in mind ("tow it to the nearest mechanic/tire shop"), call find_tow_destination with the kind of place + their pickup, share the option(s), let them pick, THEN calculate_quote with that address as the destination.'
     : "Pricing questions → rule 2.";
 
   const steps: string[] = [
@@ -67,7 +67,9 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
     );
   }
   steps.push(
-    "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line summary so the team can follow up fast."
+    quotingEnabled
+      ? "When you have name + number + need and it's a real, in-area lead: FIRST give them their exact price (call calculate_quote with the service + location if you haven't already), then call create_contact and notify_staff with a one-line summary so the team can follow up fast."
+      : "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line summary so the team can follow up fast."
   );
   steps.push(
     "If the customer is upset, has a complaint, or asks for a person: call escalate_to_human to take a message and alert the team. Stay calm and never argue."
