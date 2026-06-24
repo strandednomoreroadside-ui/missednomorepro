@@ -12,11 +12,9 @@ export function getStripe(): Stripe {
       "Stripe is not configured — STRIPE_SECRET_KEY missing (BUILD_GUIDE M0)."
     );
   }
-  // Hard rule: test mode until M10 — everywhere, including production.
-  // M10's go-live step removes this guard deliberately.
-  if (!env.STRIPE_SECRET_KEY.startsWith("sk_test_")) {
-    throw new Error("Refusing non-test Stripe key during the build phase (see BUILD_GUIDE).");
-  }
+  // Live-mode unlocked at launch (M10 go-live). Test (sk_test_) and live
+  // (sk_live_) keys both work — whichever is in the environment decides the
+  // mode, so prod stays in test until live keys are swapped into Vercel.
   stripeSingleton ??= new Stripe(env.STRIPE_SECRET_KEY);
   return stripeSingleton;
 }
