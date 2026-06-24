@@ -1,187 +1,158 @@
-# Session Summary — Missed No More Pro (June 21–22, 2026)
+# Session Summary — Missed No More Pro (June 23, 2026)
 
-This session: reviewed, verified, and shipped the two uncommitted batches (voice
-tuning + the M10 hardening "beta gate"), verified the beta gate against the live
-database, fixed the Stripe webhook (the prior session's billing-sync bug),
-clarified + completed Sentry setup, ran a grounded pre-launch readiness review,
-and fixed dashboard timestamps to show each business's local timezone.
-**Stopping point — prep next steps (red-team → Stripe live flip) later.**
-
----
-
-## 1. Voice tuning ✅ (commit `85795da`, deployed)
-
-`src/lib/voice/{types,prompt,retell}.ts` + `src/lib/calendar/timezone.ts`:
-- **STT keyword boosting** — `buildBoostedKeywords()` biases Retell toward the
-  business name, service names, and served towns; `TUNING_VERSION` folded into
-  `promptHash` → re-syncs the live agent once on the next call.
-- **Spoken-time fix** — `cleanSpoken()` normalizes exotic spaces (NBSP/U+202F/…)
-  in spoken time labels (fixes the "k in the time" TTS artifact).
-- No migration.
+Red-team prep + live execution. This session: built the 25-call red-team kit and
+test-data cleanup, did a live pricing re-config (→ 5 zones / 40 mi), shipped the
+`find_tow_destination` tool (nearest mechanic/tire shop for tows), then fixed a
+string of real issues the operator surfaced on live red-team calls (proactive
+quoting, immediate-dispatch vs scheduled booking, no invented waitlist, dispatch
+ETA wording, availability roll-forward). Diagnosed a broken Google Calendar
+connection. **Stopping point — operator is mid-red-team; reconnecting Google
+Calendar; Stripe live flip still pending the red-team pass.**
 
 ---
 
-## 2. M10 hardening — the beta gate ✅ (commit `6b9174e`, deployed)
+## 1. Red-team kit + test-data wipe ✅
 
-**Adopted** the existing batch (reviewed + verified, not rebuilt). typecheck +
-build green.
-- Migration `20260629090000_m10_hardening.sql`: kill switch
-  (`businesses.{ai_enabled,forward_number}`), per-tier + per-tenant spend/overage
-  caps, `usage_alerts` idempotency ledger.
-- Kill switch + cap → **forward-to-owner** in the voice route (before AI path);
-  owner toggle in Settings + platform-admin toggle in `/admin`.
-- `voiceAllowed()` cost gate (minutes + daily spend + overage); **errs OPEN**.
-- Usage alerts 50/80/100/120% over **SMS + email**; call-end + daily sweep.
-- Resend email + billing receipts; Sentry PII scrub; legal pages finalized;
-  leak-test checks 38–41.
-
----
-
-## 3. Production verification ✅
-
-- **Migration applied** (direct DB check) + **leak test 41/41**.
-- `ai_enabled` defaults `true` → live business stays AI-on.
+- **`RED_TEAM.md`** — 25-call §14 checklist + a **pricing answer key** matching the
+  live rules so the operator can verify the **0%-hallucination** gate. Hard-rule
+  gates = calls 1–15; quality = 16–25 (incl. call 23 = the new tow finder).
+- **`RED_TEAM_TRACKER.md`** — a printable PASS/FAIL checkoff sheet (operator asked).
+- **`scripts/redteam-wipe-number.mjs`** — scoped single-number CRM wipe (child-first
+  delete order for the composite-FK SET-NULL/NOT-NULL `tenant_id` quirk).
+- **`scripts/redteam-cleanup.mjs`** — time-window full-CRM wipe (dry-run by default).
+- **Done:** wiped test number `+12164151568` (was contact "Josh"), then ALL prior
+  test CRM data for the live tenant (`880a6037…`) → clean slate. One leftover STOP
+  suppression on `+12164150847` (different number) left in place — harmless.
+- **Decision:** red-team on the **live number/tenant**, wipe after (operator's call).
 
 ---
 
-## 4. Stripe webhook fixes ✅ (commit `26bf713` + stale-endpoint cleanup)
+## 2. Live pricing re-config ✅ (data only, no migration)
 
-- **Root cause of the billing-sync bug:** `runStripeSetup` only ever *created*
-  the webhook; if one existed it skipped it, so `invoice.paid` never landed.
-  **Fixed** — now reconciles `enabled_events` in place (keeps the signing
-  secret). Re-running the button is enough going forward.
-- **`invoice.paid` added** directly to the prod endpoint (secret unchanged).
-- **Deleted a stale duplicate endpoint** (`…supabase.co/functions/v1/stripeWebhook`)
-  — two endpoints was the likely reason the wrong signing secret got into Vercel.
-  Only the real prod endpoint remains.
-- Added `scripts/stripe-webhook-check.mjs` (read-only diagnostic).
-- **⚠️ Still operator's to verify:** Stripe → Webhooks → the `missednomorepro.com`
-  endpoint → reveal **Signing secret**, confirm it matches Vercel's
-  `STRIPE_WEBHOOK_SECRET` (local starts `whsec_Jh…`). *(Becomes moot once you
-  redo this for live mode — see §6.1.)*
+Operator expanded coverage, then trimmed it:
+- Final state (applied to live DB, quoting stayed approved):
+  **5 zones** — Z1 0–8/$55, Z2 8–16/$65, Z3 16–25/$75, Z4 25–33/$85, Z5 33–40/$95
+  (+$10/zone) — and **service radius 40 mi**.
+- Engine rule reaffirmed: the **top zone must cover the whole radius** (a caller
+  inside the radius but past the top zone hits `no_zone` and the quote fails).
+- Services unchanged (Jump $40, Lockout $50, Tire-spare $60, Tire-nospare $80+tire
+  9–4, Battery $50+batt, Fuel $40+fuel, Tow $60 hook + $2.50/mi after 5 free).
 
 ---
 
-## 5. Sentry ✅ (error tracking + source maps now both live)
+## 3. `find_tow_destination` tool ✅ (commit `2cddab7`, deployed)
 
-- The **DSN is hardcoded** in all 3 configs and the `SENTRY_DSN` env var is
-  vestigial (nothing reads it) — so error tracking already worked; no Vercel DSN
-  needed.
-- **Operator added `SENTRY_AUTH_TOKEN` to Vercel** → builds now upload source
-  maps → crash reports show real code, not minified. **Done.**
-
----
-
-## 6. Pre-launch readiness review (June 22)
-
-Ran a grounded check (`scripts/prelaunch-check.mjs`, committed) — **all 22
-migrations confirmed applied in prod** (every later-phase column/table exists),
-re-tiered plan rows seeded, integration env present locally (except the
-Vercel-only ones below). Foundation is solid: migrations ✅, leak test 41/41 ✅,
-cost controls/kill switch ✅, Sentry ✅, webhooks idempotent ✅, PII scrub ✅.
-
-### 6.1 🔴 Must handle before taking real money
-- **Stripe live flip is a SEQUENCED op — do not paste live keys yet.**
-  `getStripe()` ([src/lib/billing/stripe.ts:17](src/lib/billing/stripe.ts)) hard-refuses any non-`sk_test_` key by
-  design, so adding `sk_live_…` to Vercel now **breaks all billing in prod**.
-  Correct order when ready: (1) Claude removes the test-key guard + pushes →
-  (2) operator adds `sk_live_`/`pk_live_` to Vercel → (3) operator re-runs
-  `/admin/billing-setup` in live mode (creates LIVE products/prices/webhook) →
-  (4) operator copies the **new live webhook signing secret** into Vercel
-  `STRIPE_WEBHOOK_SECRET`. Hold until after the red-team passes.
-- ✅ **`CRON_SECRET` confirmed deployed in Vercel** (operator, June 22). One
-  secret authenticates BOTH crons by design — Vercel sends
-  `Authorization: Bearer <CRON_SECRET>` to every path in `vercel.json`, and both
-  `reminders` + `outbound` routes read the same `env.CRON_SECRET`. So reminders,
-  follow-up texts, review requests, usage alerts, and weekly insights are all
-  live. (Not in local `.env.local`, which is fine — it's a Vercel-only secret.)
-
-### 6.2 🟡 Strongly recommended for beta
-- **Supabase Pro now** (not "at first paying customer") — real CRM data /
-  transcripts / payments land the moment the first beta business goes live;
-  free-tier backups are thin (~$25/mo for daily backups + PITR).
-- **Set the live business's `forward_number`** to the operator's cell (Settings)
-  so kill-switch/cap fallback rings a human, not voicemail.
-- **Free uptime monitor** (UptimeRobot) on `missednomorepro.com` — the phone line
-  is the product; Sentry catches code errors, not outages.
-- **Google OAuth "unverified app"** — if calendar booking is a selling point,
-  start Google verification now (takes days–weeks); tolerable for ≤100 beta users.
-
-### 6.3 🟢 Known / accepted — fine to leave
-- HELP keyword via Twilio's built-in responder (v2 item).
-- Per-tenant Twilio number provisioning is manual (fine while onboarding by hand).
-- Pronunciation dictionary (needs operator examples) + faster-LLM latency
-  (fold into red-team).
-- Web-chat rate-limit is in-memory (add-on-gated, low traffic — revisit if abused).
+A stranded caller with no drop-off in mind ("just tow it to the nearest mechanic /
+tire shop / body shop / dealership / gas station") gets **1–2 real nearby options**,
+then `calculate_quote` prices the tow to the chosen address. **§5.1 intact —
+prices stay engine-computed; the tool only finds destinations.**
+- `maps/client.ts`: `findNearbyPlaces` (Google **Places API New** Text Search) +
+  `drivingDistanceMilesMulti` (one Distance Matrix call ranks by real driving miles).
+- `voice/tools/{registry,handlers}.ts`: zod-validated handler, tenant from call row,
+  audit-logged, graceful fallback. Also wired into the **chat brain** (web/SMS).
+- **Operator enabled "Places API (New)"** on `GOOGLE_MAPS_API_KEY` — **verified live**
+  (geocode → places → driving-distance ranking returns real shops, e.g. Berea Tire
+  1.4 mi). Cost ~$0.037 per lookup, only when asked. CLAUDE.md entry = commit `ef621b9`.
 
 ---
 
-## 7. Beta-gate checklist (operator §14)
+## 4. Red-team-driven fixes ✅ (all deployed)
 
-- ✅ Migration applied · ✅ leak test 41/41 · ✅ Resend (in Vercel) · ✅ support
-  email (Zoho) · ✅ Stripe `invoice.paid` + self-heal + stale endpoint deleted ·
-  ✅ Sentry error tracking + `SENTRY_AUTH_TOKEN`.
-- ⚠️ Verify Stripe signing secret matches Vercel (or just set it fresh at live flip).
-- ✅ `CRON_SECRET` in Vercel (one secret authenticates both crons by design).
-- ⬜ Supabase Pro · ⬜ set forward_number · ⬜ uptime monitor · ⬜ Google OAuth verify.
-- ⬜ **Stripe live-mode flip** (§6.1 sequence — after red-team).
-- ⬜ **25 red-team calls** + confirm 0% pricing hallucination.
+Issues the operator hit on live calls, each fixed via prompt/tool (promptHash bumps
+→ lazy Retell re-sync on the next call after deploy):
 
----
-
-## 8. Timezone display fix ✅ (June 22)
-
-Operator noticed dashboard times were off. Cause: display pages called
-`toLocaleString()`/`toLocaleTimeString()` with **no `timeZone`**, so on Vercel
-(UTC servers) call/message/timeline times rendered in UTC, not the business's
-local time. (Booking, availability, reminders, and dispatch already used the
-business tz — only the read-only display side drifted.) Fixed: added
-`formatDateTimeInZone`/`formatDateInZone`/`formatTimeInZone` to
-`lib/calendar/timezone.ts` + a `getBusinessTimezone()` helper
-(`lib/business/timezone.ts`, reads `businesses.timezone`, falls back to
-`America/New_York`), applied to calls list + detail, messages, contact detail
-(timeline/media/consent/lead), contacts list, billing renewal, reputation.
-**Per-business** — each company's dashboard shows its own local time. The live
-business is set to `America/New_York` (Eastern, confirmed). Only remaining
-bare-format spot is `setup/_components/launch.tsx` (date-only, one-time, client
-component — left as-is). build + typecheck green.
+- **Proactive quoting** (`9f31f44`) — the AI was only quoting "when the caller asks,"
+  so a "come help me" call went to the lead/"team will call you" wrap-up with **no
+  price**. Now it quotes the moment it knows service + location, and as it confirms
+  the service/address — wired into the pricing step, booking step, lead handoff, and
+  wrap-up. Mirrored in chat.
+- **Immediate-dispatch vs scheduled booking + no invented waitlist** (`c4b68f6`) —
+  "I need it in 5 minutes" was dead-ending on "no appointments today." Roadside
+  "help now" is **immediate dispatch** (quote + notify_staff high/emergency), NOT
+  calendar booking; only a SCHEDULED time uses the calendar. Also **forbade** the AI
+  from promising a "we'll call you if an earlier slot opens" waitlist (it doesn't
+  exist) — exposed by the call-9 "squeeze me in" test.
+- **Dispatch ETA wording** (`b2ff557`) — operator chose: on urgent dispatch the AI
+  says help is on the way ASAP + the team will text/call with an ETA, and **never
+  promises a specific number of minutes**. (The 60-min "lead time" only governs the
+  scheduled-booking path, not dispatch — call 8 reframed to PASS.)
+- **Availability roll-forward** (`9097392`) — booking in the evening returned "no
+  available spots in the future at all" because the tool only checked the one
+  requested day (and an after-close "today" is legitimately empty). It now scans the
+  full **14-day horizon** and, when the requested day is full/past, returns the
+  **next available times** (`rolled_forward=true`) with a note to offer them and name
+  the day. **Engine + hours were correct** (verified 112 open slots/7 days); this was
+  the tool's day-scoping.
 
 ---
 
-## 9. Still open (not blockers)
+## 5. 🔴 Google Calendar connection is BROKEN (in progress)
 
-- Pronunciation dictionary — needs the operator's exact mis-said words.
-- Faster-LLM latency swap (`gpt-4.1` → faster) — fold into the red-team.
-- Live-call check of the voice tuning (boosted keywords + clean time read).
+- Connection `status = error`, `cal=primary`. Root cause: **Google's 7-day
+  refresh-token expiry while the OAuth app is in "Testing" publishing status**
+  (connected June 14 → died ~day 7–9). Known M9 caveat biting.
+- **Impact:** bookings **still work** (saved in our DB, shown on the dashboard) but
+  **don't sync to Google Calendar**; availability is unaffected (falls back to
+  business hours + DB appts — `isConnected()` requires `status==='connected'`, so an
+  error connection is cleanly skipped).
+- **Reconnect path (was walking the operator through this when we paused):**
+  **Settings → Calendar booking → Disconnect, then Connect** (`/dashboard/settings`,
+  `connectGoogleCalendar`/`disconnectGoogleCalendar` actions → `/api/google/callback`).
+  The consent URL already forces `access_type=offline` + `prompt=consent`
+  (`oauth.ts`), so a **fresh refresh token is issued** on reconnect. Will re-expire
+  every ~7 days until the OAuth app is **published** (post-launch Google-verification
+  item).
 
 ---
 
 ## Next session — pick up here
 
-1. **Write the 25-call red-team checklist** (make the AI try to invent a price,
-   book outside hours, claim it's human, text an opted-out number, etc. — each
-   with pass/fail), then run / walk the operator through it.
-2. When red-team passes → **do the Stripe live flip** (§6.1): Claude removes the
-   `getStripe()` test-key guard, then operator adds live keys + re-runs
-   billing-setup + sets the new live webhook secret.
-3. Confirm operator did the remaining items: forward_number set, uptime monitor,
-   (Supabase Pro at beta start). [`CRON_SECRET` ✅ done.]
-4. Collect mispronounced words → Retell pronunciation dictionary; evaluate the
-   faster-LLM swap.
-5. Live-call verification of the voice tuning.
+1. **Finish the Google Calendar reconnect** (Settings → Calendar booking →
+   Disconnect → Connect; expect the "unverified app" interstitial — proceed). Then
+   re-run `node scripts/m9-verify.mjs` to confirm `status=connected` + a test booking
+   syncs to Google. (Optional but recommended: publish the OAuth app to kill the
+   7-day expiry — folds into the post-launch Google-verification work.)
+2. **Resume the red-team** (`RED_TEAM_TRACKER.md`). So far call 8 = PASS (reframed),
+   call 9 booking fixed (retest the roll-forward). Work through all 25.
+3. **When calls 1–15 pass at 0% hallucination → Stripe live flip** (unchanged
+   sequence): Claude removes the `getStripe()` `sk_test_` guard
+   ([src/lib/billing/stripe.ts:17](src/lib/billing/stripe.ts:17)) + pushes → operator
+   adds `sk_live_`/`pk_live_` to Vercel → re-runs `/admin/billing-setup` in live mode
+   → copies the **new live webhook signing secret** into Vercel `STRIPE_WEBHOOK_SECRET`.
+4. **After the calls, wipe test data:** `node scripts/redteam-wipe-number.mjs
+   2164151568 --confirm` (or the full-CRM `redteam-cleanup.mjs`).
+
+---
+
+## Still open (not blockers)
+
+- Pronunciation dictionary (needs operator's exact mis-said words).
+- Faster-LLM latency swap (`gpt-4.1` → faster) — fold into red-team.
+- Post-launch: `docs/post-launch-onboarding.md` (radius/home-base in the setup
+  wizard + extend knowledge-upload extraction to zones/surcharges); **Phase 16
+  premium channels** (RCS → Apple Messages → WhatsApp) added to the vision roadmap
+  (`~/.claude/plans/first-before-m10-we-snappy-deer.md`); publish the Google OAuth app.
+
+---
+
+## Commits this session (in order)
+
+`2cddab7` find_tow_destination + red-team kit · `ef621b9` docs (tool + 5-zone/40mi) ·
+`9f31f44` proactive quoting · `c4b68f6` immediate-dispatch vs scheduled + no waitlist ·
+`b2ff557` dispatch ETA wording · `9097392` availability roll-forward.
+
+**New read-only diagnostics used (not committed):** ad-hoc scripts for zone/hours/
+availability/places checks (written + removed inline). Working tree: `RED_TEAM_TRACKER.md`
+has an uncommitted call-8 row tweak — fine to commit next session.
 
 ---
 
 ## Cross-cutting notes
 
-- **Workflow:** migrations applied by operator via Supabase SQL editor; Vercel
-  auto-deploys on push to `main`. Apply each migration before/with the deploy
-  that selects its new columns.
-- **Commit hygiene:** working tree clean. Key commits this session, in order:
-  `85795da` voice tuning · `6b9174e` M10 hardening · `7750b1e` M10 docs ·
-  `26bf713` Stripe webhook self-heal · `b511583` prelaunch-check script ·
-  `6ddfb66` timezone display fix (+ several docs commits in between).
-- **New diagnostics (read-only):** `scripts/stripe-webhook-check.mjs`,
-  `scripts/prelaunch-check.mjs` (re-run before the live flip).
-- **Margin discipline:** M10 adds no per-unit cost beyond gated/idempotent alert
-  SMS+email; Sentry trace sampling 0.1 in prod.
+- **Workflow:** Vercel auto-deploys on push to `main`; prompt/tool changes re-sync
+  the live Retell agent lazily on the next call. Pricing/zone changes are **live DB
+  data** (no deploy). Migrations via Supabase SQL editor (none needed this session).
+- **Margin discipline:** find_tow_destination is pay-per-use (~$0.037, only on a
+  nearest-shop ask) inside Google's $200/mo free credit; no other new per-unit cost.
+- **§5.1 held throughout:** every price still computed by `calculate_quote`; the new
+  tool only returns destinations, never prices.
