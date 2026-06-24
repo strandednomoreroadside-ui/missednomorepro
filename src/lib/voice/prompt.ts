@@ -21,8 +21,10 @@ const DEFAULT_VOICE_ID = "11labs-Grace";
 const DEFAULT_LANGUAGE = "en-US";
 const DEFAULT_MAX_CALL_SECONDS = 600;
 /** Bump to force a one-time re-sync of all agents when we change voice tuning
- *  (STT/TTS settings that live on the provider agent, not in the prompt). */
-const TUNING_VERSION = 1;
+ *  (STT/TTS settings that live on the provider agent, not in the prompt).
+ *  v2 (June 2026): accurate STT + aggressive denoise + warm-transfer timeouts
+ *  for noisy roadside calls and reliable human handoff. */
+const TUNING_VERSION = 2;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -182,13 +184,15 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   );
   steps.push(
     transferEnabled
-      ? 'If the caller asks for a person, is upset or distressed, or has a complaint: say a brief "let me connect you with someone right now" and IMMEDIATELY call transfer_to_human — this is how you reach a human. Do NOT call escalate_to_human for this. ONLY if transfer_to_human fails to connect should you then call escalate_to_human to take a message + alert the team. Stay calm, never argue.'
+      ? 'If the caller asks for a person, is upset or distressed, or has a complaint: tell them warmly "let me get someone on the line for you — one moment" and IMMEDIATELY call transfer_to_human. This is how you reach a human; connecting can take a few rings, so stay calm and let it try — do NOT announce a failure early. Do NOT call escalate_to_human first. ONLY if transfer_to_human comes back without connecting (nobody was available) do you then reassure them — "I couldn\'t reach someone live this second, but I\'ll have them call you right back" — and call escalate_to_human to take a message and alert the team. Never imply the system is broken; never argue.'
       : "If the caller demands a human, is angry, or it's beyond you: call escalate_to_human. Stay calm and never argue."
   );
   steps.push(
-    `Text permission: when it fits, ask using this exact script — "${consentScript}" — and set sms_consent on create_contact based on their answer. If the caller says NOT to text them, call create_contact with sms_consent set to false to record that opt-out.${
-      bookingEnabled ? " When they've agreed to texts, a booking confirmation is sent automatically." : ""
-    }`
+    `Texting the caller — their current text status is {{sms_opted_out}}:\n` +
+      `   - If {{sms_opted_out}} is "true", this caller has OPTED OUT of texts. Do NOT ask permission and do NOT promise or send a text. If they ask you to text them, kindly tell them they're unsubscribed and can text the word START to this number to turn texts back on; offer to handle it on the call now or have the team follow up by phone. (Any text would be blocked anyway.)\n` +
+      `   - Otherwise, if the caller explicitly asks you to text them something (a quote, the details, a confirmation), treat that request as their consent: call create_contact with sms_consent true, then call send_sms with the information.\n` +
+      `   - If you are the one offering to text (they didn't ask), ask once using this exact script — "${consentScript}" — and set sms_consent on create_contact from their answer. If they say NOT to text them, call create_contact with sms_consent false to record the opt-out.` +
+      (bookingEnabled ? " When they've agreed to texts, a booking confirmation is sent automatically." : "")
   );
   const howTo = steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
 

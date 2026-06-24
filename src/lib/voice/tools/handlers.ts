@@ -259,11 +259,15 @@ const createContact = defineTool(
           { onConflict: "tenant_id,phone", ignoreDuplicates: true }
         );
     } else if (args.sms_consent === true) {
+      // A verbal "yes, text me" can clear a voice/manual opt-out, but it must
+      // NOT override a texted/carrier STOP (§5.1: STOP always wins — the caller
+      // re-opts in by texting START). Only lift non-"stop" suppressions here.
       await ctx.admin
         .from("sms_suppressions")
         .delete()
         .eq("tenant_id", ctx.tenantId)
-        .eq("phone", phone);
+        .eq("phone", phone)
+        .neq("reason", "stop");
     }
 
     let leadId: string | null = null;

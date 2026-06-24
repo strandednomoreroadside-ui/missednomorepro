@@ -53,6 +53,22 @@ const END_CALL_TOOL = {
 /** Auto-hang-up after this much dead air (caller stopped responding). */
 const END_CALL_AFTER_SILENCE_MS = 15000;
 
+/** Give a real person time to actually pick up before the warm transfer is
+ *  declared failed. A solo roadside owner is often driving and needs several
+ *  rings; with no timeout set the transfer bailed the instant the line didn't
+ *  answer, so the agent jumped straight to "that didn't go through". */
+const TRANSFER_DETECTION_TIMEOUT_MS = 30000;
+const TRANSFER_RING_DURATION_MS = 30000;
+
+/** Speech-to-text + audio tuning for noisy roadside callers (wind, highway,
+ *  bystanders). `accurate` STT trades a little latency for far better
+ *  transcription of mumbled service names and addresses; the strongest
+ *  denoise strips background noise *and* other voices; a calmer interruption
+ *  threshold keeps random noise from cutting the agent off mid-sentence. */
+const STT_MODE = "accurate" as const;
+const DENOISING_MODE = "noise-and-background-speech-cancellation" as const;
+const INTERRUPTION_SENSITIVITY = 0.8;
+
 /** Warm-transfer tool: the agent privately briefs the teammate (who's
  *  calling + why), THEN bridges the caller — so the human doesn't make the
  *  caller re-explain. Only added when the business has a transfer number. */
@@ -66,6 +82,9 @@ function transferTool(number: string): Record<string, unknown> {
     transfer_option: {
       type: "warm_transfer",
       on_hold_music: "ringtone",
+      // Wait long enough for a human to answer before declaring failure.
+      agent_detection_timeout_ms: TRANSFER_DETECTION_TIMEOUT_MS,
+      transfer_ring_duration_ms: TRANSFER_RING_DURATION_MS,
       private_handoff_option: {
         type: "prompt",
         prompt:
@@ -158,6 +177,9 @@ export class RetellVoiceProvider implements VoiceProvider {
         max_call_duration_ms: config.maxCallSeconds * 1000,
         end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
         boosted_keywords: config.boostedKeywords.length ? config.boostedKeywords : null,
+        stt_mode: STT_MODE,
+        denoising_mode: DENOISING_MODE,
+        interruption_sensitivity: INTERRUPTION_SENSITIVITY,
       });
       return {
         providerAgentId: existing.providerAgentId,
@@ -181,6 +203,9 @@ export class RetellVoiceProvider implements VoiceProvider {
       max_call_duration_ms: config.maxCallSeconds * 1000,
       end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
       boosted_keywords: config.boostedKeywords.length ? config.boostedKeywords : null,
+      stt_mode: STT_MODE,
+      denoising_mode: DENOISING_MODE,
+      interruption_sensitivity: INTERRUPTION_SENSITIVITY,
       agent_name: config.name,
     });
 

@@ -1,6 +1,7 @@
 import { voiceAllowed } from "@/lib/billing/cost-controls";
 import { currentZonedStrings } from "@/lib/calendar/timezone";
 import { env } from "@/lib/env";
+import { isSuppressed } from "@/lib/sms/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   dialNumberTwiml,
@@ -179,6 +180,10 @@ export async function POST(request: Request) {
 
         const localNow = currentZonedStrings(business.timezone || "America/New_York");
 
+        // Did this caller text STOP? Tell the agent up front so it hard-declines
+        // a text request instead of running the consent script (§5.1: STOP wins).
+        const optedOut = await isSuppressed(admin, business.tenant_id, from);
+
         const reg = await getVoiceProvider().registerInboundCall({
           agent: synced.ref,
           tenantId: business.tenant_id,
@@ -192,6 +197,7 @@ export async function POST(request: Request) {
             caller_phone: from,
             caller_name: contact?.name ?? "",
             is_returning: contact ? "true" : "false",
+            sms_opted_out: optedOut ? "true" : "false",
             last_need: lastNeed,
             opening_line: openingLine,
             // Booking date context (business-local) so the AI can resolve
