@@ -33,9 +33,11 @@ async function productionBaseUrl(): Promise<string> {
 
 /**
  * One-tap Stripe setup (mobile-friendly replacement for
- * scripts/stripe-setup.mjs). Idempotent — safe to run again. Creates:
- * test-mode products/prices, the production webhook endpoint, and a
- * Customer Portal configuration. getStripe() refuses non-test keys.
+ * scripts/stripe-setup.mjs). Idempotent — safe to run again. Creates, in
+ * whichever Stripe mode the environment's key selects (test or live):
+ * products/prices, the production webhook endpoint, and a Customer Portal
+ * configuration. Test and live are fully separate, so this must be re-run
+ * once after live keys are added — it returns the new live webhook secret.
  */
 export async function runStripeSetup() {
   if (!(await isPlatformAdmin())) redirect("/dashboard");
