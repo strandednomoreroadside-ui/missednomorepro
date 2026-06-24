@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Building2,
+  Check,
   CheckCircle2,
+  Circle,
   DollarSign,
   FileUp,
   HelpCircle,
+  Sparkles,
   TriangleAlert,
 } from "lucide-react";
 
@@ -34,7 +37,7 @@ export default async function KnowledgeHubPage() {
     .maybeSingle();
 
   const bizId = business?.id;
-  const [hours, services, settings, faqs, pendingSuggestions] = await Promise.all([
+  const [hours, services, settings, faqs, pendingSuggestions, zones] = await Promise.all([
     bizId
       ? supabase.from("business_hours").select("closed").eq("business_id", bizId)
       : Promise.resolve({ data: [] }),
@@ -48,7 +51,7 @@ export default async function KnowledgeHubPage() {
     bizId
       ? supabase
           .from("pricing_settings")
-          .select("approved_at, max_service_miles")
+          .select("approved_at, max_service_miles, base_address")
           .eq("business_id", bizId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -66,14 +69,36 @@ export default async function KnowledgeHubPage() {
           .eq("business_id", bizId)
           .eq("status", "pending")
       : Promise.resolve({ count: 0 }),
+    bizId
+      ? supabase
+          .from("pricing_zones")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", bizId)
+          .eq("active", true)
+      : Promise.resolve({ count: 0 }),
   ]);
 
   const openDays = ((hours.data ?? []) as { closed: boolean }[]).filter((h) => !h.closed).length;
   const serviceCount = (services as { count: number | null }).count ?? 0;
   const faqCount = (faqs as { count: number | null }).count ?? 0;
   const pendingCount = (pendingSuggestions as { count: number | null }).count ?? 0;
-  const quotingOn = Boolean((settings.data as { approved_at?: string } | null)?.approved_at);
-  const radius = (settings.data as { max_service_miles?: number } | null)?.max_service_miles ?? null;
+  const zoneCount = (zones as { count: number | null }).count ?? 0;
+  const settingsRow = settings.data as
+    | { approved_at?: string; max_service_miles?: number; base_address?: string }
+    | null;
+  const quotingOn = Boolean(settingsRow?.approved_at);
+  const radius = settingsRow?.max_service_miles ?? null;
+
+  // "Steps to start quoting" — mirrors approvePricing's requirements (home
+  // base geocoded + ≥1 zone + ≥1 active service, then owner approval). Shown
+  // only while quoting is off, so it disappears once the business is live.
+  const quotingSteps = [
+    { label: "Set your home base address", done: Boolean(settingsRow?.base_address), href: "/dashboard/setup/service-area" },
+    { label: "Add at least one dispatch zone", done: zoneCount > 0, href: "/dashboard/pricing" },
+    { label: "Add at least one service with a price", done: serviceCount > 0, href: "/dashboard/pricing" },
+    { label: "Review & approve pricing", done: quotingOn, href: "/dashboard/pricing" },
+  ];
+  const stepsLeft = quotingSteps.filter((s) => !s.done).length;
 
   const cards = [
     {
@@ -115,6 +140,48 @@ export default async function KnowledgeHubPage() {
         Everything your AI knows about {business?.name ?? "your business"}, in one place.
         Keep it current and your AI stays accurate on every call.
       </p>
+
+      {!quotingOn && (
+        <Card className="mt-6 border-cyan/25 bg-cyan/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <Sparkles className="size-4 text-cyan" aria-hidden />
+              {stepsLeft === 0
+                ? "You're ready — approve to start quoting"
+                : `${stepsLeft} step${stepsLeft === 1 ? "" : "s"} to start quoting exact prices`}
+            </CardTitle>
+            <CardDescription>
+              Until this is done, the AI books and answers but says &ldquo;the owner will
+              text you an exact quote&rdquo; on price. Finish these and it quotes computed
+              totals on the call.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1">
+              {quotingSteps.map((s) => (
+                <li key={s.label}>
+                  <Link
+                    href={s.href}
+                    className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-sm transition-colors hover:bg-card/60"
+                  >
+                    {s.done ? (
+                      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-success/40 bg-success/10">
+                        <Check className="size-3 text-success" strokeWidth={3} aria-hidden />
+                      </span>
+                    ) : (
+                      <Circle className="size-5 shrink-0 text-steel/50" aria-hidden />
+                    )}
+                    <span className={s.done ? "text-muted-foreground line-through" : "text-foreground"}>
+                      {s.label}
+                    </span>
+                    {!s.done && <span className="ml-auto text-xs text-cyan">Do this →</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mt-6 space-y-4">
         {cards.map((c) => (

@@ -63,7 +63,7 @@ export function Pricing() {
       <SectionHeading
         eyebrow="Pricing"
         title="Plans that pay for themselves"
-        sub="One recovered job usually covers the month. Switch to annual and save 20%."
+        sub="Start with a 7-day free trial. One recovered job usually covers the month — switch to annual and save 20%."
       />
 
       {/* Billing toggle */}
@@ -91,6 +91,11 @@ export function Pricing() {
           </span>
         </span>
       </div>
+
+      <p className="mx-auto mt-5 w-fit rounded-full border border-cyan/25 bg-cyan/5 px-4 py-1.5 text-center text-xs text-steel">
+        <span className="font-medium text-foreground">7-day free trial</span> on every plan —
+        card required, cancel anytime before it ends and you&rsquo;re not charged.
+      </p>
 
       <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
         {PLANS.map((plan) => {

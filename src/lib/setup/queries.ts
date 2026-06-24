@@ -70,6 +70,13 @@ export type Faq = {
   active: boolean;
 };
 
+export type PricingSettings = {
+  base_address: string | null;
+  base_lat: number | null;
+  base_lng: number | null;
+  max_service_miles: number | null;
+};
+
 export type SetupState = {
   id: string;
   business_id: string;
@@ -90,6 +97,7 @@ export type SetupData = {
   staff: StaffContact[];
   sms: SmsSettings | null;
   faqs: Faq[];
+  pricingSettings: PricingSettings | null;
 };
 
 /**
@@ -128,7 +136,7 @@ export async function getSetupData(
   const business = await getOrCreateBusiness(tenantId, orgName);
   const supabase = await createClient();
 
-  const [state, services, pricingRules, areas, hours, staff, sms, faqs] =
+  const [state, services, pricingRules, areas, hours, staff, sms, faqs, pricingSettings] =
     await Promise.all([
       supabase
         .from("setup_states")
@@ -170,11 +178,16 @@ export async function getSetupData(
         .select("id, question, answer, active")
         .eq("business_id", business.id)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("pricing_settings")
+        .select("base_address, base_lat, base_lng, max_service_miles")
+        .eq("business_id", business.id)
+        .maybeSingle(),
     ]);
 
   const firstError =
     state.error ?? services.error ?? pricingRules.error ?? areas.error ??
-    hours.error ?? staff.error ?? sms.error ?? faqs.error;
+    hours.error ?? staff.error ?? sms.error ?? faqs.error ?? pricingSettings.error;
   if (firstError) throw new Error(`Failed to load setup data: ${firstError.message}`);
 
   return {
@@ -187,6 +200,7 @@ export async function getSetupData(
     staff: (staff.data ?? []) as StaffContact[],
     sms: (sms.data ?? null) as SmsSettings | null,
     faqs: (faqs.data ?? []) as Faq[],
+    pricingSettings: (pricingSettings.data ?? null) as PricingSettings | null,
   };
 }
 
@@ -206,7 +220,12 @@ export function stepCompletion(data: SetupData): Record<StepId, boolean> {
     pricing:
       activeServices.length > 0 &&
       activeServices.every((s) => ruledServiceIds.has(s.id)),
-    "service-area": data.areas.some((a) => a.active),
+    // Plug-and-play: a geocoded home base + radius is the real coverage
+    // mechanism (powers radius check_service_area + the spoken answer). We
+    // also keep the DB launch gate's requirement of ≥1 active area row —
+    // saveHomeBase auto-seeds the home city so this is satisfied in one save.
+    "service-area":
+      Boolean(data.pricingSettings?.base_address) && data.areas.some((a) => a.active),
     hours:
       data.hours.length === 7 && data.hours.some((h) => !h.closed),
     notifications: data.staff.some((c) => c.notify_on_lead),

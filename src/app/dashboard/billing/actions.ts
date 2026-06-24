@@ -9,6 +9,7 @@ import { addonLookupKey, isAddonKey, parseAddonLookupKey } from "@/lib/billing/a
 import { getStripe } from "@/lib/billing/stripe";
 import { getSubscription } from "@/lib/billing/subscription";
 import { syncSubscription } from "@/lib/billing/sync";
+import { TRIAL_DAYS } from "@/lib/billing/trial";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrigin } from "@/lib/request";
 
@@ -45,6 +46,11 @@ export async function startCheckout(formData: FormData) {
     return openBillingPortal();
   }
 
+  // Free trial is granted ONLY on the tenant's first-ever subscription —
+  // a prior (even canceled) subscription means they've already had one, so
+  // no serial trials.
+  const firstTime = !existing?.stripe_subscription_id;
+
   let checkoutUrl: string;
   try {
     // Reuse the Stripe customer when we have one; create it otherwise.
@@ -80,7 +86,20 @@ export async function startCheckout(formData: FormData) {
       success_url: `${origin}/dashboard/billing?success=1`,
       cancel_url: `${origin}/dashboard/billing?canceled=1`,
       client_reference_id: tenantId,
-      subscription_data: { metadata: { tenant_id: tenantId } },
+      // Require a card even for the trial (gated), and have Stripe cancel
+      // rather than silently continue if a card somehow goes missing.
+      payment_method_collection: "always",
+      subscription_data: {
+        metadata: { tenant_id: tenantId },
+        ...(firstTime
+          ? {
+              trial_period_days: TRIAL_DAYS,
+              trial_settings: {
+                end_behavior: { missing_payment_method: "cancel" as const },
+              },
+            }
+          : {}),
+      },
       allow_promotion_codes: true,
     });
     if (!session.url) throw new Error("Stripe did not return a checkout URL.");

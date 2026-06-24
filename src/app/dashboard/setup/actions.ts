@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { requireActiveOrg } from "@/lib/auth";
+import { geocodeAddress, isMapsConfigured } from "@/lib/maps/client";
 import { normalizeUsPhone } from "@/lib/phone";
 import { getOrCreateBusiness } from "@/lib/setup/queries";
 import { NICHES, STEP_ORDER, US_TIMEZONES, isStepId, type StepId } from "@/lib/setup/steps";
@@ -165,6 +166,94 @@ export async function finishPricing() {
 }
 
 // ── Step 5: service area ─────────────────────────────────────────
+
+/**
+ * Home base + service radius — the primary, plug-and-play coverage input.
+ * Driving miles from this address drive both `check_service_area` and the
+ * spoken "what area do you serve?" answer. We geocode immediately so the
+ * radius engine activates without needing the separate pricing approval;
+ * a bad/unresolvable address bounces instead of storing a half-set base
+ * (mirrors approvePricing). Quoting approval is NOT touched here — quoting
+ * still requires the explicit /dashboard/pricing sign-off (§5.1).
+ */
+export async function saveHomeBase(formData: FormData) {
+  const { business, supabase } = await requireBusiness();
+
+  const address = text(formData, "base_address");
+  if (address.length < 5 || address.length > 300) {
+    fail("service-area", "Enter your shop or home-base address (street, city, state).");
+  }
+  const miles = Number.parseFloat(text(formData, "max_service_miles"));
+  if (!Number.isFinite(miles) || miles <= 0 || miles > 200) {
+    fail("service-area", "Set a service radius in miles, like 25 or 40.");
+  }
+
+  const { data: existing } = await supabase
+    .from("pricing_settings")
+    .select("base_address, approved_at")
+    .eq("business_id", business.id)
+    .maybeSingle();
+
+  // Geocode now so base_lat/lng populate and the radius check goes live.
+  let lat: number | null = null;
+  let lng: number | null = null;
+  let city: string | undefined;
+  let state: string | undefined;
+  if (isMapsConfigured()) {
+    const geo = await geocodeAddress(address);
+    if (!geo) {
+      fail(
+        "service-area",
+        "We couldn't find that address. Double-check the street, city, and state, then try again."
+      );
+    }
+    lat = geo.lat;
+    lng = geo.lng;
+    city = geo.city;
+    state = geo.state;
+  }
+
+  // Moving the base invalidates any approved quotes → reset the quoting
+  // approval so the owner re-confirms it. Same address = leave it alone.
+  const addressChanged =
+    (existing?.base_address ?? "").trim().toLowerCase() !== address.toLowerCase();
+
+  const { error } = await supabase.from("pricing_settings").upsert(
+    {
+      tenant_id: business.tenant_id,
+      business_id: business.id,
+      base_address: address,
+      base_lat: lat,
+      base_lng: lng,
+      max_service_miles: miles,
+      ...(addressChanged && existing?.approved_at ? { approved_at: null } : {}),
+    },
+    { onConflict: "business_id" }
+  );
+  if (error) fail("service-area", error.message);
+
+  // Plug-and-play: satisfy the launch gate's "≥1 active service-area" rule
+  // automatically by seeding the home city — but only when the owner has no
+  // area entries yet, so re-saving can't pile up rows.
+  if (city && state && /^[A-Za-z]{2}$/.test(state)) {
+    const { count } = await supabase
+      .from("service_areas")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", business.id)
+      .eq("active", true);
+    if (!count) {
+      await supabase.from("service_areas").insert({
+        tenant_id: business.tenant_id,
+        business_id: business.id,
+        type: "city",
+        city,
+        state: state.toUpperCase(),
+      });
+    }
+  }
+
+  done("service-area");
+}
 
 export async function addServiceArea(formData: FormData) {
   const { business, supabase } = await requireBusiness();

@@ -50,7 +50,8 @@ export const STEP_META: Record<StepId, StepMeta> = {
   },
   "service-area": {
     title: "Service area",
-    blurb: "ZIP codes and cities you cover. Callers outside it are politely declined.",
+    blurb:
+      "Your home base and how far you travel. Callers inside your radius are covered; those outside are politely declined.",
     required: true,
   },
   hours: {

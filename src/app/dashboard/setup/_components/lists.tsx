@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Check, MapPin, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import {
   removeServiceArea,
   removeStaffContact,
   savePricingRule,
+  saveHomeBase,
 } from "../actions";
 
 function RemoveButton({
@@ -197,85 +198,164 @@ export function PricingStep({ data }: { data: SetupData }) {
 // ── Service area ─────────────────────────────────────────────────
 
 export function AreaStep({ data }: { data: SetupData }) {
+  const base = data.pricingSettings;
+  const hasBase = Boolean(base?.base_address);
+  const geocoded = base?.base_lat != null && base?.base_lng != null;
+  // Default for a brand-new business; field-service trades typically travel
+  // wider than the old 25-mi default, so we lead with 40 (editable).
+  const radius = base?.max_service_miles ?? 40;
+
   return (
     <div>
-      {data.areas.length > 0 && (
-        <Card className="bg-card/60">
-          <CardContent className="pt-6">
-            <ul className="flex flex-wrap gap-2">
-              {data.areas.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center gap-1 rounded-full border border-border/70 py-1 pl-3 pr-1 text-sm"
-                >
-                  <span className="font-mono text-xs text-cyan">
-                    {a.type === "zip" ? a.zip_code : `${a.city}, ${a.state}`}
-                  </span>
-                  <RemoveButton
-                    action={removeServiceArea}
-                    id={a.id}
-                    label={`Remove ${a.type === "zip" ? a.zip_code : a.city}`}
-                  />
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
+      {/* Primary: home base + radius — the real coverage mechanism */}
+      <Card className="border-cyan/25 bg-card/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <MapPin className="size-4 text-cyan" aria-hidden />
+            Home base &amp; service radius
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-xs leading-relaxed text-steel">
+            Your shop or dispatch address. The AI measures coverage as{" "}
+            <span className="text-foreground">driving miles from here</span> — anyone
+            inside your radius is covered, anyone outside is politely declined. This is
+            also the starting point for distance-based quotes.
+          </p>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Card className="bg-card/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-base">Add a ZIP code</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form action={addServiceArea} className="flex items-end gap-3">
-              <input type="hidden" name="type" value="zip" />
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="zip">ZIP</Label>
+          {hasBase && (
+            <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-success/30 bg-success/5 px-3.5 py-2.5">
+              <Check className="mt-0.5 size-4 shrink-0 text-success" strokeWidth={3} aria-hidden />
+              <p className="text-xs text-foreground">
+                Covering <span className="font-mono text-cyan">{radius}</span> miles around{" "}
+                <span className="font-medium">{base?.base_address}</span>.
+                {!geocoded && (
+                  <span className="text-steel">
+                    {" "}
+                    We couldn&rsquo;t pin it on the map — the ZIP/city list below is used
+                    as the backup.
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          <form action={saveHomeBase} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="base-address">Address *</Label>
+              <Input
+                id="base-address"
+                name="base_address"
+                placeholder="6466 Haviland Dr, Brook Park, OH 44142"
+                defaultValue={base?.base_address ?? ""}
+                required
+                maxLength={300}
+              />
+            </div>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="radius">Service radius (miles) *</Label>
                 <Input
-                  id="zip"
-                  name="zip_code"
+                  id="radius"
+                  name="max_service_miles"
+                  type="number"
                   inputMode="numeric"
-                  pattern="[0-9]{5}"
-                  placeholder="44060"
+                  min="1"
+                  max="200"
+                  step="1"
+                  defaultValue={radius}
+                  className="w-32"
                   required
                 />
               </div>
-              <Button type="submit" variant="outline">
-                Add
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+              <Button type="submit">{hasBase ? "Update coverage" : "Save coverage"}</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
-        <Card className="bg-card/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-base">Add a city</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form action={addServiceArea} className="flex items-end gap-3">
-              <input type="hidden" name="type" value="city" />
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input id="city" name="city" placeholder="Mentor" required />
-              </div>
-              <div className="w-20 space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input id="state" name="state" placeholder="OH" maxLength={2} required />
-              </div>
-              <Button type="submit" variant="outline">
-                Add
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+      {/* Secondary: ZIP/city allowlist — optional backup + no-maps fallback */}
+      <div className="mt-6">
+        <p className="mb-3 text-xs leading-relaxed text-steel">
+          <span className="font-medium text-foreground">Specific ZIPs &amp; cities (optional).</span>{" "}
+          Your radius above covers most callers automatically. These are a backup the AI
+          falls back to if it can&rsquo;t place a caller on the map — we add your home city
+          here for you.
+        </p>
+
+        {data.areas.length > 0 && (
+          <Card className="bg-card/60">
+            <CardContent className="pt-6">
+              <ul className="flex flex-wrap gap-2">
+                {data.areas.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-1 rounded-full border border-border/70 py-1 pl-3 pr-1 text-sm"
+                  >
+                    <span className="font-mono text-xs text-cyan">
+                      {a.type === "zip" ? a.zip_code : `${a.city}, ${a.state}`}
+                    </span>
+                    <RemoveButton
+                      action={removeServiceArea}
+                      id={a.id}
+                      label={`Remove ${a.type === "zip" ? a.zip_code : a.city}`}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Card className="bg-card/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-base">Add a ZIP code</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form action={addServiceArea} className="flex items-end gap-3">
+                <input type="hidden" name="type" value="zip" />
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="zip">ZIP</Label>
+                  <Input
+                    id="zip"
+                    name="zip_code"
+                    inputMode="numeric"
+                    pattern="[0-9]{5}"
+                    placeholder="44060"
+                    required
+                  />
+                </div>
+                <Button type="submit" variant="outline">
+                  Add
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-base">Add a city</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form action={addServiceArea} className="flex items-end gap-3">
+                <input type="hidden" name="type" value="city" />
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input id="city" name="city" placeholder="Mentor" required />
+                </div>
+                <div className="w-20 space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input id="state" name="state" placeholder="OH" maxLength={2} required />
+                </div>
+                <Button type="submit" variant="outline">
+                  Add
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      <p className="mt-3 text-xs text-steel">
-        Callers from outside this list are politely declined — the AI still offers to
-        take their info.
-      </p>
 
       <ContinueBar action={finishServiceArea} />
     </div>

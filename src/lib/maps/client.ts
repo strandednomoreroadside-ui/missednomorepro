@@ -23,6 +23,33 @@ export interface GeoPoint {
   lat: number;
   lng: number;
   formatted: string;
+  /** Parsed from address_components when available — used to auto-seed the
+   *  setup wizard's home-city fallback. Either may be undefined. */
+  city?: string;
+  state?: string;
+}
+
+type AddressComponent = { long_name?: string; short_name?: string; types?: string[] };
+
+/** Best-effort city + 2-letter state from a geocode result's components. */
+function parseCityState(components: AddressComponent[] | undefined): {
+  city?: string;
+  state?: string;
+} {
+  if (!components?.length) return {};
+  const byType = (type: string) =>
+    components.find((c) => c.types?.includes(type));
+  // City: prefer locality, then progressively coarser fallbacks.
+  const cityComp =
+    byType("locality") ??
+    byType("postal_town") ??
+    byType("sublocality") ??
+    byType("administrative_area_level_3");
+  const stateComp = byType("administrative_area_level_1");
+  return {
+    city: cityComp?.long_name || undefined,
+    state: stateComp?.short_name || undefined,
+  };
 }
 
 /** Geocode an address to coordinates. Returns null on failure / no match. */
@@ -33,7 +60,11 @@ export async function geocodeAddress(address: string): Promise<GeoPoint | null> 
     const res = await fetch(url);
     const json = (await res.json()) as {
       status?: string;
-      results?: { geometry?: { location?: { lat: number; lng: number } }; formatted_address?: string }[];
+      results?: {
+        geometry?: { location?: { lat: number; lng: number } };
+        formatted_address?: string;
+        address_components?: AddressComponent[];
+      }[];
     };
     if (json.status !== "OK" || !json.results?.length) {
       if (json.status && json.status !== "ZERO_RESULTS") {
@@ -44,7 +75,14 @@ export async function geocodeAddress(address: string): Promise<GeoPoint | null> 
     const r = json.results[0];
     const loc = r.geometry?.location;
     if (!loc) return null;
-    return { lat: loc.lat, lng: loc.lng, formatted: r.formatted_address ?? address };
+    const { city, state } = parseCityState(r.address_components);
+    return {
+      lat: loc.lat,
+      lng: loc.lng,
+      formatted: r.formatted_address ?? address,
+      city,
+      state,
+    };
   } catch (err) {
     console.error("[maps] geocode error:", err);
     return null;

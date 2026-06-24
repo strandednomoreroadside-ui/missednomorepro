@@ -26,6 +26,7 @@ import {
   getSubscription,
 } from "@/lib/billing/subscription";
 import { getUsageSummary, type UsageStatus } from "@/lib/billing/usage";
+import { TRIAL_DAYS, TRIAL_VOICE_MINUTES, isTrialing, trialEndsAt } from "@/lib/billing/trial";
 import { createClient } from "@/lib/supabase/server";
 
 import { addAddon, openBillingPortal, removeAddon, startCheckout } from "./actions";
@@ -82,6 +83,14 @@ export default async function BillingPage({
   const canceled = sp.canceled === "1";
   const addonSaved = sp.addon === "1";
 
+  // Trial state: granted on the first subscription only. firstTime drives the
+  // "start free trial" CTA copy; trialing drives the active-trial banner.
+  const trialing = isTrialing(sub);
+  const trialEnd = trialEndsAt(sub);
+  const firstTime = !sub?.stripe_subscription_id;
+  const trialMinutesUsed =
+    usage.find((u) => u.kind === "voice_minutes")?.used ?? 0;
+
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="font-display text-2xl font-bold tracking-tight">Billing</h1>
@@ -108,6 +117,32 @@ export default async function BillingPage({
           </FormBanner>
         )}
       </div>
+
+      {trialing && currentMeta && (
+        <Card className="border-cyan/30 bg-cyan/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
+            <div>
+              <p className="font-display text-base font-semibold text-foreground">
+                Free trial active{trialEnd ? ` — ends ${formatDateInZone(trialEnd.toISOString(), tz)}` : ""}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Using{" "}
+                <span className="font-mono text-cyan">{trialMinutesUsed}</span> of{" "}
+                <span className="font-mono text-cyan">{TRIAL_VOICE_MINUTES}</span> trial
+                AI minutes. After the trial your card is charged ${currentMeta.monthly}/mo —
+                cancel anytime in Manage billing, no charge.
+              </p>
+            </div>
+            {canManage && sub?.stripe_customer_id && (
+              <form action={openBillingPortal}>
+                <Button type="submit" variant="outline" size="sm">
+                  Manage billing
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Current plan ── */}
       <Card className="mt-2 bg-card/60">
@@ -194,6 +229,12 @@ export default async function BillingPage({
         {plan === "none" ? "Choose your plan" : "Change plan"}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
+        {firstTime && (
+          <span className="text-foreground">
+            Every plan starts with a {TRIAL_DAYS}-day free trial — card required, cancel
+            anytime before it ends and you&rsquo;re not charged.{" "}
+          </span>
+        )}
         Annual billing saves 20%. Test mode: use card 4242&nbsp;4242&nbsp;4242&nbsp;4242,
         any future date, any CVC.
       </p>
@@ -242,7 +283,7 @@ export default async function BillingPage({
                   <form action={startCheckout}>
                     <input type="hidden" name="lookup_key" value={lookupKey(id, "month")} />
                     <Button type="submit" className="w-full" size="sm">
-                      Monthly — ${meta.monthly}
+                      {firstTime ? `Start free trial` : `Monthly — $${meta.monthly}`}
                     </Button>
                   </form>
                   <form action={startCheckout}>
@@ -251,6 +292,11 @@ export default async function BillingPage({
                       Annual — ${meta.annualMonthly.toFixed(2)}/mo
                     </Button>
                   </form>
+                  {firstTime && (
+                    <p className="text-center text-[11px] text-steel">
+                      {TRIAL_DAYS} days free, then ${meta.monthly}/mo
+                    </p>
+                  )}
                 </div>
               )}
             </div>

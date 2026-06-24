@@ -143,6 +143,15 @@ export function LaunchStep({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">{a.title}</p>
                   <p className="text-xs text-muted-foreground">{a.detail}</p>
+                  {a.key === "area" && data.pricingSettings?.base_address && (
+                    <p className="mt-0.5 text-xs text-steel">
+                      Covering{" "}
+                      <span className="font-mono text-cyan">
+                        {data.pricingSettings.max_service_miles ?? 40}
+                      </span>{" "}
+                      miles around {data.pricingSettings.base_address}
+                    </p>
+                  )}
                 </div>
                 {isApproved ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-xs text-success">

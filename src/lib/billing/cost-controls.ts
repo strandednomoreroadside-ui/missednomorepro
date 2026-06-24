@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { effectivePlan, type SubscriptionRow } from "@/lib/billing/subscription";
+import { TRIAL_VOICE_MINUTES, isTrialing } from "@/lib/billing/trial";
 
 /**
  * Cost-control enforcement (master plan §15). Metering already happens at
@@ -19,7 +20,12 @@ import { effectivePlan, type SubscriptionRow } from "@/lib/billing/subscription"
 export type VoiceAllowed = {
   allowed: boolean;
   /** Machine-readable reason when blocked, for the call disposition/logs. */
-  reason: "minutes_exhausted" | "overage_cap" | "daily_spend_cap" | null;
+  reason:
+    | "minutes_exhausted"
+    | "overage_cap"
+    | "daily_spend_cap"
+    | "trial_cap"
+    | null;
 };
 
 const ALLOWED: VoiceAllowed = { allowed: true, reason: null };
@@ -105,6 +111,17 @@ export async function voiceAllowed(
       .gte("created_at", periodStart(sub));
     const minutesUsed = (usage ?? []).reduce((s, r) => s + Number(r.quantity), 0);
     const monthlyMinutes = Number(limits.monthly_minutes ?? 0);
+
+    // During the free trial, a hard talk-time cap overrides the plan's
+    // (much larger) allotment and overage is off — a $0 trial must never
+    // run up material voice COGS. Hitting it forwards the caller to the owner.
+    if (isTrialing(sub)) {
+      const trialCap = Math.min(monthlyMinutes || TRIAL_VOICE_MINUTES, TRIAL_VOICE_MINUTES);
+      if (minutesUsed >= trialCap) {
+        return { allowed: false, reason: "trial_cap" };
+      }
+      return ALLOWED;
+    }
 
     if (minutesUsed >= monthlyMinutes) {
       if (!sub?.overage_enabled) {
