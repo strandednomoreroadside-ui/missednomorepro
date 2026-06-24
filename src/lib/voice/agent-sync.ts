@@ -23,8 +23,19 @@ export async function loadPromptInput(
   admin: SupabaseClient,
   business: AgentBusiness
 ): Promise<PromptInput> {
-  const [services, hours, areas, faqs, sms, agent, conn, quoting, pricing, transfer] =
-    await Promise.all([
+  const [
+    services,
+    hours,
+    areas,
+    faqs,
+    sms,
+    agent,
+    conn,
+    quoting,
+    pricing,
+    transfer,
+    settings,
+  ] = await Promise.all([
     admin
       .from("services")
       .select("id, name, description, active")
@@ -77,7 +88,21 @@ export async function loadPromptInput(
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
+    admin
+      .from("pricing_settings")
+      .select("base_lat, base_lng, max_service_miles")
+      .eq("business_id", business.id)
+      .maybeSingle(),
   ]);
+
+  // The service radius is authoritative for coverage ONLY when the home base is
+  // geocoded (that's when check_service_area enforces it). Otherwise leave it
+  // null and fall back to the ZIP/city list.
+  const ps = settings.data as
+    | { base_lat: number | null; base_lng: number | null; max_service_miles: number | null }
+    | null;
+  const serviceRadiusMiles =
+    ps && ps.base_lat != null && ps.base_lng != null ? ps.max_service_miles : null;
 
   const language =
     (agent.data?.language_settings as { language?: string } | null)?.language ?? null;
@@ -112,6 +137,7 @@ export async function loadPromptInput(
     sms: (sms.data ?? null) as PromptInput["sms"],
     bookingEnabled: (conn.data as { status?: string } | null)?.status === "connected",
     quotingEnabled: quoting === true,
+    serviceRadiusMiles,
     transferNumber: (transfer.data as { phone?: string } | null)?.phone ?? null,
     agent: {
       name: agent.data?.name ?? null,

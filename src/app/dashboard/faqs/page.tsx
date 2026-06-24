@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { requireActiveOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-import { addFaq, deleteFaq, toggleFaq } from "./actions";
+import { addFaq, deleteFaq, toggleFaq, updateFaq } from "./actions";
 
 export const metadata: Metadata = { title: "FAQs" };
 
@@ -109,6 +109,32 @@ export default async function FaqsPage() {
                           off
                         </span>
                       )}
+                      <details className="group mt-1">
+                        <summary className="cursor-pointer list-none text-xs text-cyan hover:underline [&::-webkit-details-marker]:hidden">
+                          Edit
+                        </summary>
+                        <form action={updateFaq} className="mt-2 space-y-2">
+                          <input type="hidden" name="id" value={f.id} />
+                          <Input
+                            name="question"
+                            defaultValue={f.question}
+                            maxLength={300}
+                            required
+                            aria-label="Edit question"
+                          />
+                          <Textarea
+                            name="answer"
+                            defaultValue={f.answer}
+                            rows={3}
+                            maxLength={2000}
+                            required
+                            aria-label="Edit answer"
+                          />
+                          <Button type="submit" size="sm">
+                            Save
+                          </Button>
+                        </form>
+                      </details>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <form action={toggleFaq}>

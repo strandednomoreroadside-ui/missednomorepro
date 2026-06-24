@@ -40,6 +40,25 @@ export async function addFaq(formData: FormData) {
   revalidatePath("/dashboard/faqs");
 }
 
+/** Edit an existing FAQ's question and/or answer. */
+export async function updateFaq(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const question = String(formData.get("question") ?? "").trim().slice(0, 300);
+  const answer = String(formData.get("answer") ?? "").trim().slice(0, 2000);
+  if (!question || !answer) return;
+
+  await supabase
+    .from("faqs")
+    .update({ question, answer })
+    .eq("id", id)
+    .eq("tenant_id", active.organization_id);
+  revalidatePath("/dashboard/faqs");
+}
+
 /** Toggle whether the AI may use this FAQ. */
 export async function toggleFaq(formData: FormData) {
   const { active } = await requireActiveOrg();

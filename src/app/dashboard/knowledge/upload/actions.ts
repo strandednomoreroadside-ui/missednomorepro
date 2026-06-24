@@ -249,6 +249,17 @@ async function applySuggestion(
     const question = String(p.question ?? "").trim().slice(0, 300);
     const answer = String(p.answer ?? "").trim().slice(0, 2000);
     if (!question || !answer) return false;
+    // Idempotent: skip if this business already has an FAQ with the same
+    // question (case-insensitive). Prevents re-uploading a doc from piling up
+    // duplicate FAQs — treat the approve as a no-op success so it's marked done.
+    const { data: dupe } = await supabase
+      .from("faqs")
+      .select("id")
+      .eq("business_id", sug.business_id)
+      .ilike("question", question)
+      .limit(1)
+      .maybeSingle();
+    if (dupe) return true;
     await supabase.from("faqs").insert({
       tenant_id: tenantId,
       business_id: sug.business_id,
@@ -261,6 +272,15 @@ async function applySuggestion(
     const p = sug.payload as ServiceSuggestion;
     const name = String(p.name ?? "").trim().slice(0, 160);
     if (!name) return false;
+    // Idempotent: skip if a service with this name already exists.
+    const { data: dupeSvc } = await supabase
+      .from("service_pricing")
+      .select("id")
+      .eq("business_id", sug.business_id)
+      .ilike("name", name)
+      .limit(1)
+      .maybeSingle();
+    if (dupeSvc) return true;
     const isTow = p.pricing_type === "tow";
     await supabase.from("service_pricing").insert({
       tenant_id: tenantId,

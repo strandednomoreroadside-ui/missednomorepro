@@ -39,6 +39,10 @@ export interface PromptInput {
   bookingEnabled?: boolean;
   /** True when owner-approved pricing exists — turns on AI quoting. */
   quotingEnabled?: boolean;
+  /** Driving-distance service radius (miles) from the geocoded home base —
+   *  the authoritative coverage figure for "what area do you serve?". Null
+   *  when no base is geocoded (falls back to the ZIP/city list). */
+  serviceRadiusMiles?: number | null;
   /** E.164 human number for live warm transfer, or null/absent to disable. */
   transferNumber?: string | null;
   agent?: {
@@ -80,15 +84,30 @@ export function formatServices(services: Service[]): string {
     .join("\n");
 }
 
-export function formatServiceArea(areas: ServiceArea[]): string {
+export function formatServiceArea(
+  areas: ServiceArea[],
+  radiusMiles?: number | null
+): string {
+  const parts: string[] = [];
+  // The driving-distance radius is the AUTHORITATIVE coverage rule (it's what
+  // check_service_area actually enforces). Lead with it so the AI answers
+  // "what area do you serve?" from the live radius — never from a stale FAQ
+  // or an old mileage figure. Plug-and-play: set the radius once and the
+  // spoken coverage answer is always correct for every business.
+  if (typeof radiusMiles === "number" && radiusMiles > 0) {
+    parts.push(
+      `You serve customers within about ${Math.round(radiusMiles)} miles (driving distance) of your home base. ` +
+        `This radius is the source of truth for coverage — if any FAQ or note states a different mileage, IGNORE it and use this number. ` +
+        `When a caller asks what area you cover or "do you come out to <place>", give this radius, then confirm their exact spot with check_service_area.`
+    );
+  }
   const active = areas.filter((a) => a.active);
   const zips = active.filter((a) => a.type === "zip" && a.zip_code).map((a) => a.zip_code);
   const cities = active
     .filter((a) => a.type === "city" && a.city)
     .map((a) => `${a.city}${a.state ? `, ${a.state}` : ""}`);
-  const parts: string[] = [];
-  if (cities.length) parts.push(`Cities: ${cities.join("; ")}`);
-  if (zips.length) parts.push(`ZIP codes: ${zips.join(", ")}`);
+  if (cities.length) parts.push(`Example cities you commonly serve: ${cities.join("; ")}`);
+  if (zips.length) parts.push(`Example ZIP codes in range: ${zips.join(", ")}`);
   return parts.length ? parts.join("\n") : "No service area configured.";
 }
 
@@ -227,7 +246,7 @@ Services you can discuss (ONLY these):
 ${formatServices(services)}
 
 Service area (callers must be inside it — verify with check_service_area, never assume):
-${formatServiceArea(areas)}
+${formatServiceArea(areas, input.serviceRadiusMiles)}
 ${formatFaqs(faqs)}${todaySection}
 # How to handle a call
 ${howTo}

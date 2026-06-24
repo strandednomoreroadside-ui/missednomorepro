@@ -102,7 +102,7 @@ Services you can discuss (ONLY these):
 ${formatServices(services)}
 
 Service area (customers must be inside it — verify with check_service_area, never assume):
-${formatServiceArea(areas)}
+${formatServiceArea(areas, input.serviceRadiusMiles)}
 ${formatFaqs(faqs)}${todaySection}
 # How to help
 ${howTo}
