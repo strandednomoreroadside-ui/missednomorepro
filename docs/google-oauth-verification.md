@@ -44,13 +44,19 @@ today:
    *(newer console calls this **Google Auth Platform → Audience**).*
 3. Fill in / confirm **Branding**:
    - **App name:** `Missed No More Pro`
-   - **User support email:** `support@missednomorepro.com`
+   - **User support email:** pick **`strandednomorecle@gmail.com`** from the
+     dropdown. ⚠️ This field is a **dropdown limited to the Google account(s)
+     that own the project** (or a Google Group you manage) — it will **not**
+     accept a typed address like `support@missednomorepro.com` (that's a Zoho
+     mailbox, not a Google account). Using your Gmail here is fine; it's only the
+     contact Google shows for the app and has no effect on approval.
    - **App logo:** upload your square PNG (optional but recommended)
    - **Application home page:** `https://missednomorepro.com`
    - **Application privacy policy link:** `https://missednomorepro.com/privacy`
    - **Application terms of service link:** `https://missednomorepro.com/terms`
    - **Authorized domains:** add `missednomorepro.com`
-   - **Developer contact email:** your email
+   - **Developer contact information:** this field *is* free-text — put
+     `support@missednomorepro.com` (and/or your own email) here.
    - Save.
 4. Find **Publishing status** (it currently says **"Testing"**). Click
    **PUBLISH APP** → confirm **"Push to production."**
