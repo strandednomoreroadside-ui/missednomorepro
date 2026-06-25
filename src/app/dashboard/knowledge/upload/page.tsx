@@ -10,7 +10,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -67,7 +67,13 @@ function serviceLine(p: ServiceSuggestion): string {
   return `Flat ${money(p.service_fee)}${part}`;
 }
 
-export default async function UploadDocsPage() {
+export default async function UploadDocsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const fromSetup = sp.from === "setup";
   const { active } = await requireActiveOrg();
   const supabase = await createClient();
 
@@ -107,11 +113,11 @@ export default async function UploadDocsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <Link
-        href="/dashboard/knowledge"
+        href={fromSetup ? "/dashboard/setup/services" : "/dashboard/knowledge"}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        Knowledge Hub
+        {fromSetup ? "Back to setup" : "Knowledge Hub"}
       </Link>
       <h1 className="mt-2 font-display text-2xl font-bold tracking-tight">
         Upload documents
@@ -302,6 +308,17 @@ export default async function UploadDocsPage() {
           </Link>
           . Re-approve pricing there to turn quoting on for new services.
         </p>
+      )}
+
+      {fromSetup && (
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-cyan/25 bg-cyan/5 px-4 py-3">
+          <p className="text-sm text-foreground">
+            Done approving? Pick up your setup where you left off.
+          </p>
+          <Link href="/dashboard/setup/services" className={buttonVariants({ size: "sm" })}>
+            Continue setup
+          </Link>
+        </div>
       )}
     </div>
   );

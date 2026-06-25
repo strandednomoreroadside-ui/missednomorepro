@@ -56,7 +56,7 @@ export default function TermsPage() {
         <h2>4. Billing</h2>
         <ul className="mt-3 space-y-1.5">
           <li>Plans are billed in advance monthly or annually via Stripe; usage allowances (minutes, texts) reset each billing cycle.</li>
-          <li>Usage beyond plan allowances may be billed as overage or paused, per your plan settings.</li>
+          <li>Plans are a hard cap: once a billing cycle&rsquo;s minutes are used, your AI receptionist pauses and inbound calls forward to your phone until you upgrade or the cycle resets — we do not bill surprise overage charges.</li>
           <li>You can cancel anytime from the billing portal; service continues to the end of the paid period.</li>
           <li>Telephone numbers, carrier fees, and registration fees (e.g. A2P 10DLC) may be passed through at cost.</li>
         </ul>

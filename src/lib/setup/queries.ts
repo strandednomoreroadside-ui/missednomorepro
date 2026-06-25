@@ -91,6 +91,10 @@ export type SetupData = {
   business: Business;
   state: SetupState;
   services: Service[];
+  /** Active services that live only in the pricing sheet (service_pricing),
+   *  not the wizard `services` table — shown read-only so the owner sees the
+   *  full list the AI actually speaks. Managed on /dashboard/pricing. */
+  pricedServiceNames: string[];
   pricingRules: PricingRule[];
   areas: ServiceArea[];
   hours: BusinessHour[];
@@ -136,7 +140,7 @@ export async function getSetupData(
   const business = await getOrCreateBusiness(tenantId, orgName);
   const supabase = await createClient();
 
-  const [state, services, pricingRules, areas, hours, staff, sms, faqs, pricingSettings] =
+  const [state, services, priced, pricingRules, areas, hours, staff, sms, faqs, pricingSettings] =
     await Promise.all([
       supabase
         .from("setup_states")
@@ -147,6 +151,12 @@ export async function getSetupData(
         .from("services")
         .select("id, name, description, active")
         .eq("business_id", business.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("service_pricing")
+        .select("name")
+        .eq("business_id", business.id)
+        .eq("active", true)
         .order("created_at", { ascending: true }),
       supabase
         .from("pricing_rules")
@@ -186,14 +196,26 @@ export async function getSetupData(
     ]);
 
   const firstError =
-    state.error ?? services.error ?? pricingRules.error ?? areas.error ??
+    state.error ?? services.error ?? priced.error ?? pricingRules.error ?? areas.error ??
     hours.error ?? staff.error ?? sms.error ?? faqs.error ?? pricingSettings.error;
   if (firstError) throw new Error(`Failed to load setup data: ${firstError.message}`);
+
+  // The full service list the AI speaks = wizard `services` ∪ priced services
+  // (dedupe by name). Surface the priced-only names so the owner isn't
+  // confused when the wizard shows fewer than they actually offer.
+  const serviceData = (services.data ?? []) as Service[];
+  const haveNames = new Set(
+    serviceData.filter((s) => s.active).map((s) => s.name.toLowerCase())
+  );
+  const pricedServiceNames = ((priced.data ?? []) as { name: string }[])
+    .map((p) => p.name)
+    .filter((n) => !haveNames.has(n.toLowerCase()));
 
   return {
     business,
     state: state.data as SetupState,
-    services: (services.data ?? []) as Service[],
+    services: serviceData,
+    pricedServiceNames,
     pricingRules: (pricingRules.data ?? []) as PricingRule[],
     areas: (areas.data ?? []) as ServiceArea[],
     hours: (hours.data ?? []) as BusinessHour[],

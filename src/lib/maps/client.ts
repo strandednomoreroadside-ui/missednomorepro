@@ -52,41 +52,67 @@ function parseCityState(components: AddressComponent[] | undefined): {
   };
 }
 
-/** Geocode an address to coordinates. Returns null on failure / no match. */
-export async function geocodeAddress(address: string): Promise<GeoPoint | null> {
-  if (!env.GOOGLE_MAPS_API_KEY) return null;
+/**
+ * Geocode outcome. Distinguishing "we couldn't find that address"
+ * (`not_found`) from "the lookup itself failed" (`unavailable` — bad/restricted
+ * key, quota, network) matters for UX: the first is the owner's typo to fix,
+ * the second is our config to fix, and we must not blame the owner's address
+ * for our broken key.
+ */
+export type GeocodeResult =
+  | { ok: true; point: GeoPoint }
+  | { ok: false; reason: "not_found" | "unavailable" };
+
+/** Geocode an address to coordinates, with a typed failure reason. */
+export async function geocode(address: string): Promise<GeocodeResult> {
+  if (!env.GOOGLE_MAPS_API_KEY) return { ok: false, reason: "unavailable" };
   const url = `${GEOCODE}?address=${encodeURIComponent(address)}&key=${env.GOOGLE_MAPS_API_KEY}`;
   try {
     const res = await fetch(url);
     const json = (await res.json()) as {
       status?: string;
+      error_message?: string;
       results?: {
         geometry?: { location?: { lat: number; lng: number } };
         formatted_address?: string;
         address_components?: AddressComponent[];
       }[];
     };
+    // ZERO_RESULTS = the address genuinely didn't resolve (owner's to fix).
+    if (json.status === "ZERO_RESULTS") return { ok: false, reason: "not_found" };
+    // Anything else non-OK (REQUEST_DENIED, OVER_QUERY_LIMIT, INVALID_REQUEST…)
+    // is a config/availability problem on our side.
     if (json.status !== "OK" || !json.results?.length) {
-      if (json.status && json.status !== "ZERO_RESULTS") {
-        console.error(`[maps] geocode status ${json.status} for "${address}"`);
-      }
-      return null;
+      console.error(
+        `[maps] geocode status ${json.status}${json.error_message ? `: ${json.error_message}` : ""} for "${address}"`
+      );
+      return { ok: false, reason: "unavailable" };
     }
     const r = json.results[0];
     const loc = r.geometry?.location;
-    if (!loc) return null;
+    if (!loc) return { ok: false, reason: "not_found" };
     const { city, state } = parseCityState(r.address_components);
     return {
-      lat: loc.lat,
-      lng: loc.lng,
-      formatted: r.formatted_address ?? address,
-      city,
-      state,
+      ok: true,
+      point: {
+        lat: loc.lat,
+        lng: loc.lng,
+        formatted: r.formatted_address ?? address,
+        city,
+        state,
+      },
     };
   } catch (err) {
     console.error("[maps] geocode error:", err);
-    return null;
+    return { ok: false, reason: "unavailable" };
   }
+}
+
+/** Geocode an address to coordinates. Returns null on failure / no match.
+ *  Back-compat thin wrapper over {@link geocode}. */
+export async function geocodeAddress(address: string): Promise<GeoPoint | null> {
+  const r = await geocode(address);
+  return r.ok ? r.point : null;
 }
 
 /** Format a point or address for a Distance Matrix origin/destination. */

@@ -149,9 +149,10 @@ export function Pricing() {
       </div>
 
       <p className="mx-auto mt-6 max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-        All plans include call summaries, transcripts, SMS compliance (STOP/HELP), and usage
-        protection. Go over your minutes? Overage is metered at about $0.20/min and $0.02/text — no
-        surprise lockouts, no overpaying for minutes you don&rsquo;t use.
+        All plans include call summaries, transcripts, and SMS compliance (STOP/HELP). Every plan is
+        a <span className="text-foreground">hard cap — no surprise overage charges, ever</span>. We
+        warn you before you run low and prompt an upgrade; if you do hit your limit, calls forward
+        straight to your phone so you never miss one.
       </p>
     </section>
   );

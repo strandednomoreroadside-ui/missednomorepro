@@ -80,7 +80,7 @@ function alertCopy(opts: {
   const unit = opts.kind === "voice_minutes" ? "call minutes" : "texts";
   const over = opts.threshold >= 100;
   const tail = over
-    ? "New calls now forward to your phone (unless you've turned on overage billing). "
+    ? "New calls now forward to your phone — upgrade to keep your AI answering. "
     : "";
   const manage = `${env.NEXT_PUBLIC_APP_URL}/dashboard/billing`;
 
@@ -95,7 +95,7 @@ function alertCopy(opts: {
       `<p>Your <strong>${opts.plan}</strong> plan includes <strong>${opts.limit}</strong> ${unit} ` +
       `per billing period. You've used <strong>${opts.used}</strong> so far.</p>` +
       (over
-        ? `<p>To avoid missing calls, new calls now forward to your phone unless you enable overage billing.</p>`
+        ? `<p>To avoid missing calls, new calls now forward to your phone. Upgrade to a higher plan to keep your AI receptionist answering.</p>`
         : "") +
       `<p><a href="${manage}" style="color:#006BFF">Review usage or change your plan →</a></p>`,
   });

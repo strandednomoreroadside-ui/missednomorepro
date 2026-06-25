@@ -365,6 +365,7 @@ const checkServiceArea = defineTool(
         .eq("business_id", business.id)
         .maybeSingle();
       if (ps?.base_lat != null && ps?.base_lng != null) {
+        const radius = (ps.max_service_miles as number | null) ?? 25;
         const dest = [city ? `${city}${state ? `, ${state}` : ""}` : null, zip]
           .filter(Boolean)
           .join(" ");
@@ -373,7 +374,6 @@ const checkServiceArea = defineTool(
           dest
         );
         if (miles != null) {
-          const radius = (ps.max_service_miles as number | null) ?? 25;
           return {
             status: "ok",
             data: {
@@ -384,10 +384,20 @@ const checkServiceArea = defineTool(
             },
           };
         }
+        // The business runs in radius mode (a home base is set) but the
+        // distance lookup failed — a Maps key/quota hiccup. Falling back to the
+        // near-empty ZIP list here would wrongly decline in-radius callers and
+        // lose real leads (a false "out of area" is a customer lost at the
+        // door; a false "you're covered" is recoverable by staff). So fail
+        // SAFE: assume covered and let staff confirm.
+        return {
+          status: "ok",
+          data: { covered: true, radius_miles: radius, matched_by: "radius_unverified" },
+        };
       }
     }
 
-    // Fallback: the legacy ZIP/city allowlist (no home base / maps offline).
+    // No home base configured → the legacy ZIP/city allowlist is the only signal.
     let q = ctx.admin
       .from("service_areas")
       .select("type, zip_code, city")

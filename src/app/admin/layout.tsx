@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { LegalFooter } from "@/components/legal-footer";
 import { isPlatformAdmin } from "@/lib/auth";
 
 /**
@@ -16,7 +17,7 @@ export default async function AdminLayout({
   if (!ok) redirect("/dashboard");
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col">
       <header className="flex h-16 items-center justify-between border-b border-border/60 bg-night/75 px-6 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Logo />
@@ -47,7 +48,8 @@ export default async function AdminLayout({
           </Link>
         </nav>
       </header>
-      <main className="mx-auto max-w-5xl p-6 lg:p-8">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 p-6 lg:p-8">{children}</main>
+      <LegalFooter />
     </div>
   );
 }

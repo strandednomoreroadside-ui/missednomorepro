@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { requireActiveOrg } from "@/lib/auth";
-import { PLAN_META } from "@/lib/billing/plans";
+import { PLAN_META, type EffectivePlan } from "@/lib/billing/plans";
 import {
   effectivePlan,
   getPlanLimits,
@@ -20,6 +20,9 @@ import {
   hasFeature,
   type PlanLimits,
 } from "@/lib/billing/subscription";
+import { getUsageSummary } from "@/lib/billing/usage";
+import { TRIAL_VOICE_MINUTES, isTrialing } from "@/lib/billing/trial";
+import { UsageMeter, type MeterStatus } from "@/components/billing/usage-meter";
 import { BOARD_STAGES, STAGE_META } from "@/lib/crm/pipeline";
 import { STEP_META, isStepId } from "@/lib/setup/steps";
 import { createClient } from "@/lib/supabase/server";
@@ -136,11 +139,20 @@ export default async function DashboardPage() {
   // "no plan" rather than taking the dashboard down.
   let planName: string | null = null;
   let limits: PlanLimits | null = null;
+  let meterPlan: EffectivePlan = "none";
+  let usage: MeterStatus[] = [];
+  let trialVoiceCap: number | null = null;
   try {
     const sub = await getSubscription(active.organization_id);
     const plan = effectivePlan(sub);
+    meterPlan = plan;
     limits = await getPlanLimits(plan);
     planName = plan === "none" ? null : PLAN_META[plan].name;
+    if (plan !== "none") {
+      const summary = await getUsageSummary(active.organization_id, { sub, limits });
+      usage = summary.map((u) => ({ kind: u.kind, used: u.used, limit: u.limit }));
+      trialVoiceCap = isTrialing(sub) ? TRIAL_VOICE_MINUTES : null;
+    }
   } catch (err) {
     unstable_rethrow(err); // never swallow Next.js control-flow errors
     console.error("[dashboard] billing lookup failed:", err);
@@ -224,6 +236,16 @@ export default async function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      {/* Usage meter — clear minutes/texts count + near-limit upgrade nudge */}
+      {meterPlan !== "none" && usage.length > 0 && (
+        <UsageMeter
+          statuses={usage}
+          planId={meterPlan}
+          trialVoiceCap={trialVoiceCap}
+          className="mt-8"
+        />
+      )}
 
       {/* Pipeline snapshot */}
       <Card className="mt-8 bg-card/60">

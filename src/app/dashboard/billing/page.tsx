@@ -27,6 +27,7 @@ import {
 } from "@/lib/billing/subscription";
 import { getUsageSummary, type UsageStatus } from "@/lib/billing/usage";
 import { TRIAL_DAYS, TRIAL_VOICE_MINUTES, isTrialing, trialEndsAt } from "@/lib/billing/trial";
+import { UsageMeter, type MeterStatus } from "@/components/billing/usage-meter";
 import { createClient } from "@/lib/supabase/server";
 
 import { addAddon, openBillingPortal, removeAddon, startCheckout } from "./actions";
@@ -53,14 +54,11 @@ export default async function BillingPage({
     plan !== "none"
       ? await getUsageSummary(active.organization_id, { sub, limits })
       : [];
-  const usageLabel: Record<UsageStatus["kind"], string> = {
-    voice_minutes: "AI minutes",
-    sms: "texts",
-  };
-  const overageRate: Record<UsageStatus["kind"], number> = {
-    voice_minutes: limits.overage_per_minute_cents,
-    sms: limits.overage_per_sms_cents,
-  };
+  const meterStatuses: MeterStatus[] = usage.map((u) => ({
+    kind: u.kind,
+    used: u.used,
+    limit: u.limit,
+  }));
 
   // Active add-ons (members may read tenant_addons). Expand the bundle so the
   // three growth add-ons show as included when the bundle is active.
@@ -190,30 +188,6 @@ export default async function BillingPage({
               )}
             </div>
           )}
-          {usage.length > 0 && (
-            <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-border/60 pt-3 text-sm text-muted-foreground">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-steel">
-                Used this period
-              </span>
-              {usage.map((u) => {
-                const over = Math.max(0, u.used - u.limit);
-                const overCost = (over * overageRate[u.kind]) / 100;
-                return (
-                  <span key={u.kind}>
-                    <span className="font-mono text-cyan">
-                      {u.used.toLocaleString()}
-                    </span>{" "}
-                    / {u.limit.toLocaleString()} {usageLabel[u.kind]}
-                    {over > 0 && (
-                      <span className="ml-1 text-amber-500">
-                        (+{over.toLocaleString()} over ≈ ${overCost.toFixed(2)})
-                      </span>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
-          )}
           {canManage && sub?.stripe_customer_id && (
             <form action={openBillingPortal}>
               <Button type="submit" variant="outline" size="sm">
@@ -223,6 +197,16 @@ export default async function BillingPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Usage meter — count + near-limit upgrade nudge (hard cap, no overage) */}
+      {plan !== "none" && meterStatuses.length > 0 && (
+        <UsageMeter
+          statuses={meterStatuses}
+          planId={plan}
+          trialVoiceCap={trialing ? TRIAL_VOICE_MINUTES : null}
+          className="mt-2"
+        />
+      )}
 
       {/* ── Plan picker ── */}
       <h2 className="mt-10 font-display text-lg font-semibold">
@@ -329,8 +313,9 @@ export default async function BillingPage({
 
       <p className="mt-6 text-xs text-steel">
         Plan changes and cancellations are handled through “Manage billing”
-        once you&rsquo;re subscribed. Overage protection is built in — no
-        surprise bills.
+        once you&rsquo;re subscribed. Your plan is a hard cap — you&rsquo;ll never be
+        charged for going over. If you run low we&rsquo;ll prompt you to upgrade, and if
+        you hit the cap, calls forward to your phone so nothing is missed.
       </p>
 
       {/* ── Add-ons ── */}

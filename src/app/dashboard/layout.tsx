@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { LegalFooter } from "@/components/legal-footer";
 import { Button } from "@/components/ui/button";
 import { isPlatformAdmin, requireActiveOrg } from "@/lib/auth";
 import { signOut } from "@/app/(auth)/actions";
@@ -228,6 +229,7 @@ export default async function DashboardLayout({
           </div>
         </header>
         <main className="flex-1 p-6 lg:p-8">{children}</main>
+        <LegalFooter />
       </div>
     </div>
   );

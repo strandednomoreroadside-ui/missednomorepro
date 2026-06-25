@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { requireActiveOrg } from "@/lib/auth";
-import { geocodeAddress, isMapsConfigured } from "@/lib/maps/client";
+import { geocode, isMapsConfigured } from "@/lib/maps/client";
 import { normalizeUsPhone } from "@/lib/phone";
 import { getOrCreateBusiness } from "@/lib/setup/queries";
 import { NICHES, STEP_ORDER, US_TIMEZONES, isStepId, type StepId } from "@/lib/setup/steps";
@@ -200,17 +200,26 @@ export async function saveHomeBase(formData: FormData) {
   let city: string | undefined;
   let state: string | undefined;
   if (isMapsConfigured()) {
-    const geo = await geocodeAddress(address);
-    if (!geo) {
+    const geo = await geocode(address);
+    if (!geo.ok) {
+      if (geo.reason === "not_found") {
+        fail(
+          "service-area",
+          "We couldn't find that address. Double-check the street, city, and state, then try again."
+        );
+      }
+      // The lookup itself failed (e.g. the Google Maps key is restricted or
+      // over quota) — the address is probably fine, so don't send the owner
+      // chasing a phantom typo.
       fail(
         "service-area",
-        "We couldn't find that address. Double-check the street, city, and state, then try again."
+        "Address lookup is temporarily unavailable, so we couldn't pin your home base on the map. Your address looks fine — please try again in a few minutes. If it keeps happening, your Google Maps API key needs attention (run scripts/maps-check.mjs)."
       );
     }
-    lat = geo.lat;
-    lng = geo.lng;
-    city = geo.city;
-    state = geo.state;
+    lat = geo.point.lat;
+    lng = geo.point.lng;
+    city = geo.point.city;
+    state = geo.point.state;
   }
 
   // Moving the base invalidates any approved quotes → reset the quoting

@@ -96,7 +96,28 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>6. Retention</h2>
+        <h2>6. Google Calendar data</h2>
+        <p className="mt-3">
+          When a business connects its Google Calendar, we request access to the
+          calendar&rsquo;s busy/free times and the ability to create, update, and
+          cancel events. We use this access <strong>solely</strong> to check
+          availability and to schedule, reschedule, or cancel that
+          business&rsquo;s appointments — never for advertising, and we never sell
+          it. Tokens are stored encrypted and a business can disconnect at any
+          time in Settings. Our use of information received from Google APIs
+          adheres to the{" "}
+          <a
+            href="https://developers.google.com/terms/api-services-user-data-policy"
+            className="text-cyan hover:underline"
+          >
+            Google API Services User Data Policy
+          </a>
+          , including the Limited Use requirements.
+        </p>
+      </section>
+
+      <section>
+        <h2>7. Retention</h2>
         <p className="mt-3">
           Call recordings, transcripts, and messages are retained according to
           the subscribing business&rsquo;s plan and settings, and deleted or
@@ -106,7 +127,7 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>7. Security</h2>
+        <h2>8. Security</h2>
         <p className="mt-3">
           Data is encrypted in transit and at rest. Customer data is separated
           per business with database-level row isolation, and sensitive fields
@@ -117,7 +138,7 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>8. Your choices</h2>
+        <h2>9. Your choices</h2>
         <ul className="mt-3 space-y-1.5">
           <li>Reply STOP to any text to stop receiving messages; reply HELP for help</li>
           <li>Ask the business you contacted, or our support team, to access or delete your information</li>
@@ -126,7 +147,7 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>9. Children</h2>
+        <h2>10. Children</h2>
         <p className="mt-3">
           The service is intended for business use and is not directed to
           children under 13. We do not knowingly collect information from
@@ -135,7 +156,7 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>10. Changes and contact</h2>
+        <h2>11. Changes and contact</h2>
         <p className="mt-3">
           We may update this policy as the service evolves; the current version
           and effective date always appear on this page. Questions, access

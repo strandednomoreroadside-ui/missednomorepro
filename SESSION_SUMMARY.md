@@ -1,129 +1,143 @@
-# Session Summary — Missed No More Pro (June 24, 2026 · cont.)
+# Session Summary — Missed No More Pro (June 24, 2026 · pre-rollout fixes)
 
-Built the agreed pre-launch "best from day 1" batch and **unlocked Stripe live
-mode in code (pushed)** — so the only thing standing between here and live
-billing is the operator's Vercel/Stripe key swap (checklist in §4). Shipped:
-the home-base + radius onboarding (Gap 1), the Knowledge-Hub "steps to start
-quoting" checklist, and a **limited + gated 7-day free trial**.
+Worked the **NEEDS.md** punch-list: found and fixed the root cause of the
+home-base/service-area bug, hardened it so it can never silently lose a lead
+again, switched billing messaging to a true **hard cap**, added a **usage
+meter + upgrade prompt**, put **legal links on every page**, surfaced **all
+services** in setup, added **upload-to-setup**, wrote the **Google OAuth
+verification** walkthrough, and ran a **full pre-live wiring audit (all green)**.
 
----
-
-## 1. Setup wizard — home base + service radius (plug-and-play) ✅
-
-Folded the home base + radius into **setup step 5 ("Service area")** so every new
-signup captures the real coverage mechanism at onboarding (previously they sat
-silently on the 25-mi default and the accurate radius `check_service_area` never
-activated). **No migration** — columns already existed on `pricing_settings`.
-
-- `saveHomeBase` (setup `actions.ts`): validates address + radius (**defaults to
-  40 mi**), **geocodes immediately** (bounces on a bad address — never stores a
-  half-set base, mirrors `approvePricing`), writes `base_address`/`base_lat`/
-  `base_lng`/`max_service_miles`. Quoting approval is **not** touched (still needs
-  the explicit `/dashboard/pricing` sign-off, §5.1).
-- **Launch-gate reconciliation (the subtle bit):** the DB gate
-  (`app.setup_complete()`) still hard-requires ≥1 active `service_areas` row +
-  `area_approved_at`, and the `radius` type isn't allowed in that table's CHECK.
-  Rather than migrate the gate right before the flip, `saveHomeBase`
-  **auto-seeds the geocoded home city** as that one required row (only when none
-  exist, so re-saving can't pile up). Result: owner enters **one address + one
-  radius**, the gate passes, the radius check + spoken coverage answer go live,
-  and the city doubles as a no-Maps fallback. `geocodeAddress` now returns
-  `city`/`state` from `address_components` to enable this.
-- UI: step 5 leads with a **Home base & service radius** card ("Covering N miles
-  around …"); ZIP/city list reframed as an optional backup. Radius shown
-  read-only on the launch review screen. Step completion now also requires a
-  home base.
-- **Future option (not needed now):** a small migration to `setup_complete()` +
-  a `pricing_settings` approval-reset trigger would let a home base + radius
-  launch with *no* city row at all (cleanest conceptual version).
-
-## 2. Knowledge Hub — "Steps to start quoting" checklist ✅
-
-A cyan card on `/dashboard/knowledge`, shown **only while quoting is off**,
-mirroring `approvePricing`'s exact gates: home base ✓ · ≥1 dispatch zone ✓ ·
-≥1 service+price ✓ · approved ✓ — each row links to the fix. Disappears once
-quoting goes live. Pulled forward from Gap 2c so self-serve owners always see
-what's left. No migration.
-
-## 3. Free trial — limited + gated ✅ (operator choices: card req, 7 days, 50-min cap)
-
-Stripe-native trial bolted onto the existing checkout. **No migration, no new
-Stripe prices** (a trial is a checkout param; works identically in test + live).
-
-- `src/lib/billing/trial.ts` — `TRIAL_DAYS=7`, `TRIAL_VOICE_MINUTES=50`, helpers
-  (single place to tune).
-- `startCheckout`: adds `trial_period_days` **only on a tenant's first-ever
-  subscription** (no serial trials — a prior canceled sub blocks it) +
-  `payment_method_collection: "always"` so the **card is required** (gated).
-- **Margin protection** in `voiceAllowed` (`cost-controls.ts`): while `trialing`,
-  AI talk-time is hard-capped at **50 min total** regardless of the plan's
-  allotment, overage forced off → ~$7.50 max COGS per trial. Hitting it forwards
-  the caller to the owner (existing cap→forward path, new `trial_cap` reason). No
-  surprise bill.
-- `effectivePlan`/`syncSubscription` already treat `trialing` as entitled, so
-  features unlock during the trial automatically.
-- UI: billing page trial banner ("ends [date] · N of 50 trial min · then $X/mo,
-  cancel anytime") + first-timer CTA copy ("Start free trial · 7 days free, then
-  $X/mo"); **landing pricing advertises the 7-day free trial** (verified live in
-  preview).
-
-**Commits:** `df97d9b` (onboarding + checklist + trial + landing) · `4951f12`
-(Stripe live-mode unlock). build + typecheck green; pushed → deploying.
+**No migration this session.** build + typecheck green · `prelaunch-check.mjs`
+all schema checks pass · `leak-test.mjs` **48/48 PASS**.
 
 ---
 
-## 4. 🔴 Stripe live flip — DO THIS NEXT (operator, in Vercel/Stripe)
+## 1. 🔴 ROOT CAUSE of the home-base bug — a Google Maps key restriction (YOU fix this)
 
-Step 1 (remove the `sk_test_` guard in `getStripe()` + push) is **DONE** — prod
-still runs in test mode because Vercel still holds the test keys; the guard
-removal just *allows* live keys. Remaining, in order:
+Your `GOOGLE_MAPS_API_KEY` is locked with an **"HTTP referrer" restriction**.
+That's for browser keys; yours runs **server-side** (Vercel sends no referrer),
+so Google **denied every call**. Confirmed live against your real key:
 
-1. **Get live keys** — Stripe Dashboard → toggle **Live mode** → Developers →
-   API keys → copy `sk_live_…` (secret) and `pk_live_…` (publishable).
-2. **Add to Vercel (Production env), then redeploy:**
-   - `STRIPE_SECRET_KEY = sk_live_…`
-   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = pk_live_…`
-   - (leave `STRIPE_WEBHOOK_SECRET` for step 4)
-3. **Re-run `/admin/billing-setup`** (now in live mode). It creates the **live**
-   products/prices (5 plans × 2 intervals + 6 add-ons), the live **webhook
-   endpoint** at `…/api/stripe/webhook`, and the Customer Portal config. It shows
-   the **new live webhook signing secret once** — copy it.
-4. **Put that live secret in Vercel** `STRIPE_WEBHOOK_SECRET`, redeploy.
-   ⚠️ This is the suspected June-12 sync-gap cause — make sure the secret in
-   Vercel matches the **live** endpoint at `missednomorepro.com/api/stripe/webhook`.
-5. **Smoke test live:** start a plan from the billing page with a **real** card →
-   confirm `trialing` sub appears, the trial banner shows, and (after the
-   webhook) the plan unlocks. Then cancel in the portal if it was just a test.
+- Geocoding → `REQUEST_DENIED` → setup wizard rejected *every* home-base address
+- Distance Matrix → denied → `check_service_area` fell back to the near-empty
+  ZIP list → **in-radius callers wrongly told "out of area"** = your lost lead
+- Places → denied → tow-destination finder broken
 
-Stripe test/live are fully separate — nothing from test mode carries over, hence
-the re-run + new secret.
+**Fix it (2 minutes, in Google Cloud Console):**
+1. console.cloud.google.com → **APIs & Services → Credentials** → your Maps key.
+2. **Application restrictions** → change **"HTTP referrers"** → **"None"** (safe —
+   this key is server-only, never in a browser; don't use IP, Vercel IPs rotate).
+3. **API restrictions** → **Restrict key** → check **Geocoding API**,
+   **Distance Matrix API**, **Places API (New)**.
+4. **Save**, wait ~2 min, then run: `node scripts/maps-check.mjs` → expect all ✅.
+
+Once green: setup accepts addresses, the radius `check_service_area` is accurate,
+and the tow finder works.
+
+## 2. Defensive code so a maps hiccup never loses a lead again ✅
+
+- `check_service_area` now **fails SAFE**: if a home base is configured but the
+  distance lookup fails, it returns `covered: true` (`matched_by:
+  "radius_unverified"`) and captures the lead, instead of declining. A false
+  "you're covered" is recoverable; a false "out of area" loses a customer.
+- `maps/client.ts` added `geocode()` → typed `not_found` vs `unavailable`, so
+  `saveHomeBase` no longer blames the owner's address when the **key** is the
+  problem ("address lookup temporarily unavailable… run maps-check").
+
+## 3. Setup now shows all your services ✅
+
+The wizard services step listed only the 2 from the M4 `services` table. It now
+also lists active `service_pricing` names (read-only, link to Prices & Services).
+The AI already *spoke* all 7 (the prompt unions both); only the wizard UI lagged.
+
+## 4. Upload-to-setup ✅
+
+Services + FAQs wizard steps now have an **"upload a file instead of typing"**
+card with a short what-to-include guide, linking to the existing
+upload-and-extract flow (`?from=setup` → it links back to setup). Drop in a price
+sheet/FAQ doc → AI proposes rows → you approve. (§5.1 preserved: services still
+need pricing approval before quoting.)
+
+## 5. Overage → HARD CAP ✅
+
+You reversed the metered-overage decision. The system **already** hard-caps
+(`overage_enabled` defaults false and nothing turns it on → at the limit, calls
+forward to your phone). This session fixed the **messaging** to match: landing
+pricing, billing footnote, Terms, and usage-alert texts/emails now say "hard
+cap — no surprise overage." No migration, no behavior risk.
+
+## 6. Usage meter + near-limit upgrade prompt ✅
+
+New `src/components/billing/usage-meter.tsx` — clear **minutes/texts used +
+remaining** bars, shown on the **dashboard** and **billing** page. Turns amber
+and shows **"Upgrade to {next plan}"** when ≤50 voice minutes remain or ≥80%
+used; red ("calls now forward to you") at the cap. Trial-aware (shows the 50-min
+trial cap during a trial).
+
+## 7. Legal links on every page ✅
+
+New `src/components/legal-footer.tsx` (Privacy · Terms · SMS Terms + support
+email) on the **dashboard** and **admin** shells; inline legal links added to the
+**auth** (login/signup) shell. Landing + the legal pages already had them.
+
+## 8. Google OAuth verification — walkthrough written ✅ (YOU submit)
+
+`docs/google-oauth-verification.md` — plain-English steps:
+- **Step A (do now, ~10 min):** OAuth consent screen → fill branding →
+  **Publish to Production**. This alone **stops calendars disconnecting after 7
+  days** (the part that actually breaks customers).
+- **Step B (this week):** Submit for verification (justify the 2 sensitive
+  Calendar scopes, upload a 1–3 min demo video). Removes the "unverified app"
+  warning. **No security assessment needed** (sensitive, not restricted, scopes).
+- Also added the required **Google data-use / Limited-Use disclosure** to
+  `/privacy` (a verification requirement).
+
+## 9. Final wiring audit before Stripe live — ALL GREEN ✅
+
+| Check | Result |
+|---|---|
+| `npm run build` + `npm run typecheck` | ✅ green |
+| `prelaunch-check.mjs` (every migration's tables/cols + 5 plans seeded) | ✅ all pass |
+| `leak-test.mjs` (cross-tenant RLS) | ✅ **48/48 PASS** |
+| Crons (`reminders` 13:00, `outbound` 14:00 UTC) | ✅ in vercel.json |
+| Webhooks (Stripe, Twilio voice/SMS/status/recording, Retell, voice-tools) | ✅ present |
+| Stripe live-mode unlocked in code | ✅ (test/live both work) |
 
 ---
 
-## 5. Carry-forward / still open (not flip blockers)
+## 🔴 Operator action items (in order)
 
-- **Google OAuth verification** — recommended to **start now** (lead-time item):
-  Testing mode = scary interstitial + **7-day refresh-token expiry** (a new
-  customer's calendar silently disconnects after a week; bookings still save in
-  our DB). Publishing kills the expiry. Needs Google review (days–weeks).
-- **Supabase Pro (daily backups) + Vercel Pro** — turn on at/with the first
-  paying customer.
-- **Voice latency** — A/B a faster model than `gpt-4.1` post-launch (call
-  responsiveness is the #1 thing customers judge).
-- **Trial abuse via new orgs** — per-tenant gate stops cancel/resubscribe
-  farming; the 50-min cap bounds new-org abuse to ~$7.50. Tighten later if seen.
-- Wipe red-team test data after launch (`scripts/redteam-wipe-number.mjs
-  2164151568 --confirm`). Pronunciation dictionary. Gap 2a (upload →
-  zones/surcharges, needs migration).
+1. **ASAP — fix the Maps key restriction** (§1) → `node scripts/maps-check.mjs`
+   should print all ✅. This unblocks home base, accurate service area, and tows.
+2. **Confirm in Vercel** these are set (they're absent from local `.env.local`,
+   which is expected): `RESEND_API_KEY`, `RESEND_FROM`, `CRON_SECRET`,
+   `ADMIN_EMAILS`. (CLAUDE.md notes Resend + ADMIN are already in Vercel; double-
+   check `CRON_SECRET` so the daily reminder/outbound crons authenticate.)
+3. **Google OAuth** — do Step A (publish) now; submit Step B this week.
+4. **Stripe live flip** (unchanged from last session — see below).
+
+## 🔴 Stripe live flip — the final go-live step
+
+1. Stripe Dashboard → **Live mode** → Developers → API keys → copy `sk_live_…`
+   and `pk_live_…`.
+2. Vercel (Production env) → set `STRIPE_SECRET_KEY=sk_live_…` and
+   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_…` → redeploy.
+3. **Re-run `/admin/billing-setup`** (now live) → creates live products/prices
+   (5 plans × 2 intervals + 6 add-ons) + the live webhook + portal config; it
+   shows the **new live webhook signing secret once** — copy it.
+4. Put that secret in Vercel `STRIPE_WEBHOOK_SECRET` → redeploy. ⚠️ Make sure it
+   matches the **live** endpoint at `missednomorepro.com/api/stripe/webhook`.
+5. Smoke test with a real card → confirm `trialing` sub + the trial banner +
+   plan unlock, then cancel if it was just a test.
 
 ---
 
 ## Cross-cutting notes
 
-- **Workflow:** push to `main` → Vercel auto-deploys. Prompt/tool changes
-  re-sync the live Retell agent lazily on the next call. Pricing/FAQ are live DB
-  data. Migrations via the Supabase SQL editor (none this session).
-- **§5.1 held:** the wizard captures the radius + home base but **does not**
-  enable quoting; every price is still computed by `calculate_quote`.
-- **Margin discipline:** the trial's 50-min hard cap is the key protection —
-  voice is the only material COGS, so a $0 trial can't run it up.
+- **No migration this session** — all changes are code/UI/copy + one privacy edit.
+- **§5.1 held:** all the setup/upload work keeps prices engine-computed; quoting
+  still needs explicit approval on Prices & Services.
+- **Hard cap is the margin guard:** voice is the only material COGS; the cap →
+  forward-to-owner path (already live) means a runaway plan can't rack up costs.
+- Workflow unchanged: push to `main` → Vercel auto-deploys; prompt/tool changes
+  re-sync the live Retell agent lazily on the next call.

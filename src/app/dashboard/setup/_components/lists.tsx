@@ -1,6 +1,7 @@
-import { Check, MapPin, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Check, FileUp, MapPin, Trash2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,11 +54,61 @@ function ContinueBar({ action }: { action: () => Promise<void> }) {
   );
 }
 
+/**
+ * Fast-setup shortcut: upload a file and let AI fill this step in, instead of
+ * typing each row. Reuses the Knowledge Hub upload-and-extract flow (the AI
+ * proposes structured rows the owner approves; §5.1 — prices are never invented,
+ * the AI only transcribes what's written, and quoting still needs approval on
+ * Prices & Services). `from=setup` makes that page link back here.
+ */
+function UploadHint({ kind }: { kind: "services" | "faqs" }) {
+  const copy =
+    kind === "services"
+      ? {
+          title: "Have a price sheet? Upload it instead of typing.",
+          body: "Snap a photo or drop in a PDF/spreadsheet of your services and prices — AI reads it and proposes each one for you to approve. Much faster than adding them by hand.",
+          include:
+            "What to include: each service name with its price (e.g. “Jump start — $40”, “Tow — $60 hook + $2.50/mi”). Dispatch-zone fees and surcharges are set later on Prices & Services.",
+        }
+      : {
+          title: "Have an FAQ sheet? Upload it instead of typing.",
+          body: "Drop in a document of the questions customers ask and your answers — AI reads it and proposes Q&A pairs for you to approve.",
+          include:
+            "What to include: each question and the answer you’d want the AI to give (e.g. “Do you take credit cards? — Yes, all major cards, cash, and Zelle.”).",
+        };
+  return (
+    <Card className="border-cyan/25 bg-cyan/5">
+      <CardContent className="flex flex-wrap items-start justify-between gap-4 pt-6">
+        <div className="flex items-start gap-3">
+          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-cyan/30 bg-cyan/10">
+            <FileUp className="size-4 text-cyan" aria-hidden />
+          </span>
+          <div>
+            <p className="font-display text-sm font-semibold text-foreground">{copy.title}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{copy.body}</p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-steel">{copy.include}</p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/knowledge/upload?from=setup"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Upload a file
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Services ─────────────────────────────────────────────────────
 
 export function ServicesStep({ data }: { data: SetupData }) {
   return (
     <div>
+      <div className="mb-4">
+        <UploadHint kind="services" />
+      </div>
+
       {data.services.length > 0 && (
         <Card className="bg-card/60">
           <CardContent className="pt-6">
@@ -74,6 +125,41 @@ export function ServicesStep({ data }: { data: SetupData }) {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Services that live in the pricing sheet (Prices & Services) — the AI
+          already speaks these; shown here so the full list is visible. */}
+      {data.pricedServiceNames.length > 0 && (
+        <Card className="mt-4 border-cyan/20 bg-card/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-sm text-steel">
+              Also offered (from your Prices &amp; Services)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-wrap gap-2">
+              {data.pricedServiceNames.map((name) => (
+                <li
+                  key={name}
+                  className="rounded-full border border-border/70 px-3 py-1 text-sm text-foreground"
+                >
+                  {name}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs leading-relaxed text-steel">
+              Your AI already knows these — they come from your priced services. Manage
+              their prices on{" "}
+              <a
+                href="/dashboard/pricing"
+                className="text-cyan underline-offset-2 hover:underline"
+              >
+                Prices &amp; Services
+              </a>
+              . Add one here only if you want it listed without a price.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -426,6 +512,10 @@ export function NotificationsStep({ data }: { data: SetupData }) {
 export function FaqsStep({ data }: { data: SetupData }) {
   return (
     <div>
+      <div className="mb-4">
+        <UploadHint kind="faqs" />
+      </div>
+
       {data.faqs.length > 0 && (
         <Card className="bg-card/60">
           <CardContent className="pt-6">
