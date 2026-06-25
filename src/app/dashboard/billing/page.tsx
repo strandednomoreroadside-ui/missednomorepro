@@ -27,6 +27,7 @@ import {
 } from "@/lib/billing/subscription";
 import { getUsageSummary, type UsageStatus } from "@/lib/billing/usage";
 import { TRIAL_DAYS, TRIAL_VOICE_MINUTES, isTrialing, trialEndsAt } from "@/lib/billing/trial";
+import { isStripeTestMode } from "@/lib/billing/stripe";
 import { UsageMeter, type MeterStatus } from "@/components/billing/usage-meter";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,6 +45,7 @@ export default async function BillingPage({
   const sp = await searchParams;
   const { active } = await requireActiveOrg();
   const canManage = active.role === "owner" || active.role === "admin";
+  const testMode = isStripeTestMode();
 
   const tz = await getBusinessTimezone(active.organization_id);
   const sub = await getSubscription(active.organization_id);
@@ -219,8 +221,14 @@ export default async function BillingPage({
             anytime before it ends and you&rsquo;re not charged.{" "}
           </span>
         )}
-        Annual billing saves 20%. Test mode: use card 4242&nbsp;4242&nbsp;4242&nbsp;4242,
-        any future date, any CVC.
+        Annual billing saves 20%.
+        {testMode && (
+          <>
+            {" "}
+            Test mode: use card 4242&nbsp;4242&nbsp;4242&nbsp;4242, any future date,
+            any CVC.
+          </>
+        )}
       </p>
 
       <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-5">

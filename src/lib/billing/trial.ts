@@ -19,7 +19,7 @@ import type { SubscriptionRow } from "@/lib/billing/subscription";
 export const TRIAL_DAYS = 7;
 
 /** Hard ceiling on billable AI voice minutes for the whole trial window. */
-export const TRIAL_VOICE_MINUTES = 50;
+export const TRIAL_VOICE_MINUTES = 30;
 
 /** Is this subscription currently in its Stripe free trial? */
 export function isTrialing(sub: Pick<SubscriptionRow, "status"> | null): boolean {

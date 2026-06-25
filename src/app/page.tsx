@@ -114,7 +114,7 @@ function SiteHeader() {
           <ButtonLink href="/login" variant="outline" className="hidden sm:inline-flex">
             Sign in
           </ButtonLink>
-          <ButtonLink href={EARLY_ACCESS_MAILTO}>Get early access</ButtonLink>
+          <ButtonLink href="/signup">Start free trial</ButtonLink>
         </div>
       </div>
     </header>
@@ -165,8 +165,8 @@ function Hero() {
             className="animate-fade-up mt-8 flex flex-wrap items-center gap-4"
             style={{ animationDelay: "360ms" }}
           >
-            <ButtonLink href={EARLY_ACCESS_MAILTO} large>
-              Get early access <ArrowRight className="size-4" aria-hidden />
+            <ButtonLink href="/signup" large>
+              Start free trial <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
             <ButtonLink href="#product" variant="outline" large>
               See it in action
@@ -734,8 +734,8 @@ function FinalCta() {
           — and never wonder what that voicemail cost you.
         </p>
         <div className="mt-8 flex justify-center">
-          <ButtonLink href={EARLY_ACCESS_MAILTO} large>
-            Get early access <ArrowRight className="size-4" aria-hidden />
+          <ButtonLink href="/signup" large>
+            Start free trial <ArrowRight className="size-4" aria-hidden />
           </ButtonLink>
         </div>
       </div>

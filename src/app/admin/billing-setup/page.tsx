@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { ALL_LOOKUP_KEYS } from "@/lib/billing/plans";
 import { ALL_ADDON_LOOKUP_KEYS } from "@/lib/billing/addons";
-import { getStripe } from "@/lib/billing/stripe";
+import { getStripe, isStripeTestMode } from "@/lib/billing/stripe";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -138,6 +138,7 @@ async function stripeChecks(): Promise<Check[]> {
 
 export default async function BillingSetupPage() {
   // Layout already gates on isPlatformAdmin.
+  const testMode = isStripeTestMode();
   const [migration, stripeStatus] = await Promise.all([
     migrationCheck(),
     stripeChecks(),
@@ -157,12 +158,23 @@ export default async function BillingSetupPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight">
-        Billing setup
-      </h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-display text-2xl font-bold tracking-tight">
+          Billing setup
+        </h1>
+        <span
+          className={`rounded-full border px-2.5 py-0.5 font-mono text-xs uppercase tracking-wide ${
+            testMode
+              ? "border-steel/40 bg-steel/10 text-steel"
+              : "border-success/50 bg-success/10 text-success"
+          }`}
+        >
+          {testMode ? "Test mode" : "Live mode"}
+        </span>
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        One-tap Stripe configuration (test mode) — products, webhook, and
-        Customer Portal. Idempotent: running it again only fills gaps.
+        One-tap Stripe configuration ({testMode ? "test" : "live"} mode) — products,
+        webhook, and Customer Portal. Idempotent: running it again only fills gaps.
       </p>
 
       {result && (

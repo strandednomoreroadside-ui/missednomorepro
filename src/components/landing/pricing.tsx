@@ -133,7 +133,7 @@ export function Pricing() {
                 ))}
               </ul>
               <a
-                href={EARLY_ACCESS_MAILTO}
+                href={plan.monthly == null ? EARLY_ACCESS_MAILTO : "/signup"}
                 className={cn(
                   "mt-5 inline-flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm font-semibold transition-all",
                   plan.popular
@@ -141,7 +141,7 @@ export function Pricing() {
                     : "border border-border text-foreground hover:border-cyan/50 hover:text-cyan"
                 )}
               >
-                {plan.monthly == null ? "Talk to us" : "Get early access"}
+                {plan.monthly == null ? "Talk to us" : "Start free trial"}
               </a>
             </div>
           );

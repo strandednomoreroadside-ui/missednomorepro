@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" effectiveDate="June 21, 2026">
+    <LegalShell title="Privacy Policy" effectiveDate="June 25, 2026">
       <section>
         <h2>1. Who we are</h2>
         <p className="mt-3">
@@ -51,8 +51,9 @@ export default function PrivacyPage() {
             processor. We never see or store full card numbers.
           </li>
           <li>
-            <strong>Usage data</strong> — log and device information used to
-            operate, secure, and improve the service.
+            <strong>Usage and device data</strong> — log and device information,
+            and cookies (including the session cookies that keep you signed in),
+            used to operate, secure, and improve the service.
           </li>
         </ul>
       </section>
@@ -88,10 +89,12 @@ export default function PrivacyPage() {
         <h2>5. Service providers</h2>
         <p className="mt-3">
           We rely on a small set of processors to run the service: Supabase
-          (database and authentication), Vercel (hosting), Twilio (voice and
-          SMS), OpenAI and similar AI providers (speech and language processing),
-          and Stripe (payments). Each processes data only to provide its service
-          to us.
+          (database and authentication), Vercel (hosting), Twilio (voice and SMS
+          connectivity), Retell (real-time voice AI that powers the phone
+          receptionist), OpenAI and similar AI providers (speech and language
+          processing), Google (Calendar scheduling, when a business connects it),
+          Resend (transactional email), and Stripe (payments). Each processes
+          data only to provide its service to us.
         </p>
       </section>
 

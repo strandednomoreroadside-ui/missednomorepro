@@ -18,3 +18,13 @@ export function getStripe(): Stripe {
   stripeSingleton ??= new Stripe(env.STRIPE_SECRET_KEY);
   return stripeSingleton;
 }
+
+/**
+ * True when the configured Stripe key is a TEST key. Gates test-only UI hints
+ * (e.g. the 4242 test card) so a real customer is never shown them once live
+ * keys are in place. Matches sk_test_/rk_test_/pk_test_; defaults to false
+ * (no test hint) when no key is configured.
+ */
+export function isStripeTestMode(): boolean {
+  return env.STRIPE_SECRET_KEY?.includes("_test_") ?? false;
+}
