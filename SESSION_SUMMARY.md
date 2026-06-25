@@ -102,6 +102,7 @@ email) on the **dashboard** and **admin** shells; inline legal links added to th
 | Crons (`reminders` 13:00, `outbound` 14:00 UTC) | ✅ in vercel.json |
 | Webhooks (Stripe, Twilio voice/SMS/status/recording, Retell, voice-tools) | ✅ present |
 | Stripe live-mode unlocked in code | ✅ (test/live both work) |
+| Resend email + `CRON_SECRET` (live, `scripts/verify-integrations.mjs`) | ✅ test email delivered; cron 200 |
 
 ---
 
@@ -109,10 +110,13 @@ email) on the **dashboard** and **admin** shells; inline legal links added to th
 
 1. **ASAP — fix the Maps key restriction** (§1) → `node scripts/maps-check.mjs`
    should print all ✅. This unblocks home base, accurate service area, and tows.
-2. **Confirm in Vercel** these are set (they're absent from local `.env.local`,
-   which is expected): `RESEND_API_KEY`, `RESEND_FROM`, `CRON_SECRET`,
-   `ADMIN_EMAILS`. (CLAUDE.md notes Resend + ADMIN are already in Vercel; double-
-   check `CRON_SECRET` so the daily reminder/outbound crons authenticate.)
+2. ✅ **Resend + Cron secret — VERIFIED** (`scripts/verify-integrations.mjs`):
+   Resend key valid, `missednomorepro.com` verified, test email delivered; the
+   production cron endpoint accepts `CRON_SECRET` (200) and rejects bad/no auth
+   (401). **Gotcha hit + fixed:** the first Resend key was a "Sending access" key
+   scoped to an *unverified* domain → recreated as a full-access key once the
+   domain was verified. Keys now in both Vercel and `.env.local`. (Still worth
+   confirming `ADMIN_EMAILS` is in Vercel for /admin + alert recipients.)
 3. **Google OAuth** — do Step A (publish) now; submit Step B this week.
 4. **Stripe live flip** (unchanged from last session — see below).
 
