@@ -10,6 +10,22 @@ verification** walkthrough, and ran a **full pre-live wiring audit (all green)**
 **No migration this session.** build + typecheck green · `prelaunch-check.mjs`
 all schema checks pass · `leak-test.mjs` **48/48 PASS**.
 
+**Integrations verified** (`scripts/verify-integrations.mjs`): Resend test email
+delivered + production cron accepts `CRON_SECRET`. Commits: `0c655c9` (the batch),
+`528becc` (verify script + OAuth doc), `1c5947e` (redeploy for the new Resend key).
+
+---
+
+## ▶ Next session — start here
+
+1. **Google OAuth demo video** — branding is approved; the only thing between you
+   and submitting for verification is recording the ~2-min screen video. Step-by-step
+   recipe in `docs/google-oauth-verification.md` §B2, then **Submit for verification**.
+2. **Maps key restriction** — confirm it's actually fixed: `node scripts/maps-check.mjs`
+   should print all ✅ (this is the live home-base / "out of area" lost-lead fix).
+3. **Stripe live flip** — the final go-live whenever you're ready to charge real
+   cards (see "Stripe live flip" below).
+
 ---
 
 ## 1. 🔴 ROOT CAUSE of the home-base bug — a Google Maps key restriction (YOU fix this)

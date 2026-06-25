@@ -99,6 +99,17 @@ shows **all** of:
 
 Keep it 1–3 minutes. No editing needed. Paste the YouTube link into the form.
 
+**How to record (Windows, free):** press **Win + G** (Xbox Game Bar) → Capture
+widget → record button, or use Loom/OBS. Record this exact click-path:
+1. Open a browser, go to **`missednomorepro.com`** (URL bar visible), sign in.
+2. **Dashboard → Settings → Calendar booking → Connect Google Calendar.**
+3. Let the **Google consent screen** fully appear — pause so the app name
+   "Missed No More Pro" and the calendar permissions are clearly readable.
+4. Approve → land back in the app showing "connected."
+5. Show the data being used: place/replay a booking (or open Settings and
+   narrate) so it's clear you check free/busy and create a calendar event.
+6. Stop recording → upload to **YouTube as Unlisted** → paste the link in the form.
+
 ### B3. Submit
 
 - Confirm the privacy-policy URL is reachable and explains that you use Google
