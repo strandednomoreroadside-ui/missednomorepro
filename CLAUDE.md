@@ -50,7 +50,7 @@ Multi-tenant SaaS: AI receptionist + field-service OS for local service business
 - AI never: claims to be human, invents prices, takes card numbers by voice, books outside approved windows, texts opted-out contacts
 - Every risky AI action goes through a §10 backend tool with server-side validation + audit log
 - Webhooks (Stripe/Twilio): signature-validated + idempotent, always
-- Stripe stays in **test mode** until M10
+- Stripe: **LIVE in production as of June 25 2026** (real cards). Keep `.env.local` on **test** keys so dev + scripts never touch live money; gate test-only UI behind `isStripeTestMode()` (see [[stripe-live-mode]])
 - Scope discipline: pricing engine, deposits, dispatch, invoicing, reviews, reporting, command center are **post-MVP** — do not build early
 
 ## Conventions

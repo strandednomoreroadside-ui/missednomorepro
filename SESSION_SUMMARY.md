@@ -1,163 +1,125 @@
-# Session Summary — Missed No More Pro (June 24, 2026 · pre-rollout fixes)
+# Session Summary — Missed No More Pro (June 25, 2026 · GO-LIVE)
 
-Worked the **NEEDS.md** punch-list: found and fixed the root cause of the
-home-base/service-area bug, hardened it so it can never silently lose a lead
-again, switched billing messaging to a true **hard cap**, added a **usage
-meter + upgrade prompt**, put **legal links on every page**, surfaced **all
-services** in setup, added **upload-to-setup**, wrote the **Google OAuth
-verification** walkthrough, and ran a **full pre-live wiring audit (all green)**.
+**Stripe is LIVE.** Operator flipped live keys into Vercel this session. Did a
+four-lens pre-flip review (architecture / security / UI-UX / RLS — all green),
+caught + fixed a real go-live bug, trimmed the trial, finished the self-serve
+funnel, ran a legal-compliance pass, and wrote customer phone-setup
+instructions. **Committed + pushed `272c52f` (deploying).**
 
-**No migration this session.** build + typecheck green · `prelaunch-check.mjs`
-all schema checks pass · `leak-test.mjs` **48/48 PASS**.
-
-**Integrations verified** (`scripts/verify-integrations.mjs`): Resend test email
-delivered + production cron accepts `CRON_SECRET`. Commits: `0c655c9` (the batch),
-`528becc` (verify script + OAuth doc), `1c5947e` (redeploy for the new Resend key).
+**All gates green:** `npm run build` ✅ · `npm run typecheck` ✅ ·
+`scripts/leak-test.mjs` **48/48** ✅ · `scripts/maps-check.mjs` all ✅ ·
+Stripe webhook reviewed (signature + idempotent, no live-key guards) ✅.
 
 ---
 
-## ▶ Next session — start here
+## ▶ Next session — start here (finish the live activation)
 
-1. **Google OAuth demo video** — branding is approved; the only thing between you
-   and submitting for verification is recording the ~2-min screen video. Step-by-step
-   recipe in `docs/google-oauth-verification.md` §B2, then **Submit for verification**.
-2. **Maps key restriction** — confirm it's actually fixed: `node scripts/maps-check.mjs`
-   should print all ✅ (this is the live home-base / "out of area" lost-lead fix).
-3. **Stripe live flip** — the final go-live whenever you're ready to charge real
-   cards (see "Stripe live flip" below).
+The CODE is done and deployed. These are **operator console steps** to actually
+charge cards — do them in order:
 
----
-
-## 1. 🔴 ROOT CAUSE of the home-base bug — a Google Maps key restriction (YOU fix this)
-
-Your `GOOGLE_MAPS_API_KEY` is locked with an **"HTTP referrer" restriction**.
-That's for browser keys; yours runs **server-side** (Vercel sends no referrer),
-so Google **denied every call**. Confirmed live against your real key:
-
-- Geocoding → `REQUEST_DENIED` → setup wizard rejected *every* home-base address
-- Distance Matrix → denied → `check_service_area` fell back to the near-empty
-  ZIP list → **in-radius callers wrongly told "out of area"** = your lost lead
-- Places → denied → tow-destination finder broken
-
-**Fix it (2 minutes, in Google Cloud Console):**
-1. console.cloud.google.com → **APIs & Services → Credentials** → your Maps key.
-2. **Application restrictions** → change **"HTTP referrers"** → **"None"** (safe —
-   this key is server-only, never in a browser; don't use IP, Vercel IPs rotate).
-3. **API restrictions** → **Restrict key** → check **Geocoding API**,
-   **Distance Matrix API**, **Places API (New)**.
-4. **Save**, wait ~2 min, then run: `node scripts/maps-check.mjs` → expect all ✅.
-
-Once green: setup accepts addresses, the radius `check_service_area` is accurate,
-and the tow finder works.
-
-## 2. Defensive code so a maps hiccup never loses a lead again ✅
-
-- `check_service_area` now **fails SAFE**: if a home base is configured but the
-  distance lookup fails, it returns `covered: true` (`matched_by:
-  "radius_unverified"`) and captures the lead, instead of declining. A false
-  "you're covered" is recoverable; a false "out of area" loses a customer.
-- `maps/client.ts` added `geocode()` → typed `not_found` vs `unavailable`, so
-  `saveHomeBase` no longer blames the owner's address when the **key** is the
-  problem ("address lookup temporarily unavailable… run maps-check").
-
-## 3. Setup now shows all your services ✅
-
-The wizard services step listed only the 2 from the M4 `services` table. It now
-also lists active `service_pricing` names (read-only, link to Prices & Services).
-The AI already *spoke* all 7 (the prompt unions both); only the wizard UI lagged.
-
-## 4. Upload-to-setup ✅
-
-Services + FAQs wizard steps now have an **"upload a file instead of typing"**
-card with a short what-to-include guide, linking to the existing
-upload-and-extract flow (`?from=setup` → it links back to setup). Drop in a price
-sheet/FAQ doc → AI proposes rows → you approve. (§5.1 preserved: services still
-need pricing approval before quoting.)
-
-## 5. Overage → HARD CAP ✅
-
-You reversed the metered-overage decision. The system **already** hard-caps
-(`overage_enabled` defaults false and nothing turns it on → at the limit, calls
-forward to your phone). This session fixed the **messaging** to match: landing
-pricing, billing footnote, Terms, and usage-alert texts/emails now say "hard
-cap — no surprise overage." No migration, no behavior risk.
-
-## 6. Usage meter + near-limit upgrade prompt ✅
-
-New `src/components/billing/usage-meter.tsx` — clear **minutes/texts used +
-remaining** bars, shown on the **dashboard** and **billing** page. Turns amber
-and shows **"Upgrade to {next plan}"** when ≤50 voice minutes remain or ≥80%
-used; red ("calls now forward to you") at the cap. Trial-aware (shows the 50-min
-trial cap during a trial).
-
-## 7. Legal links on every page ✅
-
-New `src/components/legal-footer.tsx` (Privacy · Terms · SMS Terms + support
-email) on the **dashboard** and **admin** shells; inline legal links added to the
-**auth** (login/signup) shell. Landing + the legal pages already had them.
-
-## 8. Google OAuth verification — walkthrough written ✅ (YOU submit)
-
-`docs/google-oauth-verification.md` — plain-English steps:
-- **Step A (do now, ~10 min):** OAuth consent screen → fill branding →
-  **Publish to Production**. This alone **stops calendars disconnecting after 7
-  days** (the part that actually breaks customers).
-- **Step B (this week):** Submit for verification (justify the 2 sensitive
-  Calendar scopes, upload a 1–3 min demo video). Removes the "unverified app"
-  warning. **No security assessment needed** (sensitive, not restricted, scopes).
-- Also added the required **Google data-use / Limited-Use disclosure** to
-  `/privacy` (a verification requirement).
-
-## 9. Final wiring audit before Stripe live — ALL GREEN ✅
-
-| Check | Result |
-|---|---|
-| `npm run build` + `npm run typecheck` | ✅ green |
-| `prelaunch-check.mjs` (every migration's tables/cols + 5 plans seeded) | ✅ all pass |
-| `leak-test.mjs` (cross-tenant RLS) | ✅ **48/48 PASS** |
-| Crons (`reminders` 13:00, `outbound` 14:00 UTC) | ✅ in vercel.json |
-| Webhooks (Stripe, Twilio voice/SMS/status/recording, Retell, voice-tools) | ✅ present |
-| Stripe live-mode unlocked in code | ✅ (test/live both work) |
-| Resend email + `CRON_SECRET` (live, `scripts/verify-integrations.mjs`) | ✅ test email delivered; cron 200 |
+1. **Confirm the Vercel deploy of `272c52f` went green.**
+2. **Confirm `ADMIN_EMAILS` is set in Vercel (Production)** to the email you sign
+   into the app with — without it, `/admin/billing-setup` redirects you out.
+3. **Open `/admin/billing-setup`** → it should show a green **"Live mode"** badge
+   → **Run Stripe setup** (creates live products/prices/add-ons/webhook/portal) →
+   it shows the **live webhook signing secret once** — copy it.
+4. **Set `STRIPE_WEBHOOK_SECRET` in Vercel to that live secret → redeploy.**
+   ⚠️ Live secret ≠ test secret; a mismatch silently breaks subscription sync.
+5. **Confirm Stripe payouts/bank connected** (so money lands).
+6. **Smoke test with a real card:** sign up → subscribe → confirm trial banner +
+   plan unlock + sub in the **live** Stripe dashboard + portal works → cancel.
+7. **Google OAuth → Publish to Production** now (stops 7-day calendar
+   disconnects); submit for verification this week (`docs/google-oauth-verification.md`).
+8. **At first paying customer:** Supabase Pro ($25, backups) + Vercel Pro ($20).
 
 ---
 
-## 🔴 Operator action items (in order)
+## 1. Pre-flip review — all clean ✅
 
-1. **ASAP — fix the Maps key restriction** (§1) → `node scripts/maps-check.mjs`
-   should print all ✅. This unblocks home base, accurate service area, and tows.
-2. ✅ **Resend + Cron secret — VERIFIED** (`scripts/verify-integrations.mjs`):
-   Resend key valid, `missednomorepro.com` verified, test email delivered; the
-   production cron endpoint accepts `CRON_SECRET` (200) and rejects bad/no auth
-   (401). **Gotcha hit + fixed:** the first Resend key was a "Sending access" key
-   scoped to an *unverified* domain → recreated as a full-access key once the
-   domain was verified. Keys now in both Vercel and `.env.local`. (Still worth
-   confirming `ADMIN_EMAILS` is in Vercel for /admin + alert recipients.)
-3. **Google OAuth** — do Step A (publish) now; submit Step B this week.
-4. **Stripe live flip** (unchanged from last session — see below).
+Four review lenses (senior-architect / senior-fullstack / ui-ux-pro-max /
+security-review). The working tree was clean so there was no diff to scan; instead
+reviewed the live-money surfaces by hand:
 
-## 🔴 Stripe live flip — the final go-live step
+- **Stripe webhook** — signature-verified before any work; idempotent
+  (first-writer-wins on `event.id`, releases the claim on failure for retries);
+  payment update matched on Stripe-signed metadata (no IDOR). Clean.
+- **Public website-chat endpoint** — tenant from `widget_key` server-side, reads
+  scoped to tenant + visitor, add-on gated, length-capped. Clean.
+- **Payments** — hosted Checkout, staff-set amount, never touches card data.
+- **`env.ts`** — Stripe keys validated as plain strings (no `sk_test_` regex), and
+  a repo-wide grep found **zero** leftover test-mode guards → live flip is code-safe.
 
-1. Stripe Dashboard → **Live mode** → Developers → API keys → copy `sk_live_…`
-   and `pk_live_…`.
-2. Vercel (Production env) → set `STRIPE_SECRET_KEY=sk_live_…` and
-   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_…` → redeploy.
-3. **Re-run `/admin/billing-setup`** (now live) → creates live products/prices
-   (5 plans × 2 intervals + 6 add-ons) + the live webhook + portal config; it
-   shows the **new live webhook signing secret once** — copy it.
-4. Put that secret in Vercel `STRIPE_WEBHOOK_SECRET` → redeploy. ⚠️ Make sure it
-   matches the **live** endpoint at `missednomorepro.com/api/stripe/webhook`.
-5. Smoke test with a real card → confirm `trialing` sub + the trial banner +
-   plan unlock, then cancel if it was just a test.
+## 2. Go-live bug FIXED — test-card hint would show to live customers ✅
+
+`billing/page.tsx` rendered "Test mode: use card 4242 4242 4242 4242"
+**unconditionally** — in live mode that card is declined, so a real customer would
+be stuck at payment. Added `isStripeTestMode()` (`src/lib/billing/stripe.ts`,
+matches `_test_`); the hint now shows **only in test mode**. Bonus:
+`/admin/billing-setup` now shows a gray **Test mode** / green **Live mode** badge
+so the operator can confirm the flip at a glance.
+
+## 3. Trial trimmed 50 → 30 free AI minutes ✅
+
+`TRIAL_VOICE_MINUTES = 30` (`src/lib/billing/trial.ts`). All billing/dashboard copy
+and `voiceAllowed` read the constant, so it updates everywhere; max trial COGS
+~$4.50. Memory `free-trial-policy` updated.
+
+## 4. Self-serve funnel finished ✅ (operator chose this)
+
+All 7 primary CTAs now go to `/signup` "Start free trial" — landing **pricing**
+(`pricing.tsx`) + **nav, hero, and final CTA** (`page.tsx`). The
+**"Become a founding customer"** band and **Enterprise "Talk to us"** stay as
+outreach/sales (mailto). Verified live: 7 signup links, 2 intended mailtos, no
+console errors.
+
+## 5. Legal / compliance pass ✅
+
+- **Privacy** (`/privacy`): §5 processor list now includes **Retell** (processes
+  call audio), **Google** (Calendar), and **Resend** (email) — they were missing;
+  §2 adds a **cookies** disclosure. §6 Google **Limited-Use** disclosure confirmed
+  present (satisfies OAuth verification). Re-dated June 25 2026.
+- **Terms** (`/terms`): §4 adds the **free-trial auto-conversion disclosure**
+  (card required, converts to paid unless canceled — FTC negative-option). Re-dated.
+- **SMS Terms**: already A2P/CTIA-complete (opt-in "not a condition of purchase",
+  STOP/START/HELP, msg&data-rates + carrier disclaimer, no-sharing-for-marketing).
+- *Not legal advice — recommend a final attorney pass before scale.*
+
+## 6. Phone-number setup instructions ✅
+
+New `docs/phone-number-setup.md` — customer-facing: **Option A** new number through
+us, **Option B** keep your current number via call forwarding (forward-all vs.
+forward-on-no-answer, with common carrier codes), **Option C** port later. Hand it
+to each customer during onboarding; good post-launch candidate for an in-app page.
+
+---
+
+## ⚠️ Known gap (not a blocker, but plan for it)
+
+**Phone numbers are still admin-assigned.** A self-serve signup creates an account
+and finishes setup, but the AI can't answer until **you assign a Twilio number** in
+`/admin` and the customer uses it / forwards to it. Onboarding is **self-serve
+config + manual number assignment** for now. Closing this (self-serve provisioning)
+is the #1 post-launch item.
+
+## 📈 Post-launch ideas (prioritized)
+
+**Soon:** self-serve number provisioning · failed-payment dunning
+(`invoice.payment_failed` → email + banner + grace) · in-app phone-setup page ·
+deep-link plan (`/signup?plan=…`).
+**Next:** dashboard onboarding checklist · "test my AI" call button · real
+testimonial + demo-call video on the landing · annual toggle on the billing page.
+**Later:** emailed weekly insight reports (Resend is live — easy now) · GBP
+auto-replies (needs Google verification) · CRM connectors + Zapier · email channel ·
+multi-location · membership plans · Sentry source maps (`SENTRY_AUTH_TOKEN`).
 
 ---
 
 ## Cross-cutting notes
 
-- **No migration this session** — all changes are code/UI/copy + one privacy edit.
-- **§5.1 held:** all the setup/upload work keeps prices engine-computed; quoting
-  still needs explicit approval on Prices & Services.
-- **Hard cap is the margin guard:** voice is the only material COGS; the cap →
-  forward-to-owner path (already live) means a runaway plan can't rack up costs.
+- **Commit `272c52f`** (10 files): test-mode gating, trial 30, self-serve CTAs,
+  legal, phone doc, CLAUDE.md. Pushed to `main` → Vercel auto-deploy.
+- **Stripe is LIVE in prod; `.env.local` stays TEST.** Never point dev/scripts at
+  live money. Gate test-only UI behind `isStripeTestMode()`. (Memory: `stripe-live-mode`.)
+- **§5.1 held:** no pricing/booking behavior changed; the AI brain is untouched.
 - Workflow unchanged: push to `main` → Vercel auto-deploys; prompt/tool changes
   re-sync the live Retell agent lazily on the next call.
