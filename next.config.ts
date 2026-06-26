@@ -31,6 +31,10 @@ export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
+  // Source-map upload (readable production stack traces) activates when the
+  // build env has SENTRY_AUTH_TOKEN — the plugin reads it automatically. With
+  // no token the build still succeeds and just skips the upload, so dev/CI
+  // without the secret is fine. Set SENTRY_AUTH_TOKEN in Vercel to turn it on.
   org: "stranded-no-more-roadside-assi",
 
   project: "javascript-nextjs",

@@ -9,9 +9,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Run on everything except static assets. Auth-protected prefixes
-     * are enforced inside updateSession.
+     * Run on everything except static assets and the uptime health check
+     * (skipped so each monitor ping doesn't trigger a session lookup).
+     * Auth-protected prefixes are enforced inside updateSession.
      */
-    "/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|brand/|api/health|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };
