@@ -1,125 +1,115 @@
-# Session Summary — Missed No More Pro (June 25, 2026 · GO-LIVE)
+# Session Summary — Missed No More Pro (June 25, 2026 · Post-launch batch #1)
 
-**Stripe is LIVE.** Operator flipped live keys into Vercel this session. Did a
-four-lens pre-flip review (architecture / security / UI-UX / RLS — all green),
-caught + fixed a real go-live bug, trimmed the trial, finished the self-serve
-funnel, ran a legal-compliance pass, and wrote customer phone-setup
-instructions. **Committed + pushed `272c52f` (deploying).**
+**Shipped, committed, pushed, deployed, and verified.** A 9-item post-launch
+batch: two flaw fixes the operator reported, the entire NEEDS.md "Do soon"
+section, two "Next" conversion items, and a Supabase Pro security-hardening pass.
 
-**All gates green:** `npm run build` ✅ · `npm run typecheck` ✅ ·
-`scripts/leak-test.mjs` **48/48** ✅ · `scripts/maps-check.mjs` all ✅ ·
-Stripe webhook reviewed (signature + idempotent, no live-key guards) ✅.
+**Commit `dc1e75d`** on `main` (28 files, +1676/−45). build ✅ · typecheck ✅.
+Both migrations applied to prod and **column-verified**; the Stripe dunning
+webhook event is now live.
 
 ---
 
-## ▶ Next session — start here (finish the live activation)
+## ▶ Next session — start here
 
-The CODE is done and deployed. These are **operator console steps** to actually
-charge cards — do them in order:
+The code batch is **done and live**. What's open is operator testing + the next
+build pick. Nothing is blocking.
 
-1. **Confirm the Vercel deploy of `272c52f` went green.**
-2. **Confirm `ADMIN_EMAILS` is set in Vercel (Production)** to the email you sign
-   into the app with — without it, `/admin/billing-setup` redirects you out.
-3. **Open `/admin/billing-setup`** → it should show a green **"Live mode"** badge
-   → **Run Stripe setup** (creates live products/prices/add-ons/webhook/portal) →
-   it shows the **live webhook signing secret once** — copy it.
-4. **Set `STRIPE_WEBHOOK_SECRET` in Vercel to that live secret → redeploy.**
-   ⚠️ Live secret ≠ test secret; a mismatch silently breaks subscription sync.
-5. **Confirm Stripe payouts/bank connected** (so money lands).
-6. **Smoke test with a real card:** sign up → subscribe → confirm trial banner +
-   plan unlock + sub in the **live** Stripe dashboard + portal works → cancel.
-7. **Google OAuth → Publish to Production** now (stops 7-day calendar
-   disconnects); submit for verification this week (`docs/google-oauth-verification.md`).
-8. **At first paying customer:** Supabase Pro ($25, backups) + Vercel Pro ($20).
-
----
-
-## 1. Pre-flip review — all clean ✅
-
-Four review lenses (senior-architect / senior-fullstack / ui-ux-pro-max /
-security-review). The working tree was clean so there was no diff to scan; instead
-reviewed the live-money surfaces by hand:
-
-- **Stripe webhook** — signature-verified before any work; idempotent
-  (first-writer-wins on `event.id`, releases the claim on failure for retries);
-  payment update matched on Stripe-signed metadata (no IDOR). Clean.
-- **Public website-chat endpoint** — tenant from `widget_key` server-side, reads
-  scoped to tenant + visitor, add-on gated, length-capped. Clean.
-- **Payments** — hosted Checkout, staff-set amount, never touches card data.
-- **`env.ts`** — Stripe keys validated as plain strings (no `sk_test_` regex), and
-  a repo-wide grep found **zero** leftover test-mode guards → live flip is code-safe.
-
-## 2. Go-live bug FIXED — test-card hint would show to live customers ✅
-
-`billing/page.tsx` rendered "Test mode: use card 4242 4242 4242 4242"
-**unconditionally** — in live mode that card is declined, so a real customer would
-be stuck at payment. Added `isStripeTestMode()` (`src/lib/billing/stripe.ts`,
-matches `_test_`); the hint now shows **only in test mode**. Bonus:
-`/admin/billing-setup` now shows a gray **Test mode** / green **Live mode** badge
-so the operator can confirm the flip at a glance.
-
-## 3. Trial trimmed 50 → 30 free AI minutes ✅
-
-`TRIAL_VOICE_MINUTES = 30` (`src/lib/billing/trial.ts`). All billing/dashboard copy
-and `voiceAllowed` read the constant, so it updates everywhere; max trial COGS
-~$4.50. Memory `free-trial-policy` updated.
-
-## 4. Self-serve funnel finished ✅ (operator chose this)
-
-All 7 primary CTAs now go to `/signup` "Start free trial" — landing **pricing**
-(`pricing.tsx`) + **nav, hero, and final CTA** (`page.tsx`). The
-**"Become a founding customer"** band and **Enterprise "Talk to us"** stay as
-outreach/sales (mailto). Verified live: 7 signup links, 2 intended mailtos, no
-console errors.
-
-## 5. Legal / compliance pass ✅
-
-- **Privacy** (`/privacy`): §5 processor list now includes **Retell** (processes
-  call audio), **Google** (Calendar), and **Resend** (email) — they were missing;
-  §2 adds a **cookies** disclosure. §6 Google **Limited-Use** disclosure confirmed
-  present (satisfies OAuth verification). Re-dated June 25 2026.
-- **Terms** (`/terms`): §4 adds the **free-trial auto-conversion disclosure**
-  (card required, converts to paid unless canceled — FTC negative-option). Re-dated.
-- **SMS Terms**: already A2P/CTIA-complete (opt-in "not a condition of purchase",
-  STOP/START/HELP, msg&data-rates + carrier disclaimer, no-sharing-for-marketing).
-- *Not legal advice — recommend a final attorney pass before scale.*
-
-## 6. Phone-number setup instructions ✅
-
-New `docs/phone-number-setup.md` — customer-facing: **Option A** new number through
-us, **Option B** keep your current number via call forwarding (forward-all vs.
-forward-on-no-answer, with common carrier codes), **Option C** port later. Hand it
-to each customer during onboarding; good post-launch candidate for an in-app page.
+1. **Operator live-tests still to run** (phone/console, not code):
+   - **Lead text:** a lead call where the AI does NOT escalate → confirm you get
+     the staff "New lead" text (the deterministic backstop).
+   - **Dispatch ETA:** an urgent "come now" call → confirm the caller gets a
+     confirmation + arrival-time text and a job appears on the Dispatch board.
+   - **Self-serve number:** on a carded test tenant, `/dashboard/numbers` → search
+     an area code → Claim → AI answers a test call on it.
+   - **Dunning** (optional): force a failed renewal (Stripe test clock or card
+     `4000000000000341`) → confirm the email + the in-app banner.
+2. **Supabase Pro hardening checklist** — work through
+   `docs/supabase-pro-hardening.md` in the Supabase dashboard (PITR, leaked-
+   password protection, SSL enforce, network restrictions, run the Advisor,
+   spend cap). If the Advisor flags anything, send the item name → I fix it in a
+   migration. (Memory: `supabase-pro-security-hardening`.)
+3. **Pick the next build** (see "What's left" below).
 
 ---
 
-## ⚠️ Known gap (not a blocker, but plan for it)
+## What shipped this session (all in `dc1e75d`)
 
-**Phone numbers are still admin-assigned.** A self-serve signup creates an account
-and finishes setup, but the AI can't answer until **you assign a Twilio number** in
-`/admin` and the customer uses it / forwards to it. Onboarding is **self-serve
-config + manual number assignment** for now. Closing this (self-serve provisioning)
-is the #1 post-launch item.
+**Flaws (operator-reported):**
+1. **Reliable staff lead-alert text** — root cause: the text only fired when the
+   AI chose to call `notify_staff`, which it began skipping on booked/quoted
+   calls as the prompt grew. Fix = a deterministic backstop at call-end
+   (`finalize.ts`), idempotent via `calls.staff_alerted_at`, fires only when the
+   AI didn't already alert (no dupes).
+2. **Dispatch confirmation + arrival ETA** — on an urgent "come now" dispatch
+   (`notify_staff` urgency high/emergency) we open a Dispatch job and text the
+   caller a confirmation + ETA = **60 min + 30 min × open jobs on today's board**
+   (tunable in Settings). AI never says the number out loud (§5.1 intact). Dedup
+   via `calls.dispatch_eta_sent_at`.
 
-## 📈 Post-launch ideas (prioritized)
+**NEEDS.md "Do soon" (complete):**
+3. **Self-serve number provisioning** — `/dashboard/numbers` picker; gated
+   owner/admin + card-on-file + plan number cap; new numbers auto-attach to the
+   approved A2P messaging service.
+4. **Failed-payment dunning** — `invoice.payment_failed` → `subscriptions.
+   payment_failed_at` + customer email + app-wide banner; cleared on recovery.
+5. **In-app phone-setup guide** — `/dashboard/numbers/guide`.
+6. **Deep-link plan at signup** — `/signup?plan=…` → cookie → highlighted plan on
+   billing.
 
-**Soon:** self-serve number provisioning · failed-payment dunning
-(`invoice.payment_failed` → email + banner + grace) · in-app phone-setup page ·
-deep-link plan (`/signup?plan=…`).
-**Next:** dashboard onboarding checklist · "test my AI" call button · real
-testimonial + demo-call video on the landing · annual toggle on the billing page.
-**Later:** emailed weekly insight reports (Resend is live — easy now) · GBP
-auto-replies (needs Google verification) · CRM connectors + Zapier · email channel ·
-multi-location · membership plans · Sentry source maps (`SENTRY_AUTH_TOKEN`).
+**NEEDS.md "Next" (2 of 4):**
+7. **Annual/monthly toggle on billing** (matches the landing).
+8. **Dashboard "Getting started" onboarding checklist** (auto-hides when core
+   steps done).
+
+**Security:** Supabase Pro hardening — baseline security headers in
+`next.config.ts`, audit confirming all 23 DB functions already pin
+`search_path`, + operator checklist `docs/supabase-pro-hardening.md`.
 
 ---
+
+## ✅ Verified this session
+- Both migrations applied — all 7 new columns confirmed present in prod
+  (`calls.staff_alerted_at/dispatch_eta_sent_at`, the 4 `sms_settings`
+  dispatch/ETA cols, `subscriptions.payment_failed_at`).
+- Live Stripe webhook now lists **6** events incl. `invoice.payment_failed`
+  (operator added it — billing-setup had first run before the deploy landed; no
+  signing-secret change).
+
+---
+
+## What's left on NEEDS.md
+
+**"Next" — 2 remaining (need operator input):**
+- **"Test my AI" demo-call button** — places an *outbound* demo call so owners
+  trust it before going live. Bigger Twilio/Retell outbound work; build when the
+  operator says go.
+- **Real testimonial + demo-call video on the landing** — needs the operator's
+  actual content (won't fabricate a quote).
+
+**"Later" (roadmap depth, not started):** weekly emailed insight reports
+(Resend is live), GBP auto-reply (needs Google verification), CRM connectors
+(Jobber/Housecall) + Zapier, email channel, multi-location, membership plans,
+Sentry source maps (`SENTRY_AUTH_TOKEN`), uptime monitoring.
+
+**Compliance housekeeping:** attorney pass on Privacy/Terms/SMS (operator's
+call); cookie banner only if analytics/marketing cookies are added later.
+
+---
+
+## Parked
+- **Headroom** (`headroomlabs-ai/headroom`) — operator asked to "install this
+  skill"; it's actually an agent context-compression **proxy + Claude Code hook
+  plugin**, not a skill. It would read everything Claude sends (incl. customer
+  PII). Operator chose to **leave it for now**; a copy-paste install guide was
+  given in chat (pip/npm + `headroom wrap claude`, or `/plugin marketplace add`).
+  Not installed.
 
 ## Cross-cutting notes
-
-- **Commit `272c52f`** (10 files): test-mode gating, trial 30, self-serve CTAs,
-  legal, phone doc, CLAUDE.md. Pushed to `main` → Vercel auto-deploy.
-- **Stripe is LIVE in prod; `.env.local` stays TEST.** Never point dev/scripts at
-  live money. Gate test-only UI behind `isStripeTestMode()`. (Memory: `stripe-live-mode`.)
-- **§5.1 held:** no pricing/booking behavior changed; the AI brain is untouched.
 - Workflow unchanged: push to `main` → Vercel auto-deploys; prompt/tool changes
-  re-sync the live Retell agent lazily on the next call.
+  re-sync the live Retell agent lazily on the next call. The two flaw fixes bump
+  the prompt hash → the agent re-syncs on the first call after deploy.
+- Stripe stays **LIVE** in prod; `.env.local` stays **test**. (Memory:
+  `stripe-live-mode`.)
+- §5.1 held throughout — the AI never speaks an un-computed number (the dispatch
+  ETA is texted, not spoken).
