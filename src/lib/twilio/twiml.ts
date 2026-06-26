@@ -54,9 +54,19 @@ export function messageTwiml(text: string): string {
 /** Bridge the caller to the voice provider over SIP (M7). After the
  *  provider registers the call, Twilio dials its SIP URI; the provider
  *  matches the call by the id embedded in the URI and runs the AI. This
- *  is Retell's "dial to SIP URI" custom-telephony method. */
-export function dialSipTwiml(sipUri: string): string {
-  return `<Dial><Sip>${xmlEscape(sipUri)}</Sip></Dial>`;
+ *  is Retell's "dial to SIP URI" custom-telephony method.
+ *
+ *  `timeLimitSeconds` hard-caps the bridged leg — used by the demo call so
+ *  a test can never run up more than a couple of minutes of voice cost. */
+export function dialSipTwiml(sipUri: string, opts?: { timeLimitSeconds?: number }): string {
+  const limit = opts?.timeLimitSeconds ? ` timeLimit="${opts.timeLimitSeconds}"` : "";
+  return `<Dial${limit}><Sip>${xmlEscape(sipUri)}</Sip></Dial>`;
+}
+
+/** Speak a one-off line and hang up (graceful failure for the demo call
+ *  when the AI bridge can't be set up). */
+export function sayHangupTwiml(message: string): string {
+  return `<Say ${VOICE}>${xmlEscape(message)}</Say><Hangup/>`;
 }
 
 /** Forward the caller to a real phone (the §14 kill switch / cost-cap

@@ -16,6 +16,7 @@ import {
   searchAvailableNumbers,
   type AvailableNumber,
 } from "@/lib/twilio/numbers";
+import { placeDemoCall, type DemoError } from "@/lib/voice/demo";
 
 /** Only carded customers may provision (active or trialing — both have a
  *  card on file under our trial policy). past_due is excluded: fix billing
@@ -132,4 +133,39 @@ export async function claimNumber(phoneNumber: string): Promise<ClaimResult> {
   revalidatePath("/dashboard/numbers");
   revalidatePath("/dashboard/settings");
   return { ok: true, phone: finalNumber };
+}
+
+export type DemoCallResult = { ok: boolean; error?: string; to?: string };
+
+/** Human-readable copy for each demo failure reason. */
+const DEMO_ERROR_COPY: Record<DemoError, string> = {
+  not_configured: "Demo calls aren't available yet — phone service isn't fully set up.",
+  no_subscription: "Start a plan or free trial first, then you can test your AI.",
+  no_business: "Finish setting up your business, then try again.",
+  bad_number: "That doesn't look like a valid US phone number.",
+  rate_limited: "You've placed a test call recently — give it a minute and try again.",
+  capped: "Your usage cap was reached, so the AI is paused. Check Billing.",
+  call_failed: "We couldn't place the call. Double-check the number and try again.",
+};
+
+/**
+ * "Test my AI": ring the owner's phone and bridge them to their own AI
+ * receptionist. Owner/admin only; all margin/abuse gating (card on file,
+ * rate limits, cost caps) lives in placeDemoCall.
+ */
+export async function startDemoCall(toPhone: string): Promise<DemoCallResult> {
+  const { user, active } = await requireActiveOrg();
+  if (active.role !== "owner" && active.role !== "admin") {
+    return { ok: false, error: "Only an owner or admin can place a test call." };
+  }
+
+  const result = await placeDemoCall({
+    tenantId: active.organization_id,
+    actorUserId: user?.id,
+    toPhone,
+  });
+  if (!result.ok) {
+    return { ok: false, error: DEMO_ERROR_COPY[result.error] };
+  }
+  return { ok: true, to: result.to };
 }

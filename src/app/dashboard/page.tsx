@@ -193,7 +193,7 @@ export default async function DashboardPage() {
     { label: "Get your phone number", done: hasNumber, href: "/dashboard/numbers", required: true },
     { label: "Approve your prices", done: pricingApproved, href: "/dashboard/pricing", required: false },
     { label: "Connect your calendar", done: calendarConnected, href: "/dashboard/settings", required: false },
-    { label: "Place a test call", done: callsTotal > 0, href: "/dashboard/numbers/guide", required: true },
+    { label: "Place a test call", done: callsTotal > 0, href: "/dashboard/numbers#test-my-ai", required: true },
   ];
   const requiredDone = onboardingSteps.filter((s) => s.required).every((s) => s.done);
   const doneCount = onboardingSteps.filter((s) => s.done).length;
