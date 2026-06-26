@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   CheckCircle2,
   Globe,
+  Mail,
   MessageSquare,
   Phone,
   PhoneCall,
@@ -41,6 +42,7 @@ import {
   updateDispatchEta,
   updateReminders,
   updateTextBack,
+  updateWeeklyReport,
 } from "./actions";
 
 const DEFAULT_REMINDER_TEMPLATE =
@@ -109,7 +111,7 @@ export default async function SettingsPage({
       ? supabase
           .from("sms_settings")
           .select(
-            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key"
+            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes, weekly_report_enabled, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key"
           )
           .eq("business_id", business.id)
           .maybeSingle()
@@ -137,6 +139,7 @@ export default async function SettingsPage({
     DEFAULT_DISPATCH_TEMPLATE) as string;
   const etaBaseMinutes = (sms?.eta_base_minutes ?? 60) as number;
   const etaPerJobMinutes = (sms?.eta_per_job_minutes ?? 30) as number;
+  const weeklyReportEnabled = (sms?.weekly_report_enabled ?? true) as boolean;
   const cal = calendar as
     | { google_account_email: string | null; status: string; connected_at: string }
     | null;
@@ -538,6 +541,42 @@ export default async function SettingsPage({
               maxLength={480}
               aria-label="Dispatch confirmation message"
             />
+            <Button type="submit">Save</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Mail className="size-4 text-cyan" aria-hidden />
+            Weekly report email
+          </CardTitle>
+          <CardDescription>
+            Every Monday we email you a recap of what your AI did the past week —
+            calls answered, leads, bookings, missed calls recovered, and money
+            collected. A quick way to see your return at a glance.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={updateWeeklyReport} className="space-y-4">
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="weekly_report_enabled"
+                defaultChecked={weeklyReportEnabled}
+                className="mt-1 accent-cyan"
+              />
+              <span>
+                <span className="font-medium text-foreground">
+                  Email me a weekly recap
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Sent to your account email. We skip weeks with no activity, and
+                  every email has a one-click unsubscribe.
+                </span>
+              </span>
+            </label>
             <Button type="submit">Save</Button>
           </form>
         </CardContent>

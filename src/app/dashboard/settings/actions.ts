@@ -179,6 +179,32 @@ export async function updateDispatchEta(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/** Toggle the weekly value email (Later backlog). Members may manage their
+ *  own sms_settings (RLS). */
+export async function updateWeeklyReport(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const enabled = formData.get("weekly_report_enabled") === "on";
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  await supabase
+    .from("sms_settings")
+    .update({ weekly_report_enabled: enabled })
+    .eq("business_id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 /** Update omnichannel chat settings (Phase 10): website widget + two-way
  *  AI SMS. Members may manage their own sms_settings (RLS). */
 export async function updateChatSettings(formData: FormData) {

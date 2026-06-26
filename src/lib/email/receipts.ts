@@ -5,26 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { env } from "@/lib/env";
 
+import { ownerEmail } from "./owner";
 import { emailLayout, isEmailConfigured, sendEmail } from "./resend";
-
-/** The org owner's auth email, or null. */
-async function ownerEmail(
-  admin: SupabaseClient,
-  tenantId: string
-): Promise<string | null> {
-  const { data: ownerRow } = await admin
-    .from("organization_members")
-    .select("user_id")
-    .eq("organization_id", tenantId)
-    .eq("role", "owner")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  const ownerId = (ownerRow as { user_id?: string } | null)?.user_id;
-  if (!ownerId) return null;
-  const { data } = await admin.auth.admin.getUserById(ownerId);
-  return data.user?.email ?? null;
-}
 
 function money(cents: number | null | undefined, currency: string): string {
   const n = (cents ?? 0) / 100;

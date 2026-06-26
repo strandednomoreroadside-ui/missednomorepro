@@ -30,7 +30,7 @@ export type CallIntelMetrics = {
 
 const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 
-async function computeMetrics(
+export async function computeMetrics(
   admin: SupabaseClient,
   tenantId: string,
   sinceIso: string

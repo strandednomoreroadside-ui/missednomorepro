@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { sweepUsageAlerts } from "@/lib/billing/usage-alerts";
+import { sendWeeklyReports } from "@/lib/email/weekly-report";
 import { env } from "@/lib/env";
 import { generateWeeklyInsights } from "@/lib/insights/call-intelligence";
 import { processOutboundQueue } from "@/lib/sms/outbound-engine";
@@ -32,14 +33,18 @@ export async function GET(request: Request) {
     // idle tenants the per-call check wouldn't have reached.
     const alertsSwept = await sweepUsageAlerts(admin);
 
-    // Weekly Call Intelligence digests piggyback this daily cron (Vercel
-    // Hobby allows only 2 crons). Generate on Mondays for entitled tenants.
+    // Weekly work piggybacks this daily cron (Vercel Hobby allows only 2
+    // crons). On Mondays: generate Call Intelligence digests for entitled
+    // tenants FIRST, then email the weekly value recap to everyone active
+    // (the email reuses the digest the generation just produced).
     let insights = 0;
+    let weeklyEmails = 0;
     if (new Date().getUTCDay() === 1) {
       insights = await generateWeeklyInsights(admin);
+      weeklyEmails = await sendWeeklyReports(admin);
     }
 
-    return NextResponse.json({ ok: true, ...result, alertsSwept, insights });
+    return NextResponse.json({ ok: true, ...result, alertsSwept, insights, weeklyEmails });
   } catch (err) {
     const message = err instanceof Error ? err.message : "outbound run failed";
     console.error("[cron/outbound]", message);
