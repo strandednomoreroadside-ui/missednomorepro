@@ -133,7 +133,11 @@ export function Pricing() {
                 ))}
               </ul>
               <a
-                href={plan.monthly == null ? EARLY_ACCESS_MAILTO : "/signup"}
+                href={
+                  plan.monthly == null
+                    ? EARLY_ACCESS_MAILTO
+                    : `/signup?plan=${plan.name.toLowerCase()}`
+                }
                 className={cn(
                   "mt-5 inline-flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm font-semibold transition-all",
                   plan.popular

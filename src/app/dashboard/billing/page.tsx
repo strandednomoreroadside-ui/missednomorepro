@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import { getUsageSummary, type UsageStatus } from "@/lib/billing/usage";
 import { TRIAL_DAYS, TRIAL_VOICE_MINUTES, isTrialing, trialEndsAt } from "@/lib/billing/trial";
 import { isStripeTestMode } from "@/lib/billing/stripe";
 import { UsageMeter, type MeterStatus } from "@/components/billing/usage-meter";
+import { IntervalToggle } from "@/components/billing/interval-toggle";
 import { createClient } from "@/lib/supabase/server";
 
 import { addAddon, openBillingPortal, removeAddon, startCheckout } from "./actions";
@@ -83,6 +85,21 @@ export default async function BillingPage({
   const canceled = sp.canceled === "1";
   const addonSaved = sp.addon === "1";
 
+  // Plan deep-linked from the landing (?plan=growth, or the signup_plan cookie
+  // set at sign-up). Only highlight it while they have no plan yet.
+  const chosenRaw =
+    (typeof sp.plan === "string" ? sp.plan : "") ||
+    (await cookies()).get("signup_plan")?.value ||
+    "";
+  const highlightPlan =
+    plan === "none" && (PLAN_ORDER as readonly string[]).includes(chosenRaw)
+      ? (chosenRaw as (typeof PLAN_ORDER)[number])
+      : null;
+
+  // Monthly/annual picker state (mirrors the landing), URL-driven so this stays
+  // a server component.
+  const interval: "month" | "year" = sp.interval === "year" ? "year" : "month";
+
   // Trial state: granted on the first subscription only. firstTime drives the
   // "start free trial" CTA copy; trialing drives the active-trial banner.
   const trialing = isTrialing(sub);
@@ -114,6 +131,16 @@ export default async function BillingPage({
         {addonSaved && (
           <FormBanner kind="success">
             Add-ons updated. Your subscription was adjusted with prorated billing.
+          </FormBanner>
+        )}
+        {highlightPlan && (
+          <FormBanner kind="success">
+            You picked <strong>{PLAN_META[highlightPlan].name}</strong> — start your{" "}
+            {TRIAL_DAYS}-day free trial in the{" "}
+            <a href={`#plan-${highlightPlan}`} className="underline underline-offset-2">
+              highlighted plan
+            </a>{" "}
+            below.
           </FormBanner>
         )}
       </div>
@@ -211,9 +238,12 @@ export default async function BillingPage({
       )}
 
       {/* ── Plan picker ── */}
-      <h2 className="mt-10 font-display text-lg font-semibold">
-        {plan === "none" ? "Choose your plan" : "Change plan"}
-      </h2>
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="font-display text-lg font-semibold">
+          {plan === "none" ? "Choose your plan" : "Change plan"}
+        </h2>
+        <IntervalToggle interval={interval} />
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {firstTime && (
           <span className="text-foreground">
@@ -221,7 +251,7 @@ export default async function BillingPage({
             anytime before it ends and you&rsquo;re not charged.{" "}
           </span>
         )}
-        Annual billing saves 20%.
+        {interval === "year" ? "Annual billing saves 20%." : "Switch to annual to save 20%."}
         {testMode && (
           <>
             {" "}
@@ -235,14 +265,18 @@ export default async function BillingPage({
         {PLAN_ORDER.map((id) => {
           const meta = PLAN_META[id];
           const isCurrent = plan === id;
+          const isHighlight = id === highlightPlan;
           return (
             <div
               key={id}
-              className={`relative flex flex-col rounded-xl p-5 ${
+              id={`plan-${id}`}
+              className={`relative flex scroll-mt-24 flex-col rounded-xl p-5 ${
                 meta.popular && !isCurrent
                   ? "border-glow"
                   : "border border-border bg-card/60"
-              } ${isCurrent ? "border border-cyan/50" : ""}`}
+              } ${isCurrent ? "border border-cyan/50" : ""} ${
+                isHighlight ? "ring-2 ring-cyan/60" : ""
+              }`}
             >
               {meta.popular && !isCurrent && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
@@ -256,11 +290,15 @@ export default async function BillingPage({
               )}
               <h3 className="font-display text-lg font-semibold">{meta.name}</h3>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="font-display text-2xl font-bold">${meta.monthly}</span>
+                <span className="font-display text-2xl font-bold">
+                  ${interval === "year" ? meta.annualMonthly.toFixed(2) : meta.monthly}
+                </span>
                 <span className="text-xs text-muted-foreground">/mo</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                or ${meta.annualMonthly.toFixed(2)}/mo billed annually
+                {interval === "year"
+                  ? `billed annually ($${(meta.annualMonthly * 12).toFixed(0)}/yr)`
+                  : `or $${meta.annualMonthly.toFixed(2)}/mo billed annually`}
               </p>
               <ul className="mt-4 flex-1 space-y-1.5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
                 {meta.highlights.map((h) => (
@@ -273,20 +311,21 @@ export default async function BillingPage({
               {canManage && !isCurrent && (
                 <div className="mt-4 space-y-2">
                   <form action={startCheckout}>
-                    <input type="hidden" name="lookup_key" value={lookupKey(id, "month")} />
+                    <input type="hidden" name="lookup_key" value={lookupKey(id, interval)} />
                     <Button type="submit" className="w-full" size="sm">
-                      {firstTime ? `Start free trial` : `Monthly — $${meta.monthly}`}
-                    </Button>
-                  </form>
-                  <form action={startCheckout}>
-                    <input type="hidden" name="lookup_key" value={lookupKey(id, "year")} />
-                    <Button type="submit" variant="outline" className="w-full" size="sm">
-                      Annual — ${meta.annualMonthly.toFixed(2)}/mo
+                      {firstTime
+                        ? `Start free trial`
+                        : interval === "year"
+                          ? `Annual — $${meta.annualMonthly.toFixed(2)}/mo`
+                          : `Monthly — $${meta.monthly}`}
                     </Button>
                   </form>
                   {firstTime && (
                     <p className="text-center text-[11px] text-steel">
-                      {TRIAL_DAYS} days free, then ${meta.monthly}/mo
+                      {TRIAL_DAYS} days free, then{" "}
+                      {interval === "year"
+                        ? `$${(meta.annualMonthly * 12).toFixed(0)}/yr`
+                        : `$${meta.monthly}/mo`}
                     </p>
                   )}
                 </div>

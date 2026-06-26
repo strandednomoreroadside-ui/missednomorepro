@@ -21,6 +21,7 @@ import {
   Wand2,
 } from "lucide-react";
 
+import { PaymentFailedBanner } from "@/components/billing/payment-failed-banner";
 import { Logo } from "@/components/brand/logo";
 import { LegalFooter } from "@/components/legal-footer";
 import { Button } from "@/components/ui/button";
@@ -228,6 +229,7 @@ export default async function DashboardLayout({
             </form>
           </div>
         </header>
+        <PaymentFailedBanner tenantId={active.organization_id} />
         <main className="flex-1 p-6 lg:p-8">{children}</main>
         <LegalFooter />
       </div>

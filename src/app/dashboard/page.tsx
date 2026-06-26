@@ -94,6 +94,32 @@ export default async function DashboardPage() {
       .gte("paid_at", since),
   ]);
 
+  // Onboarding signals (number claimed, pricing approved, calendar connected).
+  const businessId = business?.id as string | undefined;
+  const [{ count: numberCount }, { data: pricingRow }, { data: calRow }] = await Promise.all([
+    supabase
+      .from("phone_numbers")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", active.organization_id),
+    businessId
+      ? supabase
+          .from("pricing_settings")
+          .select("approved_at")
+          .eq("business_id", businessId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    businessId
+      ? supabase
+          .from("calendar_connections")
+          .select("status")
+          .eq("business_id", businessId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const hasNumber = (numberCount ?? 0) > 0;
+  const pricingApproved = Boolean((pricingRow as { approved_at: string | null } | null)?.approved_at);
+  const calendarConnected = (calRow as { status: string } | null)?.status === "connected";
+
   // Derive call KPIs.
   const calls = (callRows ?? []) as { ai_handled: boolean; disposition: string | null }[];
   const callsTotal = calls.length;
@@ -158,6 +184,20 @@ export default async function DashboardPage() {
     console.error("[dashboard] billing lookup failed:", err);
   }
 
+  // Getting-started checklist. Hides once the REQUIRED steps are done; the two
+  // optional steps (pricing, calendar) are only relevant if the business quotes
+  // or books, so they don't keep the card nagging forever.
+  const onboardingSteps = [
+    { label: "Choose your plan", done: planName !== null, href: "/dashboard/billing", required: true },
+    { label: "Finish setup & go live", done: isLive, href: "/dashboard/setup", required: true },
+    { label: "Get your phone number", done: hasNumber, href: "/dashboard/numbers", required: true },
+    { label: "Approve your prices", done: pricingApproved, href: "/dashboard/pricing", required: false },
+    { label: "Connect your calendar", done: calendarConnected, href: "/dashboard/settings", required: false },
+    { label: "Place a test call", done: callsTotal > 0, href: "/dashboard/numbers/guide", required: true },
+  ];
+  const requiredDone = onboardingSteps.filter((s) => s.required).every((s) => s.done);
+  const doneCount = onboardingSteps.filter((s) => s.done).length;
+
   return (
     <div className="mx-auto max-w-5xl">
       <h1 className="font-display text-2xl font-bold tracking-tight">
@@ -214,6 +254,56 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Getting-started checklist — until the core steps are done */}
+      {!requiredDone && (
+        <Card className="mt-4 bg-card/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between font-display text-base">
+              Getting started
+              <span className="font-mono text-xs text-steel">
+                {doneCount}/{onboardingSteps.length} done
+              </span>
+            </CardTitle>
+            <CardDescription>
+              A few quick steps to get your AI receptionist live and earning.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2.5">
+              {onboardingSteps.map((step) => (
+                <li key={step.label} className="flex items-center gap-2.5 text-sm">
+                  {step.done ? (
+                    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-success/40 bg-success/10">
+                      <Check className="size-3 text-success" strokeWidth={3} aria-hidden />
+                    </span>
+                  ) : (
+                    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-border/70 bg-night/40 text-[10px] font-mono text-steel/70">
+                      ○
+                    </span>
+                  )}
+                  <span className={step.done ? "text-muted-foreground line-through" : "text-foreground"}>
+                    {step.label}
+                  </span>
+                  {!step.required && (
+                    <span className="rounded-full border border-border/60 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-steel">
+                      optional
+                    </span>
+                  )}
+                  {!step.done && (
+                    <Link
+                      href={step.href}
+                      className="ml-auto rounded-full border border-cyan/30 px-2.5 py-0.5 text-xs text-cyan transition-colors hover:bg-cyan/10"
+                    >
+                      Do it →
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k) => (

@@ -130,6 +130,7 @@ export async function runStripeSetup() {
   const WEBHOOK_EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
     "checkout.session.completed",
     "invoice.paid",
+    "invoice.payment_failed",
     "customer.subscription.created",
     "customer.subscription.updated",
     "customer.subscription.deleted",

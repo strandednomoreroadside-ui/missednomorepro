@@ -15,7 +15,10 @@ We give you a local phone number that the AI answers directly. Nothing to
 configure on your end.
 
 **How it works**
-1. We assign you a local number (you'll see it under **Dashboard → Numbers**).
+1. In **Dashboard → Numbers**, search an area code and click **Claim** — the
+   number is set up instantly and included with your plan. *(There's also an
+   in-app version of this guide at Dashboard → Numbers → "Set up / forward your
+   number.")*
 2. Start using it: put it on your website, Google Business Profile, business
    cards, truck wraps, and ads.
 3. Every call to that number is answered by your AI receptionist 24/7.

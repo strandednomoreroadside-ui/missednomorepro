@@ -464,9 +464,17 @@ const notifyStaff = defineTool(
       });
       if (r.sent) sent += 1;
     }
+
+    // Immediate "come now" dispatch (urgency high/emergency, phone calls only):
+    // open a dispatch job and text the CUSTOMER a confirmation + arrival ETA.
+    let dispatch: Record<string, unknown> | null = null;
+    if ((urgency === "high" || urgency === "emergency") && ctx.channel === "voice" && ctx.callId) {
+      dispatch = await dispatchEtaToCustomer(ctx, args.summary);
+    }
+
     return {
       status: "ok",
-      data: { notified: sent > 0, staff_count: staff.length, sent },
+      data: { notified: sent > 0, staff_count: staff.length, sent, ...(dispatch ? { dispatch } : {}) },
     };
   }
 );
@@ -1730,6 +1738,141 @@ const findTowDestinationTool = defineTool(
     return { status: "ok", data: { ok: true, options, say } };
   }
 );
+
+// ── immediate-dispatch confirmation + arrival ETA ──────────────
+
+/** Spoken/text-friendly ETA: "about 45 minutes", "about 1 hour",
+ *  "about 1.5 hours", "about 2 hours 15 minutes". */
+function formatEta(min: number): string {
+  if (min < 60) return `about ${min} minutes`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (m === 0) return `about ${h} hour${h === 1 ? "" : "s"}`;
+  if (m === 30) return `about ${h}.5 hours`;
+  return `about ${h} hour${h === 1 ? "" : "s"} ${m} minutes`;
+}
+
+/**
+ * On an immediate dispatch, create the job and text the caller a confirmation
+ * with a rough arrival ETA derived from how busy the team is today:
+ *
+ *   ETA = base + per_job × (open jobs already on today's board)
+ *
+ * Both factors are tunable per business (sms_settings; defaults 60 + 30).
+ * Idempotent per call via calls.dispatch_eta_sent_at (first-writer-wins), so
+ * a second notify_staff in the same call can't double-book or double-text.
+ * The confirmation is transactional (they called us for service) so it goes
+ * out regardless of marketing consent — STOP still wins.
+ */
+async function dispatchEtaToCustomer(
+  ctx: ToolContext,
+  summary: string
+): Promise<Record<string, unknown>> {
+  // Claim the dispatch for this call — only the first writer proceeds.
+  const { data: claimed } = await ctx.admin
+    .from("calls")
+    .update({ dispatch_eta_sent_at: new Date().toISOString() })
+    .eq("id", ctx.callId as string)
+    .eq("tenant_id", ctx.tenantId)
+    .is("dispatch_eta_sent_at", null)
+    .select("id");
+  if (!claimed?.length) return { skipped: "already_dispatched" };
+
+  const business = await resolveBusiness(ctx);
+  if (!business) return { skipped: "no_business" };
+  const tz = business.timezone;
+
+  const { data: settings } = await ctx.admin
+    .from("sms_settings")
+    .select(
+      "dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes"
+    )
+    .eq("business_id", business.id)
+    .maybeSingle();
+  const base = (settings?.eta_base_minutes as number | null) ?? 60;
+  const perJob = (settings?.eta_per_job_minutes as number | null) ?? 30;
+  const textEnabled = (settings?.dispatch_confirmation_enabled as boolean | null) ?? true;
+
+  // Count open jobs happening today (the queue ahead of this caller) BEFORE we
+  // add this one. "Today" is the business's local day; unscheduled now-jobs count.
+  const today = todayInZone(tz);
+  const tomorrow = addDays(today, 1);
+  const startUtc = zonedTimeToUtc(today.year, today.month, today.day, 0, 0, tz).toISOString();
+  const endUtc = zonedTimeToUtc(tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, tz).toISOString();
+  const { count: aheadCount } = await ctx.admin
+    .from("jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", ctx.tenantId)
+    .eq("business_id", business.id)
+    .in("status", ["new", "scheduled", "in_progress"])
+    .or(`scheduled_for.is.null,and(scheduled_for.gte.${startUtc},scheduled_for.lt.${endUtc})`);
+  const jobsAhead = aheadCount ?? 0;
+  const etaMinutes = base + perJob * jobsAhead;
+
+  const contactId = await resolveCallerContactId(ctx);
+
+  // Open the dispatch job so it shows on the board AND counts for the next caller.
+  const { data: job } = await ctx.admin
+    .from("jobs")
+    .insert({
+      tenant_id: ctx.tenantId,
+      business_id: business.id,
+      contact_id: contactId,
+      title: (summary || "Roadside service request").slice(0, 120),
+      status: "scheduled",
+      scheduled_for: new Date().toISOString(),
+      source: "ai",
+    })
+    .select("id")
+    .single();
+
+  // Text the caller their confirmation + ETA (transactional; STOP still wins).
+  let smsSent = false;
+  if (textEnabled && ctx.fromNumber) {
+    let name = "there";
+    if (contactId) {
+      const { data: contact } = await ctx.admin
+        .from("contacts")
+        .select("name")
+        .eq("id", contactId)
+        .eq("tenant_id", ctx.tenantId)
+        .maybeSingle();
+      if (contact?.name) name = String(contact.name).split(/\s+/)[0];
+    }
+    const template =
+      (settings?.dispatch_confirmation_template as string | undefined) ??
+      "Thanks {name}! {business} is on the way. Estimated arrival: {eta}. We'll call if anything changes. Reply STOP to opt out.";
+    const body = template
+      .replaceAll("{name}", name)
+      .replaceAll("{business}", ctx.businessName)
+      .replaceAll("{eta}", formatEta(etaMinutes));
+    const res = await sendCustomerSms(ctx.admin, {
+      tenantId: ctx.tenantId,
+      businessId: business.id,
+      contactId,
+      toPhone: ctx.fromNumber,
+      body,
+      kind: "confirmation",
+      requireConsent: false,
+    });
+    smsSent = res.sent;
+  }
+
+  await logAudit({
+    tenantId: ctx.tenantId,
+    action: "voice.dispatch_eta",
+    entityType: "call",
+    entityId: ctx.callId ?? undefined,
+    metadata: { jobsAhead, etaMinutes, jobId: job?.id ?? null, smsSent },
+  });
+
+  return {
+    eta_minutes: etaMinutes,
+    jobs_ahead: jobsAhead,
+    job_id: job?.id ?? null,
+    confirmation_text_sent: smsSent,
+  };
+}
 
 export const TOOLS: Record<VoiceToolName, ToolImpl> = {
   lookup_contact: lookupContact,

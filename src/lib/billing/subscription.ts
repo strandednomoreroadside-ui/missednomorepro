@@ -15,6 +15,9 @@ export type SubscriptionRow = {
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   overage_enabled: boolean;
+  /** Start of the current dunning cycle — set on the first failed renewal
+   *  charge, cleared when a charge succeeds. Drives the in-app banner. */
+  payment_failed_at: string | null;
 };
 
 export type PlanLimits = {

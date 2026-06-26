@@ -138,6 +138,47 @@ export async function updateReminders(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/**
+ * Update the immediate-dispatch confirmation + ETA settings. The ETA the
+ * caller is texted = base + per-job × (open jobs on today's board). Members
+ * may manage their own sms_settings (RLS).
+ */
+export async function updateDispatchEta(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const enabled = formData.get("dispatch_confirmation_enabled") === "on";
+  const template = String(formData.get("dispatch_confirmation_template") ?? "").trim();
+  const baseRaw = Number(formData.get("eta_base_minutes"));
+  const perJobRaw = Number(formData.get("eta_per_job_minutes"));
+  const baseMinutes =
+    Number.isFinite(baseRaw) && baseRaw >= 0 && baseRaw <= 1440 ? Math.round(baseRaw) : null;
+  const perJobMinutes =
+    Number.isFinite(perJobRaw) && perJobRaw >= 0 && perJobRaw <= 240 ? Math.round(perJobRaw) : null;
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  const patch: Record<string, unknown> = { dispatch_confirmation_enabled: enabled };
+  if (template) patch.dispatch_confirmation_template = template;
+  if (baseMinutes != null) patch.eta_base_minutes = baseMinutes;
+  if (perJobMinutes != null) patch.eta_per_job_minutes = perJobMinutes;
+
+  await supabase
+    .from("sms_settings")
+    .update(patch)
+    .eq("business_id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 /** Update omnichannel chat settings (Phase 10): website widget + two-way
  *  AI SMS. Members may manage their own sms_settings (RLS). */
 export async function updateChatSettings(formData: FormData) {

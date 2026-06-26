@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { syncSubscription } from "@/lib/billing/sync";
+import { clearPaymentFailed, handlePaymentFailed } from "@/lib/billing/dunning";
 import { sendPaymentReceipt, sendSubscriptionReceipt } from "@/lib/email/receipts";
 
 /**
@@ -74,8 +75,17 @@ export async function POST(req: Request) {
         break;
       }
       case "invoice.paid": {
-        // Subscription charge succeeded (first + renewals) → email a receipt.
-        await sendSubscriptionReceipt(admin, event.data.object as Stripe.Invoice);
+        // Subscription charge succeeded (first + renewals) → email a receipt
+        // AND clear any dunning flag (the customer recovered).
+        const invoice = event.data.object as Stripe.Invoice;
+        await sendSubscriptionReceipt(admin, invoice);
+        await clearPaymentFailed(admin, invoice);
+        break;
+      }
+      case "invoice.payment_failed": {
+        // A renewal charge failed → flag it + email the customer to update
+        // their card before Stripe's retries run out.
+        await handlePaymentFailed(admin, event.data.object as Stripe.Invoice);
         break;
       }
       case "customer.subscription.created":

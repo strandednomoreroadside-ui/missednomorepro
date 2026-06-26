@@ -1,7 +1,31 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {};
+/**
+ * Baseline security response headers (defense-in-depth, alongside the
+ * Supabase Pro hardening). Deliberately conservative — no Content-Security-
+ * Policy here, since a strict CSP would break Next.js inline bootstrap +
+ * Sentry without careful nonce work; that's a separate, tested change.
+ *   - HSTS: force HTTPS for 2y (prod is already HTTPS end-to-end).
+ *   - nosniff: stop MIME-type sniffing.
+ *   - SAMEORIGIN: block clickjacking (we never frame ourselves cross-site;
+ *     the chat widget injects a div on the customer's page, not an iframe).
+ *   - Referrer-Policy: don't leak full URLs (which can carry tokens) off-site.
+ *   - Permissions-Policy: deny powerful browser features we never use.
+ */
+const SECURITY_HEADERS = [
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+];
+
+const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
+};
 
 export default withSentryConfig(nextConfig, {
   // For all available options, see:

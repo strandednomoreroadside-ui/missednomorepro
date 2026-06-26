@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Phone,
   PhoneCall,
+  Truck,
   TriangleAlert,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ import {
   updateAiSwitch,
   updateBookingConfirmation,
   updateChatSettings,
+  updateDispatchEta,
   updateReminders,
   updateTextBack,
 } from "./actions";
@@ -59,6 +61,8 @@ const DEFAULT_TEMPLATE =
   "Hi! Thanks for calling {business}. Sorry we missed you — text us back here and we'll help right away. Reply STOP to opt out.";
 const DEFAULT_BOOKING_TEMPLATE =
   "You're booked with {business} for {time}. Reply STOP to opt out.";
+const DEFAULT_DISPATCH_TEMPLATE =
+  "Thanks {name}! {business} is on the way. Estimated arrival: {eta}. We'll call if anything changes. Reply STOP to opt out.";
 
 const CALENDAR_BANNERS: Record<string, { ok: boolean; text: string }> = {
   connected: { ok: true, text: "Google Calendar connected — your AI can now book appointments." },
@@ -105,7 +109,7 @@ export default async function SettingsPage({
       ? supabase
           .from("sms_settings")
           .select(
-            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key"
+            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key"
           )
           .eq("business_id", business.id)
           .maybeSingle()
@@ -128,6 +132,11 @@ export default async function SettingsPage({
   const reminderLeadHours = (sms?.reminder_lead_hours ?? 24) as number;
   const reminderTemplate = (sms?.reminder_template ??
     DEFAULT_REMINDER_TEMPLATE) as string;
+  const dispatchEnabled = (sms?.dispatch_confirmation_enabled ?? true) as boolean;
+  const dispatchTemplate = (sms?.dispatch_confirmation_template ??
+    DEFAULT_DISPATCH_TEMPLATE) as string;
+  const etaBaseMinutes = (sms?.eta_base_minutes ?? 60) as number;
+  const etaPerJobMinutes = (sms?.eta_per_job_minutes ?? 30) as number;
   const cal = calendar as
     | { google_account_email: string | null; status: string; connected_at: string }
     | null;
@@ -452,6 +461,82 @@ export default async function SettingsPage({
               rows={3}
               maxLength={480}
               aria-label="Text-back message"
+            />
+            <Button type="submit">Save</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Truck className="size-4 text-cyan" aria-hidden />
+            Dispatch confirmation &amp; ETA
+          </CardTitle>
+          <CardDescription>
+            When the AI dispatches you for an urgent &ldquo;come now&rdquo; call, the
+            caller gets a text confirming help is on the way with a rough arrival
+            time. The estimate is <strong>base + per-job × (open jobs on today&rsquo;s
+            board)</strong>, so it reflects how busy you are. Use{" "}
+            <code className="text-cyan">{"{name}"}</code>,{" "}
+            <code className="text-cyan">{"{business}"}</code>, and{" "}
+            <code className="text-cyan">{"{eta}"}</code>. STOP always wins.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={updateDispatchEta} className="space-y-4">
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="dispatch_confirmation_enabled"
+                defaultChecked={dispatchEnabled}
+                className="mt-1 accent-cyan"
+              />
+              <span>
+                <span className="font-medium text-foreground">
+                  Text an arrival ETA on dispatch
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  A job is still created on your dispatch board even if this is off.
+                </span>
+              </span>
+            </label>
+            <div className="flex flex-wrap gap-4">
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Base minutes</span>
+                <Input
+                  type="number"
+                  name="eta_base_minutes"
+                  min={0}
+                  max={1440}
+                  defaultValue={etaBaseMinutes}
+                  className="mt-1 w-28"
+                  aria-label="ETA base minutes"
+                />
+                <span className="mt-1 block text-xs text-steel">Minimum arrival time.</span>
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Minutes per job ahead</span>
+                <Input
+                  type="number"
+                  name="eta_per_job_minutes"
+                  min={0}
+                  max={240}
+                  defaultValue={etaPerJobMinutes}
+                  className="mt-1 w-28"
+                  aria-label="ETA minutes per job ahead"
+                />
+                <span className="mt-1 block text-xs text-steel">
+                  Added for each open job already on today&rsquo;s board.
+                </span>
+              </label>
+            </div>
+            <Textarea
+              name="dispatch_confirmation_template"
+              defaultValue={dispatchTemplate}
+              rows={3}
+              maxLength={480}
+              aria-label="Dispatch confirmation message"
             />
             <Button type="submit">Save</Button>
           </form>

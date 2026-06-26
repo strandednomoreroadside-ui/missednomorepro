@@ -1,8 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { PLAN_ORDER } from "@/lib/billing/plans";
 import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 
@@ -61,6 +62,22 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+
+  // Carry a plan deep-linked from the landing (/signup?plan=growth) across the
+  // email-confirm + onboarding hops in a short-lived cookie, so the billing
+  // page can pre-highlight it. Only known self-serve plans are honored.
+  const plan = String(formData.get("plan") ?? "");
+  if ((PLAN_ORDER as readonly string[]).includes(plan)) {
+    const cookieStore = await cookies();
+    cookieStore.set("signup_plan", plan, {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60, // 1h — enough to finish onboarding + land on billing
+    });
+  }
+
   // Email confirmation off → session exists, go straight to onboarding.
   if (data.session) redirect("/onboarding");
   // Email confirmation on → tell them to check their inbox.

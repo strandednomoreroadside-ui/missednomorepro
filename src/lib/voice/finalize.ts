@@ -4,8 +4,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { encryptText } from "@/lib/crypto";
 import { redactPii } from "@/lib/redact";
+import { formatUsPhone } from "@/lib/phone";
 import { recordUsage } from "@/lib/billing/usage";
 import { checkAndSendUsageAlerts } from "@/lib/billing/usage-alerts";
+import { sendStaffSms } from "@/lib/sms/outbound";
 
 import type { CallAnalysis } from "./types";
 
@@ -70,6 +72,99 @@ function deriveDisposition(
   }
   if ((durationSeconds ?? 0) < 15) return "abandoned";
   return "no_action";
+}
+
+/** Dispositions that mean a real lead the staff should hear about. */
+const LEAD_DISPOSITIONS = new Set(["lead", "booked", "escalated"]);
+
+/**
+ * Deterministic staff "new lead" text — the backstop for the regression
+ * where the AI, on a busy prompt, finishes a lead/booked call WITHOUT ever
+ * calling notify_staff. If the AI already alerted staff (notify_staff or
+ * escalate_to_human ran), we don't duplicate. staff_alerted_at is claimed
+ * first-writer-wins so webhook retries can't double-text.
+ *
+ * calls has no business_id, so we scope to the tenant's first business
+ * (every current tenant is single-business) for the name + staff list.
+ */
+async function backstopStaffAlert(
+  admin: SupabaseClient,
+  call: CallRow,
+  disposition: string,
+  toolNames: string[],
+  summary: string | null
+): Promise<void> {
+  if (!LEAD_DISPOSITIONS.has(disposition)) return;
+  if (toolNames.includes("notify_staff") || toolNames.includes("escalate_to_human")) return;
+
+  // Claim the send — only the first writer proceeds (retry-safe).
+  const { data: claimed } = await admin
+    .from("calls")
+    .update({ staff_alerted_at: new Date().toISOString() })
+    .eq("id", call.id)
+    .eq("tenant_id", call.tenant_id)
+    .is("staff_alerted_at", null)
+    .select("id");
+  if (!claimed?.length) return;
+
+  const { data: business } = await admin
+    .from("businesses")
+    .select("id, name")
+    .eq("tenant_id", call.tenant_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const businessName = (business?.name as string | null) ?? "your business";
+
+  let staffQuery = admin
+    .from("staff_contacts")
+    .select("phone")
+    .eq("tenant_id", call.tenant_id)
+    .eq("notify_on_lead", true);
+  if (business?.id) staffQuery = staffQuery.eq("business_id", business.id);
+  const { data: staff } = await staffQuery;
+  if (!staff?.length) return;
+
+  let who = "A caller";
+  let phone = "";
+  if (call.contact_id) {
+    const { data: contact } = await admin
+      .from("contacts")
+      .select("name, phone")
+      .eq("id", call.contact_id)
+      .eq("tenant_id", call.tenant_id)
+      .maybeSingle();
+    if (contact?.name) who = contact.name as string;
+    if (contact?.phone) phone = contact.phone as string;
+  }
+
+  let need = "";
+  if (call.contact_id) {
+    const { data: lead } = await admin
+      .from("leads")
+      .select("service_needed")
+      .eq("tenant_id", call.tenant_id)
+      .eq("contact_id", call.contact_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lead?.service_needed) need = ` · ${lead.service_needed as string}`;
+  }
+
+  const prefix =
+    disposition === "booked" ? "New booking" : disposition === "escalated" ? "URGENT" : "New lead";
+  const summaryPart = summary ? ` ${summary.slice(0, 120)}` : "";
+  const callbackPart = phone ? ` Call back: ${formatUsPhone(phone)}` : "";
+  const body = `${prefix} — ${businessName}. ${who}${need}.${summaryPart}${callbackPart}`.slice(0, 480);
+
+  for (const s of staff) {
+    await sendStaffSms(admin, {
+      tenantId: call.tenant_id,
+      businessId: (business?.id as string | undefined) ?? null,
+      toPhone: s.phone as string,
+      body,
+    });
+  }
 }
 
 /** Meter call minutes exactly once per call (idempotent by source_id). */
@@ -235,5 +330,14 @@ export async function applyCallAnalysis(
         },
       });
     }
+  }
+
+  // Guarantee a staff lead text even when the AI forgot to call notify_staff
+  // (best-effort, idempotent; never blocks finalization).
+  try {
+    const toolNames = ((toolCalls as { tool_name: string }[]) ?? []).map((t) => t.tool_name);
+    await backstopStaffAlert(admin, call, disposition, toolNames, analysis.summary ?? null);
+  } catch (err) {
+    console.error("[finalize] backstop staff alert failed:", err);
   }
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormBanner } from "@/components/form-banner";
+import { PLAN_META, PLAN_ORDER } from "@/lib/billing/plans";
 import { signUp } from "../actions";
 
 export const metadata: Metadata = { title: "Create your account" };
@@ -19,6 +20,13 @@ export default async function SignupPage({
   const sp = await searchParams;
   const error = typeof sp.error === "string" ? sp.error : undefined;
   const sent = sp.sent === "1";
+  // Plan deep-linked from the landing pricing (?plan=growth) — only a known
+  // self-serve plan is carried through to checkout.
+  const plan =
+    typeof sp.plan === "string" && (PLAN_ORDER as readonly string[]).includes(sp.plan)
+      ? sp.plan
+      : undefined;
+  const planName = plan ? PLAN_META[plan as (typeof PLAN_ORDER)[number]].name : null;
 
   return (
     <div>
@@ -26,7 +34,14 @@ export default async function SignupPage({
         Create your account
       </h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
-        Your phones answered 24/7 — let&rsquo;s get you set up.
+        {planName ? (
+          <>
+            Starting your <span className="font-medium text-foreground">{planName}</span>{" "}
+            free trial — let&rsquo;s create your account first.
+          </>
+        ) : (
+          <>Your phones answered 24/7 — let&rsquo;s get you set up.</>
+        )}
       </p>
 
       <div className="mt-6">
@@ -38,6 +53,7 @@ export default async function SignupPage({
           </FormBanner>
         )}
         <form action={signUp} className="space-y-4">
+          {plan && <input type="hidden" name="plan" value={plan} />}
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input
