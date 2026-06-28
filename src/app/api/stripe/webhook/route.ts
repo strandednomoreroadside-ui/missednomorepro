@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { syncSubscription } from "@/lib/billing/sync";
 import { clearPaymentFailed, handlePaymentFailed } from "@/lib/billing/dunning";
 import { sendPaymentReceipt, sendSubscriptionReceipt } from "@/lib/email/receipts";
+import { emitWebhookEvent } from "@/lib/webhooks";
 
 /**
  * Stripe webhook (master plan §9): signature-verified and idempotent.
@@ -68,6 +69,20 @@ export async function POST(req: Request) {
               })
               .eq("id", paymentId)
               .eq("tenant_id", tenantId);
+
+            // Outbound webhook (integration escape hatch) — fires only if an
+            // endpoint subscribes.
+            await emitWebhookEvent({
+              tenantId,
+              businessId: session.metadata?.business_id ?? null,
+              event: "payment.received",
+              data: {
+                payment_id: paymentId,
+                amount: (session.amount_total ?? 0) / 100,
+                currency: session.currency ?? "usd",
+                contact_id: session.metadata?.contact_id ?? null,
+              },
+            });
           }
           // Receipt to the payer (best-effort; no-ops if Resend is off).
           await sendPaymentReceipt(session);

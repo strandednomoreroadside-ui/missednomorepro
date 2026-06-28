@@ -10,6 +10,7 @@ import { getOrigin } from "@/lib/request";
 import { sendCustomerSms } from "@/lib/sms/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { emitWebhookEvent } from "@/lib/webhooks";
 
 const text = (formData: FormData, key: string) =>
   String(formData.get(key) ?? "").trim();
@@ -208,16 +209,34 @@ export async function createLead(formData: FormData) {
   const back = `/dashboard/contacts/${contactId}`;
   const urgency = text(formData, "urgency");
 
-  const { error } = await supabase.from("leads").insert({
-    tenant_id: active.organization_id,
-    contact_id: contactId,
-    source: "manual",
-    service_needed: text(formData, "service_needed") || null,
-    urgency: ["low", "normal", "high", "emergency"].includes(urgency)
-      ? urgency
-      : null,
-  });
+  const serviceNeeded = text(formData, "service_needed") || null;
+  const { data: created, error } = await supabase
+    .from("leads")
+    .insert({
+      tenant_id: active.organization_id,
+      contact_id: contactId,
+      source: "manual",
+      service_needed: serviceNeeded,
+      urgency: ["low", "normal", "high", "emergency"].includes(urgency)
+        ? urgency
+        : null,
+    })
+    .select("id")
+    .maybeSingle();
   if (error) failTo(back, error.message);
+
+  // Outbound webhook (integration escape hatch) — only if subscribed. Before
+  // redirect (redirect throws by design).
+  await emitWebhookEvent({
+    tenantId: active.organization_id,
+    event: "lead.created",
+    data: {
+      lead_id: (created as { id?: string } | null)?.id ?? null,
+      contact_id: contactId,
+      service_needed: serviceNeeded,
+      source: "manual",
+    },
+  });
 
   redirect(`${back}?saved=1`);
 }

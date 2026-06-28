@@ -19,6 +19,7 @@ import {
   UserPlus,
   Users,
   Wand2,
+  Webhook,
 } from "lucide-react";
 
 import { PaymentFailedBanner } from "@/components/billing/payment-failed-banner";
@@ -157,6 +158,13 @@ export default async function DashboardLayout({
           >
             <Hash className="size-4" aria-hidden />
             Numbers
+          </Link>
+          <Link
+            href="/dashboard/integrations"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Webhook className="size-4" aria-hidden />
+            Integrations
           </Link>
           <Link
             href="/dashboard/billing"

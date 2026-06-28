@@ -6,6 +6,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { advanceLead } from "@/lib/crm/pipeline";
 import { enqueueFollowup } from "@/lib/sms/outbound-engine";
+import { emitWebhookEvent } from "@/lib/webhooks";
 import {
   computeAvailableSlots,
   isWithinBusinessHours,
@@ -1014,6 +1015,22 @@ const bookAppointment = defineTool(
         when: start.toISOString(),
         googleSynced: Boolean(googleEventId),
         jobId: job?.id ?? null,
+      },
+    });
+
+    // Outbound webhook (integration escape hatch) — only if subscribed.
+    await emitWebhookEvent({
+      tenantId: ctx.tenantId,
+      businessId: business.id,
+      event: "appointment.booked",
+      data: {
+        appointment_id: appt.id,
+        job_id: job?.id ?? null,
+        contact_id: contactId,
+        title: args.title,
+        starts_at: start.toISOString(),
+        when: label,
+        location: args.location ?? null,
       },
     });
 

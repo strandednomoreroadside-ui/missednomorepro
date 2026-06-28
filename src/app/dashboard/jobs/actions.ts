@@ -8,6 +8,7 @@ import { requestReview } from "@/lib/reputation/review";
 import { enqueueFollowup } from "@/lib/sms/outbound-engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { emitWebhookEvent } from "@/lib/webhooks";
 
 const JOB_STATUSES = ["new", "scheduled", "in_progress", "completed", "canceled"];
 
@@ -100,6 +101,15 @@ export async function updateJobStatus(formData: FormData): Promise<void> {
         jobId,
       });
     }
+
+    // Outbound webhook (integration escape hatch) — fires only if an endpoint
+    // subscribes; off the critical path.
+    await emitWebhookEvent({
+      tenantId,
+      businessId: job.business_id,
+      event: "job.completed",
+      data: { job_id: jobId, contact_id: job.contact_id },
+    });
   }
 
   revalidatePath("/dashboard/jobs");

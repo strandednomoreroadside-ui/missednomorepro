@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { emitWebhookEvent } from "@/lib/webhooks";
+
 /**
  * Lead pipeline (vision stages). The AI auto-advances a lead as it quotes,
  * books, and as jobs complete; staff move it manually on the board.
@@ -84,11 +86,27 @@ export async function advanceLead(
     if (fields?.estimatedValue != null) patch.estimated_value = fields.estimatedValue;
 
     if (!lead) {
-      await admin.from("leads").insert({
-        tenant_id: tenantId,
-        contact_id: contactId,
-        source: "call",
-        ...patch,
+      const { data: created } = await admin
+        .from("leads")
+        .insert({
+          tenant_id: tenantId,
+          contact_id: contactId,
+          source: "call",
+          ...patch,
+        })
+        .select("id")
+        .maybeSingle();
+      // Outbound webhook (integration escape hatch) — only if subscribed.
+      await emitWebhookEvent({
+        tenantId,
+        event: "lead.created",
+        data: {
+          lead_id: (created as { id?: string } | null)?.id ?? null,
+          contact_id: contactId,
+          service_needed: fields?.service ?? null,
+          source: "call",
+          stage: toStage,
+        },
       });
       return;
     }
