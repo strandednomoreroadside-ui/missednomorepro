@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { deliverOne } from "@/lib/webhooks/deliver";
 import { TEST_EVENT, WEBHOOK_EVENTS } from "@/lib/webhooks/events";
+import { isSafeWebhookUrl } from "@/lib/webhooks/url-guard";
 
 /**
  * Webhook endpoint management (the Zapier escape hatch, Professional+ via the
@@ -34,8 +35,8 @@ export async function addWebhook(formData: FormData): Promise<void> {
   if (!g) return;
 
   const url = String(formData.get("url") ?? "").trim();
-  // HTTPS only — we POST tenant data to it.
-  if (!/^https:\/\/.+/i.test(url) || url.length > 2048) return;
+  // HTTPS only + no internal/loopback targets (SSRF guard).
+  if (url.length > 2048 || !isSafeWebhookUrl(url)) return;
 
   const label = String(formData.get("label") ?? "").trim().slice(0, 80) || null;
   const events = WEBHOOK_EVENTS.filter((e) => formData.get(`event_${e}`) === "on");

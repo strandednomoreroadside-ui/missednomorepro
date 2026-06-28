@@ -4,6 +4,8 @@ import { createHmac } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { isSafeWebhookUrl } from "./url-guard";
+
 /**
  * Webhook delivery: POST the signed payload to a customer endpoint, record
  * the result, and schedule a backoff retry on failure. The immediate attempt
@@ -59,6 +61,20 @@ export async function deliverOne(admin: SupabaseClient, deliveryId: string): Pro
       .from("webhook_deliveries")
       .update({ status: "failed", error: "endpoint_inactive" })
       .eq("id", deliveryId);
+    return false;
+  }
+
+  // SSRF guard at send time (defense in depth — the URL could have been set
+  // before the guard existed, or via another path). Hard-fail, no retry.
+  if (!isSafeWebhookUrl(endpoint.url)) {
+    await admin
+      .from("webhook_deliveries")
+      .update({ status: "failed", error: "blocked_url" })
+      .eq("id", deliveryId);
+    await admin
+      .from("webhook_endpoints")
+      .update({ active: false, last_error: "blocked_url" })
+      .eq("id", endpoint.id);
     return false;
   }
 

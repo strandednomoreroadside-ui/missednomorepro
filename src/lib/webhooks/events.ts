@@ -20,7 +20,8 @@ export function isWebhookEvent(v: string): v is WebhookEvent {
 export const EVENT_META: Record<WebhookEvent, { label: string; description: string }> = {
   "lead.created": {
     label: "New lead",
-    description: "A new lead is captured (by the AI on a call/text, or added manually).",
+    description:
+      "A new lead enters your pipeline — the AI captures one while quoting or booking, or you add one manually.",
   },
   "appointment.booked": {
     label: "Appointment booked",

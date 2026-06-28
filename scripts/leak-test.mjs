@@ -721,6 +721,59 @@ try {
     title: "INJECTED TASK",
   });
   assert("B cannot inject a follow-up task into A's tenant", !!injectTaskErr);
+
+  // ── Zapier / outbound webhooks isolation ──────────────────────
+  // A (owner) registers an endpoint (also proves owner/admin CAN write);
+  // server seeds a delivery for it.
+  const { data: aHook, error: aHookErr } = await a.client
+    .from("webhook_endpoints")
+    .insert({
+      tenant_id: a.orgId,
+      url: "https://example.com/hook",
+      secret: "whsec_leaktest",
+      events: [],
+    })
+    .select("id")
+    .single();
+  assert("Owner can register a webhook endpoint", !aHookErr && !!aHook?.id, aHookErr?.message);
+  if (aHook?.id) {
+    const { error: delivSeedErr } = await admin.from("webhook_deliveries").insert({
+      tenant_id: a.orgId,
+      endpoint_id: aHook.id,
+      event: "lead.created",
+      payload: { secret: "leak" },
+    });
+    if (delivSeedErr) throw new Error(`seed webhook delivery: ${delivSeedErr.message}`);
+  }
+
+  // 42. B sees none of A's webhook endpoints (incl. the signing secret) or
+  //     deliveries (which carry payload data).
+  const { data: bHooks } = await b.client
+    .from("webhook_endpoints")
+    .select("tenant_id, secret");
+  const { data: bDeliv } = await b.client.from("webhook_deliveries").select("tenant_id");
+  const hookLeak = [...(bHooks ?? []), ...(bDeliv ?? [])].filter(
+    (r) => r.tenant_id === a.orgId
+  );
+  assert("B cannot see A's webhook endpoints/deliveries", hookLeak.length === 0);
+
+  // 43. B cannot forge a webhook endpoint into A's tenant (owner/admin only) —
+  //     a cross-tenant endpoint would exfiltrate A's events to B's URL.
+  const { error: forgeHookErr } = await b.client.from("webhook_endpoints").insert({
+    tenant_id: a.orgId,
+    url: "https://evil.example.com/exfil",
+    secret: "whsec_forge",
+  });
+  assert("B cannot create a webhook endpoint in A's tenant", !!forgeHookErr);
+
+  // 44. Webhook deliveries are server-written — even A (owner) can't forge one.
+  const { error: forgeDelivErr } = await a.client.from("webhook_deliveries").insert({
+    tenant_id: a.orgId,
+    endpoint_id: aHook?.id ?? a.orgId,
+    event: "lead.created",
+    payload: { forged: true },
+  });
+  assert("Members cannot write webhook deliveries directly", !!forgeDelivErr);
 } finally {
   // Cleanup: orgs cascade members + audit logs; then remove the users.
   for (const u of [a, b].filter(Boolean)) {
