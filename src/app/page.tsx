@@ -23,6 +23,7 @@ import { Logo } from "@/components/brand/logo";
 import { Faq } from "@/components/landing/faq";
 import { Pricing } from "@/components/landing/pricing";
 import { ButtonLink, EARLY_ACCESS_MAILTO, SectionHeading } from "@/components/landing/primitives";
+import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { Reveal } from "@/components/landing/reveal";
 import { CheckRow, ProductShowcase } from "@/components/landing/showcase";
 
@@ -336,6 +337,14 @@ function MissedCallMath() {
           </Reveal>
         ))}
       </div>
+      <Reveal delay={120}>
+        <div className="mt-8">
+          <p className="mb-4 text-center text-sm text-muted-foreground">
+            Run your own numbers:
+          </p>
+          <RoiCalculator />
+        </div>
+      </Reveal>
     </section>
   );
 }
