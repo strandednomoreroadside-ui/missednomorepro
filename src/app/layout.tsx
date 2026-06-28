@@ -25,14 +25,50 @@ const mono = IBM_Plex_Mono({
 
 reportEnvStatus();
 
+const SITE_NAME = "Missed No More Pro";
+const SITE_TITLE = "Missed No More Pro — AI Receptionist for Local Service Businesses";
+const SITE_DESCRIPTION =
+  "Every call answered. Every lead captured. Missed No More Pro answers your phones 24/7, qualifies callers, books jobs, follows up by text, and shows the revenue it saved.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
+  applicationName: SITE_NAME,
   title: {
-    default: "Missed No More Pro — AI Receptionist for Local Service Businesses",
+    default: SITE_TITLE,
     template: "%s · Missed No More Pro",
   },
-  description:
-    "Every call answered. Every lead captured. Missed No More Pro answers your phones 24/7, qualifies callers, books jobs, follows up by text, and shows the revenue it saved.",
+  description: SITE_DESCRIPTION,
+  keywords: [
+    "AI receptionist",
+    "AI phone answering service",
+    "missed call text back",
+    "24/7 answering service",
+    "appointment booking software",
+    "field service software",
+    "small business CRM",
+    "roadside assistance software",
+    "HVAC plumber electrician answering service",
+    "AI virtual receptionist",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
 };
 
 export const viewport: Viewport = {

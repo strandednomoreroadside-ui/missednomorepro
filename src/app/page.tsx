@@ -26,6 +26,7 @@ import { ButtonLink, EARLY_ACCESS_MAILTO, SectionHeading } from "@/components/la
 import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { Reveal } from "@/components/landing/reveal";
 import { CheckRow, ProductShowcase } from "@/components/landing/showcase";
+import { env } from "@/lib/env";
 
 const NICHES = [
   "Towing",
@@ -45,8 +46,41 @@ const NICHES = [
 ];
 
 export default function LandingPage() {
+  const base = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${base}/#org`,
+        name: "Missed No More Pro",
+        url: base,
+        logo: `${base}/opengraph-image`,
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "Missed No More Pro",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        url: base,
+        description:
+          "AI receptionist for local service businesses — answers calls 24/7, qualifies callers, quotes from your rates, books jobs, and follows up by text.",
+        offers: {
+          "@type": "Offer",
+          price: "99",
+          priceCurrency: "USD",
+        },
+        publisher: { "@id": `${base}/#org` },
+      },
+    ],
+  };
+
   return (
     <div className="relative overflow-x-clip">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteHeader />
       <main>
         <Hero />
