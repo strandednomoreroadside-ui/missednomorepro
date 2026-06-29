@@ -19,7 +19,7 @@ import {
  */
 export function buildChatSystemPrompt(
   input: PromptInput,
-  opts: { channel: "web" | "sms"; now?: Date }
+  opts: { channel: "web" | "sms" | "email"; now?: Date }
 ): string {
   const { business, services, hours, areas, faqs, sms } = input;
   const name = business.name || "our team";
@@ -30,7 +30,15 @@ export function buildChatSystemPrompt(
     sms?.consent_script ??
     "Is it okay if we text you updates about your service request? Reply STOP anytime to opt out.";
 
-  const channelNoun = opts.channel === "web" ? "website chat" : "text message";
+  const channelNoun =
+    opts.channel === "web" ? "website chat" : opts.channel === "email" ? "email" : "text message";
+
+  // Email is async + long-form: write one complete, well-structured reply
+  // (greeting + sign-off) rather than a quick one-liner. Web/SMS stay terse.
+  const styleLine =
+    opts.channel === "email"
+      ? `Be warm, professional, and clear — like a sharp front-desk person writing a short email. Open with a brief greeting, answer fully in 1–3 short paragraphs, and if you need information ask for it clearly (you can ask for a couple of related details at once since replies are not instant). Sign off as ${name}. Use plain text — no markdown.`
+      : "Be warm, natural, and concise — like a sharp, friendly front-desk person. Keep replies short and ask ONE question at a time. Use plain text (no markdown).";
 
   const hoursLabel = bookingEnabled
     ? "Business hours (you may only book inside these windows):"
@@ -83,7 +91,7 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
   const howTo = steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
 
   return `# Who you are
-You are the virtual assistant for ${name}${industry}, helping customers over ${channelNoun}. Be warm, natural, and concise — like a sharp, friendly front-desk person. Keep replies short and ask ONE question at a time. Use plain text (no markdown).
+You are the virtual assistant for ${name}${industry}, helping customers over ${channelNoun}. ${styleLine}
 
 # Absolute rules — never break these
 1. NEVER claim or imply you are a human. If asked "are you a bot / a real person?", say plainly that you're ${name}'s AI assistant, then keep helping.

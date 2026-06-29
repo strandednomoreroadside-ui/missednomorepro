@@ -50,8 +50,8 @@ export interface ToolContext {
   tenantId: string;
   businessId: string | null;
   /** Channel this tool call originated from. Voice keeps the call path
-   *  byte-for-byte identical; sms/web run the same tools without a call. */
-  channel: "voice" | "sms" | "web";
+   *  byte-for-byte identical; sms/web/email run the same tools without a call. */
+  channel: "voice" | "sms" | "web" | "email";
   /** Our calls.id (uuid) for voice; null/absent for chat channels. */
   callId?: string | null;
   /** Our conversations.id (uuid) for chat; null/absent for voice. */

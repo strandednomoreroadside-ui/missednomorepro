@@ -25,6 +25,14 @@ export async function sendEmail(opts: {
   html: string;
   /** Optional plain-text fallback; derived from html if omitted. */
   text?: string;
+  /** Override the From (e.g. "Joe's Plumbing <replies@missednomorepro.com>").
+   *  Must still be a Resend-verified sending domain. Defaults to RESEND_FROM. */
+  from?: string;
+  /** Reply-To address (e.g. the per-business inbound token address, so
+   *  customer replies route back to us). */
+  replyTo?: string;
+  /** Extra MIME headers — used for email threading (In-Reply-To, References). */
+  headers?: Record<string, string>;
 }): Promise<EmailResult> {
   if (!env.RESEND_API_KEY) {
     // Not an error — email just isn't wired yet.
@@ -33,19 +41,23 @@ export async function sendEmail(opts: {
   if (!opts.to) return { ok: false, id: null, error: "no_recipient" };
 
   try {
+    const payload: Record<string, unknown> = {
+      from: opts.from || env.RESEND_FROM || DEFAULT_FROM,
+      to: [opts.to],
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text ?? opts.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    };
+    if (opts.replyTo) payload.reply_to = opts.replyTo;
+    if (opts.headers && Object.keys(opts.headers).length) payload.headers = opts.headers;
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: env.RESEND_FROM || DEFAULT_FROM,
-        to: [opts.to],
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text ?? opts.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-      }),
+      body: JSON.stringify(payload),
     });
     const json = (await res.json().catch(() => ({}))) as {
       id?: string;

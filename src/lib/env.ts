@@ -55,6 +55,20 @@ const envSchema = z.object({
   RESEND_FROM: z.string().min(1).optional(),
   SENTRY_DSN: z.string().min(1).optional(),
 
+  // Email channel (Omnichannel add-on) — inbound customer email.
+  // Shared secret the Cloudflare Email Worker sends as `x-email-secret`;
+  // the inbound webhook rejects anything without it.
+  EMAIL_INBOUND_SECRET: z.string().min(16).optional(),
+  // The subdomain customers forward to / our replies route back through,
+  // e.g. "inbound.missednomorepro.com". The forward address is
+  // {email_inbound_token}@{EMAIL_INBOUND_DOMAIN}.
+  EMAIL_INBOUND_DOMAIN: z.string().min(1).default("inbound.missednomorepro.com"),
+  // The From address for AI/staff email replies. Must be on a Resend-verified
+  // sending domain (the root missednomorepro.com is already verified). The
+  // display name is the business's; this is just the address. Falls back to
+  // RESEND_FROM. e.g. "replies@missednomorepro.com"
+  EMAIL_REPLY_FROM: z.string().min(1).optional(),
+
   // Platform admin (M2): comma-separated emails allowed into /admin
   ADMIN_EMAILS: z.string().optional(),
   // Used by the Supabase CLI for migrations, never by the app itself
@@ -118,6 +132,7 @@ const milestoneKeys: Record<string, (keyof Env)[]> = {
   ],
   "M9 (calendar)": ["GOOGLE_OAUTH_CREDENTIALS"],
   "Pricing (maps)": ["GOOGLE_MAPS_API_KEY"],
+  "Email channel": ["EMAIL_INBOUND_SECRET", "EMAIL_REPLY_FROM"],
 };
 
 declare global {

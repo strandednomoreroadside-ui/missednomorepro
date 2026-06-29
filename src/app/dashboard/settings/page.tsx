@@ -40,6 +40,7 @@ import {
   updateBookingConfirmation,
   updateChatSettings,
   updateDispatchEta,
+  updateEmailSettings,
   updateReminders,
   updateTextBack,
   updateWeeklyReport,
@@ -111,7 +112,7 @@ export default async function SettingsPage({
       ? supabase
           .from("sms_settings")
           .select(
-            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes, weekly_report_enabled, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key"
+            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes, weekly_report_enabled, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key, email_inbound_enabled, email_inbound_token, email_signature"
           )
           .eq("business_id", business.id)
           .maybeSingle()
@@ -165,6 +166,14 @@ export default async function SettingsPage({
   }
   const embedSnippet = widgetKey
     ? `<script src="${env.NEXT_PUBLIC_APP_URL}/widget.js" data-key="${widgetKey}" async></script>`
+    : "";
+
+  // ── Email channel (part of the Omnichannel add-on) ──
+  const emailEnabled = (sms?.email_inbound_enabled ?? false) as boolean;
+  const emailSignature = (sms?.email_signature ?? "") as string;
+  const emailToken = (sms?.email_inbound_token ?? null) as string | null;
+  const forwardAddress = emailToken
+    ? `${emailToken}@${env.EMAIL_INBOUND_DOMAIN}`
     : "";
 
   return (
@@ -686,6 +695,89 @@ export default async function SettingsPage({
                 {embedSnippet}
               </pre>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Email channel (part of the Omnichannel add-on) ── */}
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Mail className="size-4 text-cyan" aria-hidden />
+            AI Email
+            <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
+              Add-on
+            </span>
+          </CardTitle>
+          <CardDescription>
+            Forward your business inbox to us and the AI answers emails too — same brain, same{" "}
+            <Link href="/dashboard/inbox" className="text-cyan hover:underline">
+              Inbox
+            </Link>
+            . It never invents prices or books outside your rules. You can take over any thread.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!chatEntitled ? (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3.5 py-3 text-sm text-muted-foreground">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+              <span>
+                AI Email is part of the Omnichannel AI Chat add-on (+$29/mo, also in the Growth Suite
+                bundle). Enable it on the{" "}
+                <Link href="/dashboard/billing" className="text-cyan hover:underline">
+                  billing page
+                </Link>
+                .
+              </span>
+            </div>
+          ) : (
+            <form action={updateEmailSettings} className="space-y-5">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="email_inbound_enabled"
+                  defaultChecked={emailEnabled}
+                  className="mt-1 accent-cyan"
+                />
+                <span>
+                  <span className="font-medium text-foreground">Answer emails with AI</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    When on, forwarded emails get an instant AI reply. STOP-style noise (newsletters,
+                    auto-replies) is ignored automatically.
+                  </span>
+                </span>
+              </label>
+
+              {forwardAddress && (
+                <div className="rounded-lg border border-border/60 bg-night/40 p-3.5">
+                  <p className="text-sm font-medium text-foreground">Forward your email to:</p>
+                  <p className="mt-1 break-all font-mono text-sm text-cyan">{forwardAddress}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    In your email account (Gmail, Outlook, etc.), set up auto-forwarding from your
+                    business inbox to this address. New customer emails will then land in your Inbox
+                    and get answered. Replies go out from your business name.
+                  </p>
+                </div>
+              )}
+
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Email signature (optional)</span>
+                <Textarea
+                  name="email_signature"
+                  defaultValue={emailSignature}
+                  rows={3}
+                  maxLength={400}
+                  className="mt-1"
+                  placeholder={`Thanks,\nThe ${business?.name ?? "team"} team`}
+                  aria-label="Email signature"
+                />
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Added to the bottom of AI and staff email replies.
+                </span>
+              </label>
+
+              <Button type="submit">Save</Button>
+            </form>
           )}
         </CardContent>
       </Card>

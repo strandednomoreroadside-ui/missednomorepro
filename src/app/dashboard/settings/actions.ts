@@ -241,6 +241,34 @@ export async function updateChatSettings(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/** Update the email channel settings (part of the Omnichannel add-on):
+ *  the AI-answers-email toggle + the reply signature. Members manage their
+ *  own sms_settings (RLS). The forward token is server-managed, not editable. */
+export async function updateEmailSettings(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  const supabase = await createClient();
+
+  const emailEnabled = formData.get("email_inbound_enabled") === "on";
+  const signature = String(formData.get("email_signature") ?? "").trim().slice(0, 400);
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  await supabase
+    .from("sms_settings")
+    .update({ email_inbound_enabled: emailEnabled, email_signature: signature || null })
+    .eq("business_id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 /**
  * Start the Google Calendar OAuth flow (M9). Sets a CSRF state cookie and
  * redirects to Google's consent screen. The connection is finished in

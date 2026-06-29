@@ -1,0 +1,15 @@
+# Cloudflare Worker config for the inbound-email forwarder.
+# Deploy:  cd cloudflare && npx wrangler deploy
+# Secret:  npx wrangler secret put MNM_INBOUND_SECRET   (paste EMAIL_INBOUND_SECRET)
+#
+# After deploy, bind it in the Cloudflare dashboard:
+#   Email → Email Routing → (subdomain inbound.missednomorepro.com) →
+#   route the catch-all address to THIS worker.
+name = "mnm-email-inbound"
+main = "email-worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+MNM_INBOUND_URL = "https://missednomorepro.com/api/email/inbound"
+# MNM_INBOUND_SECRET is set as a secret, not here:
+#   npx wrangler secret put MNM_INBOUND_SECRET

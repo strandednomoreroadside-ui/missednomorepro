@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bot, Globe, Inbox as InboxIcon, MessageSquare, Phone, TriangleAlert, User } from "lucide-react";
+import { Bot, Globe, Inbox as InboxIcon, Mail, MessageSquare, Phone, TriangleAlert, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,11 +18,13 @@ export const metadata: Metadata = { title: "Inbox" };
 
 type Convo = {
   id: string;
-  channel: "web" | "sms";
+  channel: "web" | "sms" | "email";
   status: "open" | "closed";
   ai_enabled: boolean;
   customer_name: string | null;
   customer_phone: string | null;
+  customer_email: string | null;
+  subject: string | null;
   contact_id: string | null;
   last_message_preview: string | null;
   last_message_at: string;
@@ -40,7 +42,14 @@ function rel(iso: string): string {
 }
 
 function who(c: Convo): string {
-  return c.customer_name || (c.customer_phone ? formatUsPhone(c.customer_phone) : "Website visitor");
+  if (c.customer_name) return c.customer_name;
+  if (c.channel === "email") return c.customer_email ?? "Email";
+  if (c.customer_phone) return formatUsPhone(c.customer_phone);
+  return "Website visitor";
+}
+
+function channelLabel(channel: Convo["channel"]): string {
+  return channel === "web" ? "Website chat" : channel === "email" ? "Email" : "SMS";
 }
 
 export default async function InboxPage({
@@ -81,7 +90,7 @@ export default async function InboxPage({
   const { data: convoRows } = await supabase
     .from("conversations")
     .select(
-      "id, channel, status, ai_enabled, customer_name, customer_phone, contact_id, last_message_preview, last_message_at, unread_count"
+      "id, channel, status, ai_enabled, customer_name, customer_phone, customer_email, subject, contact_id, last_message_preview, last_message_at, unread_count"
     )
     .eq("tenant_id", tenantId)
     .order("last_message_at", { ascending: false })
@@ -182,8 +191,13 @@ export default async function InboxPage({
                     <ChannelIcon channel={selected.channel} />
                     <span className="truncate">{who(selected)}</span>
                   </CardTitle>
+                  {selected.channel === "email" && selected.subject && (
+                    <p className="mt-0.5 truncate text-xs font-medium text-foreground">
+                      {selected.subject}
+                    </p>
+                  )}
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {selected.channel === "web" ? "Website chat" : "SMS"} ·{" "}
+                    {channelLabel(selected.channel)} ·{" "}
                     {selected.ai_enabled ? "AI answering" : "You've taken over"}
                     {selected.contact_id && (
                       <>
@@ -250,6 +264,11 @@ export default async function InboxPage({
                     Sent as a text · STOP always honored
                   </p>
                 )}
+                {selected.channel === "email" && (
+                  <p className="mt-1.5 px-1 text-[11px] text-steel">
+                    Sent as an email from your business name
+                  </p>
+                )}
               </div>
             </Card>
           ) : (
@@ -273,18 +292,18 @@ function Header() {
         Inbox
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Website chat and two-way texts in one place. The AI answers; you can take over anytime.
+        Website chat, two-way texts, and email in one place. The AI answers; you can take over anytime.
       </p>
     </>
   );
 }
 
-function ChannelIcon({ channel }: { channel: "web" | "sms" }) {
-  return channel === "web" ? (
-    <Globe className="size-4 shrink-0 text-cyan" aria-label="Website chat" />
-  ) : (
-    <Phone className="size-4 shrink-0 text-cyan" aria-label="SMS" />
-  );
+function ChannelIcon({ channel }: { channel: "web" | "sms" | "email" }) {
+  if (channel === "web")
+    return <Globe className="size-4 shrink-0 text-cyan" aria-label="Website chat" />;
+  if (channel === "email")
+    return <Mail className="size-4 shrink-0 text-cyan" aria-label="Email" />;
+  return <Phone className="size-4 shrink-0 text-cyan" aria-label="SMS" />;
 }
 
 function Bubble({ role, body, at }: { role: string; body: string; at: string }) {

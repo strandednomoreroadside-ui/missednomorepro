@@ -468,6 +468,7 @@ try {
     tenant_id: a.orgId,
     business_id: aBiz.id,
     widget_key: `wk_leak_${ts}`,
+    email_inbound_token: `et_leak_${ts}`,
   });
   if (smsSetErr) throw new Error(`seed sms_settings: ${smsSetErr.message}`);
   const { data: aConvo, error: convoSeedErr } = await admin
@@ -508,12 +509,13 @@ try {
   });
   assert("B cannot inject a message into A's conversation", !!injectErr);
 
-  // 28. A's widget key (the only public widget credential) doesn't leak to B.
+  // 28. A's channel credentials (widget key + email inbound token) don't leak
+  //     to B — both live on sms_settings, gated by the same member-only RLS.
   const { data: bSettings } = await b.client
     .from("sms_settings")
-    .select("tenant_id, widget_key");
+    .select("tenant_id, widget_key, email_inbound_token");
   const keyLeak = (bSettings ?? []).filter((r) => r.tenant_id === a.orgId);
-  assert("B cannot read A's widget key / chat settings", keyLeak.length === 0);
+  assert("B cannot read A's widget key / email token / chat settings", keyLeak.length === 0);
 
   // 29. Even in their own tenant, members can't forge AI/customer turns —
   //     only 'staff' replies are member-insertable (the rest are server-only).
