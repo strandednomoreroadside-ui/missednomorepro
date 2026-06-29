@@ -1,115 +1,117 @@
-# Session Summary — Missed No More Pro (June 25, 2026 · Post-launch batch #1)
+# Session Summary — Missed No More Pro (June 29, 2026 · Voice speech-pattern tuning + email-channel plan)
 
-**Shipped, committed, pushed, deployed, and verified.** A 9-item post-launch
-batch: two flaw fixes the operator reported, the entire NEEDS.md "Do soon"
-section, two "Next" conversion items, and a Supabase Pro security-hardening pass.
+**Shipped + merged to `main`.** A focused voice-quality pass (operator was on
+mobile, flagging speech issues before scaling demo/test calls), plus a vetted
+plan for the next big build: the **AI email channel**.
 
-**Commit `dc1e75d`** on `main` (28 files, +1676/−45). build ✅ · typecheck ✅.
-Both migrations applied to prod and **column-verified**; the Stripe dunning
-webhook event is now live.
-
----
-
-## ▶ Next session — start here
-
-The code batch is **done and live**. What's open is operator testing + the next
-build pick. Nothing is blocking.
-
-1. **Operator live-tests still to run** (phone/console, not code):
-   - **Lead text:** a lead call where the AI does NOT escalate → confirm you get
-     the staff "New lead" text (the deterministic backstop).
-   - **Dispatch ETA:** an urgent "come now" call → confirm the caller gets a
-     confirmation + arrival-time text and a job appears on the Dispatch board.
-   - **Self-serve number:** on a carded test tenant, `/dashboard/numbers` → search
-     an area code → Claim → AI answers a test call on it.
-   - **Dunning** (optional): force a failed renewal (Stripe test clock or card
-     `4000000000000341`) → confirm the email + the in-app banner.
-2. **Supabase Pro hardening checklist** — work through
-   `docs/supabase-pro-hardening.md` in the Supabase dashboard (PITR, leaked-
-   password protection, SSL enforce, network restrictions, run the Advisor,
-   spend cap). If the Advisor flags anything, send the item name → I fix it in a
-   migration. (Memory: `supabase-pro-security-hardening`.)
-3. **Pick the next build** (see "What's left" below).
+**PR #4 → commit `4a20284`** on `main` (squash). build ✅ · typecheck ✅.
+Vercel auto-deploys `main`; the live Retell agent re-syncs lazily on its next
+call (TUNING_VERSION bump).
 
 ---
 
-## What shipped this session (all in `dc1e75d`)
+## ▶ Next session — start here (operator is back on the home machine)
 
-**Flaws (operator-reported):**
-1. **Reliable staff lead-alert text** — root cause: the text only fired when the
-   AI chose to call `notify_staff`, which it began skipping on booked/quoted
-   calls as the prompt grew. Fix = a deterministic backstop at call-end
-   (`finalize.ts`), idempotent via `calls.staff_alerted_at`, fires only when the
-   AI didn't already alert (no dupes).
-2. **Dispatch confirmation + arrival ETA** — on an urgent "come now" dispatch
-   (`notify_staff` urgency high/emergency) we open a Dispatch job and text the
-   caller a confirmation + ETA = **60 min + 30 min × open jobs on today's board**
-   (tunable in Settings). AI never says the number out loud (§5.1 intact). Dedup
-   via `calls.dispatch_eta_sent_at`.
-
-**NEEDS.md "Do soon" (complete):**
-3. **Self-serve number provisioning** — `/dashboard/numbers` picker; gated
-   owner/admin + card-on-file + plan number cap; new numbers auto-attach to the
-   approved A2P messaging service.
-4. **Failed-payment dunning** — `invoice.payment_failed` → `subscriptions.
-   payment_failed_at` + customer email + app-wide banner; cleared on recovery.
-5. **In-app phone-setup guide** — `/dashboard/numbers/guide`.
-6. **Deep-link plan at signup** — `/signup?plan=…` → cookie → highlighted plan on
-   billing.
-
-**NEEDS.md "Next" (2 of 4):**
-7. **Annual/monthly toggle on billing** (matches the landing).
-8. **Dashboard "Getting started" onboarding checklist** (auto-hides when core
-   steps done).
-
-**Security:** Supabase Pro hardening — baseline security headers in
-`next.config.ts`, audit confirming all 23 DB functions already pin
-`search_path`, + operator checklist `docs/supabase-pro-hardening.md`.
+1. **Live-test the voice fixes** (phone, not code) via the **"Hear your AI"**
+   button on `/dashboard/numbers`:
+   - Ask for hours / a booked time → confirm clean **"nine AM"** with **no
+     trailing "k"**.
+   - Talk with **background noise** while the AI speaks → confirm it's **not cut
+     off**; then a **clear voice over it should still interrupt** (0.3 isn't so
+     low it ignores the caller).
+   - Spot-check a local **town name** + a **quoted price** read-back.
+   - If interruption still feels off, it's a one-number tweak in
+     `src/lib/voice/retell.ts` (`INTERRUPTION_SENSITIVITY`, try 0.2–0.4) → I
+     re-merge.
+2. **Then build: the AI email channel** (operator picked this as the next big
+   feature). **Two decisions to confirm before I write code** (my recommendations):
+   - **Inbound provider → Resend Inbound** (single vendor, domain already
+     verified; add an MX record, Resend POSTs parsed mail to our webhook).
+     Fallback: Cloudflare Email Routing (free).
+   - **Gating → fold into the existing $29 Omnichannel Chat add-on** (already =
+     web chat + two-way SMS AI; email makes it truly omnichannel, no price
+     change). Plan detail below.
 
 ---
 
-## ✅ Verified this session
-- Both migrations applied — all 7 new columns confirmed present in prod
-  (`calls.staff_alerted_at/dispatch_eta_sent_at`, the 4 `sms_settings`
-  dispatch/ETA cols, `subscriptions.payment_failed_at`).
-- Live Stripe webhook now lists **6** events incl. `invoice.payment_failed`
-  (operator added it — billing-setup had first run before the deploy landed; no
-  signing-secret change).
+## What shipped this session (in `4a20284`)
+
+Two files: `src/lib/voice/retell.ts`, `src/lib/voice/prompt.ts`.
+
+1. **Interruption sensitivity 0.8 → 0.3** — root cause of the AI being cut off by
+   the slightest background noise. In Retell, **higher = easier to interrupt**;
+   the old code comment misread the scale. 0.3 holds through wind/traffic/
+   bystanders while a caller clearly talking over it still interrupts. Applied in
+   both `agent.create` and `agent.update`.
+2. **"a.m.k" TTS artifact fixed** — a new **"Speaking style"** section in the
+   voice system prompt tells the LLM (it's read aloud) to never write
+   period-separated `a.m.`/`p.m.`, read phone numbers digit-by-digit, and speak
+   prices plainly. That stray "k" came from 11labs vocalizing `a.m.`.
+3. **Curated IPA `pronunciation_dictionary`** (AM/PM backstop + local town names:
+   Strongsville, Cuyahoga, Lakewood) and **`voice_speed`** wired as a tunable
+   constant.
+4. **`TUNING_VERSION` 2 → 3** — folded into the prompt hash so every agent
+   re-syncs once and the provider-level audio settings actually take effect.
+   (Note: `normalize_for_speech` was planned but isn't an exposed field in
+   retell-sdk 5.36 — dropped; the prompt rules + dictionary cover it.)
 
 ---
 
-## What's left on NEEDS.md
+## Next build — AI email channel (plan, pending the 2 decisions above)
 
-**"Next" — 2 remaining (need operator input):**
-- **"Test my AI" demo-call button** — places an *outbound* demo call so owners
-  trust it before going live. Bigger Twilio/Retell outbound work; build when the
-  operator says go.
-- **Real testimonial + demo-call video on the landing** — needs the operator's
-  actual content (won't fabricate a quote).
+**The brain already generalizes:** `runChatTurn` (`src/lib/chat/handle.ts`) is
+channel-agnostic, `conversations.channel` already enumerates channels, and
+`contacts.email` exists. Email = a **third channel** beside `web`/`sms`, reusing
+the §10 tool brain, the unified Inbox, encrypt-at-rest storage, and the Resend
+sender. Same §5.1 guardrails (never invents prices).
 
-**"Later" (roadmap depth, not started):** weekly emailed insight reports
-(Resend is live), GBP auto-reply (needs Google verification), CRM connectors
-(Jobber/Housecall) + Zapier, email channel, multi-location, membership plans,
-Sentry source maps (`SENTRY_AUTH_TOKEN`), uptime monitoring.
+**Build outline:**
+- **Migration** — add `'email'` to `conversations.channel` + `customer_email`/
+  `subject` cols + per-channel open-thread unique index; `email_message_id`/
+  `in_reply_to` on `conversation_messages` (threading); `email_enabled` +
+  unique per-tenant `email_handle` + greeting/signature on `sms_settings`; small
+  `email_suppressions` table (CAN-SPAM unsubscribe).
+- **Inbound webhook** `/api/email/inbound` — verify provider signature, resolve
+  tenant from the destination address (`<handle>@inbound.missednomorepro.com`),
+  strip quoted reply history, call `runChatTurn({ channel: "email", … })`.
+- **Reply delivery** — extend `sendEmail` (`src/lib/email/resend.ts`) with
+  `from`/`replyTo` + `In-Reply-To`/`References` headers so replies thread; add an
+  unsubscribe footer.
+- **Prompt** — email branch in `src/lib/chat/prompt.ts` (slightly more formal,
+  allows a sign-off; SMS stays terse).
+- **Inbox + Settings** — email threads in `/dashboard/inbox` (subject + "Email"
+  badge, staff composer + take-over); Settings card with the tenant inbound
+  address + forwarding instructions + greeting/signature.
+- **Env** — `EMAIL_INBOUND_DOMAIN` + an inbound webhook secret. **Leak test** —
+  extend for email-conversation/suppression isolation.
 
-**Compliance housekeeping:** attorney pass on Privacy/Terms/SMS (operator's
-call); cookie banner only if analytics/marketing cookies are added later.
+**Operator setup (home machine):** confirm Resend Inbound on plan → add MX for
+`inbound.missednomorepro.com` → set the 2 env vars in Vercel → per business,
+enable email in Settings and forward their `support@` to the shown address
+(mirrors the phone-forwarding flow).
 
 ---
 
-## Parked
-- **Headroom** (`headroomlabs-ai/headroom`) — operator asked to "install this
-  skill"; it's actually an agent context-compression **proxy + Claude Code hook
-  plugin**, not a skill. It would read everything Claude sends (incl. customer
-  PII). Operator chose to **leave it for now**; a copy-paste install guide was
-  given in chat (pip/npm + `headroom wrap claude`, or `/plugin marketplace add`).
-  Not installed.
+## Still open from prior sessions (not touched this session)
 
-## Cross-cutting notes
-- Workflow unchanged: push to `main` → Vercel auto-deploys; prompt/tool changes
-  re-sync the live Retell agent lazily on the next call. The two flaw fixes bump
-  the prompt hash → the agent re-syncs on the first call after deploy.
-- Stripe stays **LIVE** in prod; `.env.local` stays **test**. (Memory:
-  `stripe-live-mode`.)
-- §5.1 held throughout — the AI never speaks an un-computed number (the dispatch
-  ETA is texted, not spoken).
+- **Red-team 25 calls** (`RED_TEAM.md`) — the 0%-pricing-hallucination gate;
+  the real "prove it's solid" step before scaling demos. Never run to completion.
+- **Supabase Pro hardening checklist** — `docs/supabase-pro-hardening.md`
+  (PITR, leaked-password protection, SSL enforce, network restrictions, Advisor,
+  spend cap). If the Advisor flags anything, send the item name → I fix in a migration.
+- **Operator live-tests** carried from June 25: staff lead-alert backstop text,
+  dispatch confirmation+ETA, self-serve number claim, dunning (failed renewal).
+- **Deferred features:** native CRM connectors (Jobber/Housecall), multi-location,
+  customer membership plans, GBP auto-replies (needs Google verification),
+  Sentry source maps (`SENTRY_AUTH_TOKEN`), uptime monitor — all low-priority vs
+  the email channel + red-team.
+
+---
+
+## Cross-cutting notes (unchanged)
+- Workflow: push to `main` → Vercel auto-deploys; prompt/tool changes re-sync the
+  live Retell agent lazily on the next call.
+- Stripe stays **LIVE** in prod; `.env.local` stays **test**. (Memory: `stripe-live-mode`.)
+- §5.1 held — the AI never speaks an un-computed number.
+- DB migrations are applied by pasting the file into the Supabase SQL editor
+  (CLI not authenticated).
