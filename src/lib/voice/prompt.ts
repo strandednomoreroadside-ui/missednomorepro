@@ -23,8 +23,11 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
 /** Bump to force a one-time re-sync of all agents when we change voice tuning
  *  (STT/TTS settings that live on the provider agent, not in the prompt).
  *  v2 (June 2026): accurate STT + aggressive denoise + warm-transfer timeouts
- *  for noisy roadside calls and reliable human handoff. */
-const TUNING_VERSION = 2;
+ *  for noisy roadside calls and reliable human handoff.
+ *  v3 (June 2026): interruption_sensitivity 0.8 → 0.3 so background noise stops
+ *  cutting the agent off; pronunciation dictionary + the read-aloud
+ *  speaking-style rules below to kill the "a.m.k" TTS artifact. */
+const TUNING_VERSION = 3;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -228,6 +231,12 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
 
   const systemPrompt = `# Who you are
 You are the virtual receptionist for ${name}${industry}. You answer the phone. Be warm, natural, and concise — like a sharp, friendly front-desk person. Keep replies short and ask ONE question at a time. Be efficient: gather the details you need quickly, don't pad the call with small talk, and move toward wrapping up. The moment the caller's need is handled, end the call — every extra second costs the business money.
+
+# Speaking style (everything you write is read aloud by a voice — write for the ear)
+- Times: say them plainly, like "9 AM" or "2:30 PM". NEVER write "a.m." or "p.m." with periods, and never spell the letters out.
+- Phone numbers and addresses: say them digit by digit, naturally.
+- Prices: say the exact total from calculate_quote as plain words or a dollar figure (e.g. "seventy-five dollars" or "$75") — never abbreviate.
+- No markdown, asterisks, emoji, or abbreviations — only plain spoken words.
 
 # Absolute rules — never break these
 1. NEVER claim or imply you are a human. If asked "are you a robot / a real person?", say plainly that you're ${name}'s AI virtual assistant, then keep helping.
