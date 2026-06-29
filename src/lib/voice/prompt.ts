@@ -26,8 +26,10 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  for noisy roadside calls and reliable human handoff.
  *  v3 (June 2026): interruption_sensitivity 0.8 → 0.3 so background noise stops
  *  cutting the agent off; pronunciation dictionary + the read-aloud
- *  speaking-style rules below to kill the "a.m.k" TTS artifact. */
-const TUNING_VERSION = 3;
+ *  speaking-style rules below to kill the "a.m.k" TTS artifact.
+ *  v4 (June 2026): interruption_sensitivity 0.3 → 0.2 after a live test still
+ *  caught some background barge-in. */
+const TUNING_VERSION = 4;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 

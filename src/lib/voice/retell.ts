@@ -65,12 +65,13 @@ const TRANSFER_RING_DURATION_MS = 30000;
  *  transcription of mumbled service names and addresses; the strongest
  *  denoise strips background noise *and* other voices. Retell's
  *  interruption_sensitivity is "how easy is it to interrupt the agent" —
- *  HIGHER = easier to cut off. We keep it LOW (0.3) so wind/traffic/bystander
+ *  HIGHER = easier to cut off. We keep it LOW (0.2) so wind/traffic/bystander
  *  noise can't stop the agent mid-sentence, while a caller who clearly speaks
- *  over it still can. (Was 0.8 — that misread the scale and let noise barge in.) */
+ *  over it still can. (Was 0.8 — that misread the scale and let noise barge in;
+ *  then 0.3; nudged to 0.2 after a live test still caught some barge-in.) */
 const STT_MODE = "accurate" as const;
 const DENOISING_MODE = "noise-and-background-speech-cancellation" as const;
-const INTERRUPTION_SENSITIVITY = 0.3;
+const INTERRUPTION_SENSITIVITY = 0.2;
 /** TTS playback rate (1.0 = natural). Wired as a one-number tune for the
  *  live-call test. */
 const VOICE_SPEED = 1.0;
