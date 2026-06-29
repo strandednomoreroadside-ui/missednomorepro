@@ -63,11 +63,30 @@ const TRANSFER_RING_DURATION_MS = 30000;
 /** Speech-to-text + audio tuning for noisy roadside callers (wind, highway,
  *  bystanders). `accurate` STT trades a little latency for far better
  *  transcription of mumbled service names and addresses; the strongest
- *  denoise strips background noise *and* other voices; a calmer interruption
- *  threshold keeps random noise from cutting the agent off mid-sentence. */
+ *  denoise strips background noise *and* other voices. Retell's
+ *  interruption_sensitivity is "how easy is it to interrupt the agent" —
+ *  HIGHER = easier to cut off. We keep it LOW (0.3) so wind/traffic/bystander
+ *  noise can't stop the agent mid-sentence, while a caller who clearly speaks
+ *  over it still can. (Was 0.8 — that misread the scale and let noise barge in.) */
 const STT_MODE = "accurate" as const;
 const DENOISING_MODE = "noise-and-background-speech-cancellation" as const;
-const INTERRUPTION_SENSITIVITY = 0.8;
+const INTERRUPTION_SENSITIVITY = 0.3;
+/** TTS playback rate (1.0 = natural). Wired as a one-number tune for the
+ *  live-call test. */
+const VOICE_SPEED = 1.0;
+/** Curated pronunciation fixes applied to every agent. Backstops the prompt's
+ *  "never write a.m./p.m." rule — a stray abbreviation still reads as
+ *  "AM"/"PM" rather than the spurious trailing "k" we were hearing — and
+ *  keeps 11labs from mis-saying local proper nouns. IPA alphabet. */
+const PRONUNCIATION_DICTIONARY: { word: string; alphabet: "ipa"; phoneme: string }[] = [
+  { word: "a.m.", alphabet: "ipa", phoneme: "ˌeɪˈɛm" },
+  { word: "p.m.", alphabet: "ipa", phoneme: "ˌpiˈɛm" },
+  { word: "AM", alphabet: "ipa", phoneme: "ˌeɪˈɛm" },
+  { word: "PM", alphabet: "ipa", phoneme: "ˌpiˈɛm" },
+  { word: "Strongsville", alphabet: "ipa", phoneme: "ˈstrɔŋzvɪl" },
+  { word: "Cuyahoga", alphabet: "ipa", phoneme: "ˌkaɪəˈhoʊɡə" },
+  { word: "Lakewood", alphabet: "ipa", phoneme: "ˈleɪkwʊd" },
+];
 
 /** Warm-transfer tool: the agent privately briefs the teammate (who's
  *  calling + why), THEN bridges the caller — so the human doesn't make the
@@ -180,6 +199,8 @@ export class RetellVoiceProvider implements VoiceProvider {
         stt_mode: STT_MODE,
         denoising_mode: DENOISING_MODE,
         interruption_sensitivity: INTERRUPTION_SENSITIVITY,
+        voice_speed: VOICE_SPEED,
+        pronunciation_dictionary: PRONUNCIATION_DICTIONARY,
       });
       return {
         providerAgentId: existing.providerAgentId,
@@ -206,6 +227,8 @@ export class RetellVoiceProvider implements VoiceProvider {
       stt_mode: STT_MODE,
       denoising_mode: DENOISING_MODE,
       interruption_sensitivity: INTERRUPTION_SENSITIVITY,
+      voice_speed: VOICE_SPEED,
+      pronunciation_dictionary: PRONUNCIATION_DICTIONARY,
       agent_name: config.name,
     });
 
