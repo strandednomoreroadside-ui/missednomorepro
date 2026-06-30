@@ -1,158 +1,99 @@
-# Session Summary — Missed No More Pro (June 29, 2026 · Email channel shipped + voice tuned)
+# Session Summary — Missed No More Pro (June 30, 2026 · Voice Fast Tier + Membership shipped + Social Studio scaffolded)
 
-**Shipped, committed, pushed, deployed, and verified.** The AI email channel is
-live as a third channel of the Omnichannel add-on. Voice interruption sensitivity
-tuned down one notch to 0.2 after a successful call test.
+**All shipped, committed, and pushed.** Voice moved to GPT-4.1 Fast Tier with
+ZIP/state pronunciation fixes; the RED_TEAM launch gate passed; the last clean
+core feature (customer memberships) is built and live; and a separate Social
+Studio product was scaffolded to its own repo.
 
 **Commits on `main`:**
-- `ae1d9d1` — Email channel: AI receptionist over email (Omnichannel add-on)
-- `540769d` — Voice: interruption_sensitivity 0.3 → 0.2 (TUNING_VERSION 4)
+- `8f5beae` — Voice: GPT-4.1 Fast Tier + ZIP/state TTS fixes (TUNING_VERSION 5)
+- `7c7cb08` — Membership: customer recurring plans (Phase 12, Elite)
 
-build ✅ · typecheck ✅ · deploy READY ✅ · migration applied ✅ · endpoint
-verified (403 = live + secret auth working) ✅
+build ✅ · typecheck ✅ · pushed ✅ · membership migration applied ✅
 
 ---
 
 ## ▶ Next session — start here
 
-**All code is live.** What's open is operator per-business setup + a real
-end-to-end email test.
+**The next build is the Social Studio, which is a SEPARATE project in its own
+folder/repo:** `C:\Users\Stran\Desktop\mnmp-social-studio`. Open a new Claude
+Code session **rooted in that folder** (not this one). It's self-contained:
+`README.md` (status + operator setup), `docs/BUILD_PLAN.md` (full spec),
+`supabase/migrations/0001_init.sql` (14-table schema), `.env.example`,
+`supabase/seed.sql` (MNMP brand kit). See memory `social-studio-separate-product`.
 
-### Email channel — per-business activation (4 clicks)
-1. **Billing:** Omnichannel AI Chat add-on (+$29) must be on for the business.
-2. **Settings → AI Email:** flip "Answer emails with AI" on.
-3. **Copy the forward address** shown on that card
-   (`{token}@inbound.missednomorepro.com`).
-4. **In your email account** (Gmail/Outlook/Zoho): set up auto-forwarding from
-   the business inbox to that address. Test by emailing the token address directly.
+For the core SaaS, nothing is pending — it's feature-complete and past its launch
+gate. The highest-leverage work is customer acquisition (record the demo video,
+first signups), not more features.
 
-### End-to-end email test
-Send a customer-style email to the forwarded address (or the token address
-directly) → confirm:
-- Thread appears in **Inbox** with a Mail icon + subject.
-- AI replies from the business name.
-- Reply-To on the AI email is the token address so your reply routes back.
-- Staff can "Take over" any thread from the Inbox.
-
-### Voice: confirm 0.2 sensitivity
-Place a call via "Hear your AI" (`/dashboard/numbers`) with some background
-noise → the AI should not barge-interrupt mid-sentence but a clear spoken word
-still interrupts it. The Retell agent re-syncs lazily on the first call after
-the deploy (TUNING_VERSION 4 bump forces it).
-
-### Migration reminder
-`20260704090000_email_channel.sql` was applied this session. ✅
+### Operator items still open here (not code)
+- **Record the demo video** — follow `docs/demo-video-script.md`. Place a warm-up
+  "Test my AI" call first so the agent re-syncs to v5 (Fast Tier), then record.
+- **Watch Fast Tier cost** — `model_high_priority: true` bills higher per message.
+  Confirm voice margin still clears ~70% over the first real calls; revert is one
+  line (`MODEL_HIGH_PRIORITY = false` in `src/lib/voice/retell.ts`).
+- **Membership live test** — on an Elite-entitled tenant: create a plan at
+  `/dashboard/membership`, enroll a contact from their contact page, send a
+  renewal link, confirm the Stripe link texts and the next-renewal date advances.
 
 ---
 
 ## What shipped this session
 
-### 1. AI email channel (`ae1d9d1`)
-The AI receptionist as a **third channel** of the Omnichannel add-on (web + SMS +
-email), reusing the §10 tool brain + Phase-10 conversations/Inbox.
+### 1. Voice: GPT-4.1 Fast Tier + pronunciation fixes (`8f5beae`)
+Addressed the ATTENTION.md voice items:
+- **Latency** — was on `gpt-4.1` Standard pool; added `model_high_priority: true`
+  in `src/lib/voice/retell.ts` → Retell **Fast Tier** (dedicated high-priority
+  pool, lower latency, higher cost). Verified the field against retell-sdk.
+- **ZIP read as "forty-four thousand"** — `src/lib/voice/prompt.ts` speaking rule
+  now reads ZIPs digit-by-digit, spaced (`4 4 1 4 2`).
+- **"Cleveland OCH"** — rule to always write the state's full name ("Cleveland,
+  Ohio"), so the TTS never sees the 2-letter code.
+- `TUNING_VERSION` 4 → 5 forces a lazy agent re-sync on the next call.
 
-**Architecture (operator choice: "forward your inbox"):**
-- Business forwards `info@theirdomain.com` to `{token}@inbound.missednomorepro.com`.
-- **Cloudflare Email Worker** (`cloudflare/email-worker.js`, 15-line dumb
-  forwarder) receives the mail and POSTs raw RFC-822 to `/api/email/inbound` with
-  `x-email-secret` + `x-mnm-to` (envelope recipient = the token).
-- Our app parses with **postal-mime**, resolves the tenant from the token (never
-  the email body), runs `runChatTurn({channel:"email"})`, and replies via Resend
-  from the **business name** (`replies@missednomorepro.com`).
-- Reply-To is the token address so the customer's reply routes back to us.
-  Threading headers (`In-Reply-To`/`References`) make the customer's mail client
-  file our reply under their original email.
+### 2. RED_TEAM launch gate — PASSED
+Operator ran all 25 calls: **all 15 hard-rule calls green at 0% pricing
+hallucination.** Verified the answer key's math matches the live `calculateQuote`
+engine before the run (zones, free-tow-miles, overnight surcharge window all
+reproduce). Stripe was already live (June 25), so no flip needed.
 
-**Auto-reply guards** in `src/lib/email/inbound.ts` (the load-bearing email
-safety layer): skips RFC-3834 auto-replies, `Precedence: bulk/list`, `List-*`
-newsletters, no-reply/daemon senders, our own domain loops, auto-reply subjects,
-and strips quoted reply history so the model reads only the new message.
+### 3. Customer membership plans — Phase 12 (`7c7cb08`)
+The last clean unbuilt core feature. Lets a business sell its own customers a
+recurring maintenance/membership plan. **Elite-gated** via the existing
+`membership` feature flag.
+- Migration `supabase/migrations/20260705090000_membership.sql` — `membership_plans`
+  + `customer_memberships` (RLS `is_member`, grants). **Applied.**
+- `src/lib/membership/queries.ts` — types + billing-interval date math.
+- `/dashboard/membership` — plan catalog + MRR/member stats + non-Elite upsell.
+- Contact page — enroll / send-renewal / cancel card (gated).
+- Nav link added.
+- **V1 = "assisted recurring", no Stripe Connect** (keeps margin): renewal reuses
+  the Phase-8 payment-link + SMS flow and rolls `current_period_end` forward one
+  interval. True auto-charge is the documented v2.
 
-**Voice path: byte-for-byte unchanged.** Channel widened across the chat brain
-(conversation.ts, handle.ts, prompt.ts, engine.ts, handlers.ts).
+### 4. Phase 13 (CRM polish) — found already shipped
+LTV (sum of paid payments), VIP tags, and inbound-MMS photos are already on the
+contact detail page. Nothing to build.
 
-**§5.1 intact:** same computed-price/booking guardrails as voice — the AI never
-invents a price or books outside rules via email.
+### 5. Demo video script — `docs/demo-video-script.md`
+Pre-flight gates, recording setup, the exact call script (exercises the voice
+fixes + price guardrail), and the "lead appears on the dashboard" reveal.
 
-**Key files:**
-- `supabase/migrations/20260704090000_email_channel.sql` — `conversations.channel`
-  += `'email'`, `customer_email`/`subject`, open-thread unique index, `conversation_messages.external_id` (Message-ID idempotency), `sms_settings.{email_inbound_enabled, email_inbound_token (backfilled), email_signature}`
-- `src/lib/email/inbound.ts` — MIME parse + auto-reply/loop guards + quote stripping
-- `src/lib/email/conversation-email.ts` — Resend reply with identity + threading
-- `src/app/api/email/inbound/route.ts` — secret-authed, idempotent, tenant from token
-- `cloudflare/email-worker.js` + `cloudflare/wrangler.toml`
-- `docs/email-channel-setup.md` — operator platform setup + per-customer guide
-- Inbox: email threads (Mail icon, subject, `sendStaffEmail`)
-- Settings: "AI Email" card (`updateEmailSettings`)
-- `postal-mime` dep added
-
-**Cloudflare setup (done this session, fully live):**
-- `inbound.missednomorepro.com` MX → Cloudflare (3 route MX records) — **apex
-  Zoho MX untouched** (verified twice via nslookup).
-- Worker `mnm-email-inbound` deployed via `wrangler deploy` (auth via browser OAuth).
-- Shared secret `MNM_INBOUND_SECRET` set via `wrangler secret put`.
-- Zone catch-all rule → Worker set via Cloudflare API (dashboard SPA was unresponsive).
-- **End-to-end proven:** test email `jdmgaming324@gmail.com → test@inbound.missednomorepro.com` appeared in Worker logs (`Ok`, 404 from app pre-deploy → 403 post-deploy with envs).
-
-**Vercel envs (set this session):**
-- `EMAIL_INBOUND_SECRET` = `794290925ae7145d0a4bc3d0d514b85c066929fe67ccd1f0`
-- `EMAIL_INBOUND_DOMAIN` = `inbound.missednomorepro.com`
-- `EMAIL_REPLY_FROM` = `replies@missednomorepro.com`
-- Verified via `env pull` that secret exactly matches the Worker secret. ✅
-
-**Margin: $0** — Cloudflare free + existing Resend; idempotent on Message-ID;
-LLM text only. Folded into omnichannel_chat (+$29) add-on — no new Stripe price.
-
-### 2. Voice sensitivity 0.3 → 0.2 (`540769d`)
-Live call test confirmed speech is better but background barge-in still caught
-at 0.3. One more notch: `INTERRUPTION_SENSITIVITY = 0.2` in `retell.ts`.
-`TUNING_VERSION` 3 → 4 in `prompt.ts` forces agent re-sync on next call.
-
----
-
-## Still open
-
-### Operator live-tests to run (not code — just call/navigate)
-- **Email end-to-end:** per-business setup above → test email → confirm AI reply
-  + thread in Inbox.
-- **Voice 0.2 sensitivity:** call with background noise → confirm no barge-in but
-  clear voice still interrupts.
-- **Lead text backstop:** a lead call where AI does NOT escalate → confirm staff
-  "New lead" text fires (deterministic backstop added June 25).
-- **Dispatch ETA:** urgent "come now" call → confirm customer gets confirmation +
-  ETA text + job on dispatch board.
-- **Self-serve number:** on a carded test tenant → `/dashboard/numbers` → search
-  area code → Claim → AI answers a test call on it.
-- **Dunning** (optional): force a failed renewal → confirm email + in-app banner.
-
-### Supabase Pro hardening
-Work through `docs/supabase-pro-hardening.md` (PITR, leaked-password protection,
-SSL enforce, network restrictions, Advisor, spend cap). If Advisor flags anything,
-send the item name → I fix in a migration.
-
-### Red-team 25 calls
-`RED_TEAM.md` — the 0%-pricing-hallucination gate. Should be run before scaling
-demos. Updated for 5-zone/40-mi rules + `find_tow_destination`.
-
-### Deferred features (later backlog)
-- GBP auto-replies (blocked on Google verification)
-- Native CRM connectors (Jobber/Housecall) + Zapier already shipped
-- Multi-location (risky "first business" refactor, deferred)
-- Customer membership plans (own recurring-billing feature)
-- Sentry source maps (`SENTRY_AUTH_TOKEN` in Vercel → readable crash traces)
-- Uptime monitor (free UptimeRobot on `/api/health`)
+### 6. Social Studio — Milestone 1 foundation (separate repo)
+A separate single-user social-automation product, scaffolded at
+`C:\Users\Stran\Desktop\mnmp-social-studio` (own git repo, NOT on GitHub yet).
+Done so far (cloud-account-free): full 14-table schema + RLS, `.env.example`,
+brand-kit seed, README, and the build plan copied in. App shell is the next
+chunk, once the Supabase project exists.
 
 ---
 
 ## Cross-cutting notes (unchanged)
 - Push to `main` → Vercel auto-deploys; prompt/tool changes re-sync the live
   Retell agent lazily on the next call.
-- Stripe stays **LIVE** in prod; `.env.local` stays **test**. (Memory: `stripe-live-mode`.)
+- Stripe stays **LIVE** in prod; `.env.local` stays **test**.
 - §5.1 held throughout — the AI never speaks an un-computed number.
-- DB migrations applied by pasting into Supabase SQL editor (CLI not authenticated).
-- Cloudflare Worker config lives in `cloudflare/` in the repo. To re-deploy:
-  `cd cloudflare && npx wrangler deploy`. Wrangler auth is stored locally
-  (valid for ~90 days).
-- The email inbound secret (`794290925…`) is stored in both: Cloudflare Worker
-  secret `MNM_INBOUND_SECRET` AND Vercel `EMAIL_INBOUND_SECRET`. They must match.
-  If ever rotating, update both.
+- DB migrations applied by pasting into the Supabase SQL editor (CLI not
+  authenticated).
+- Parallel cloud sessions can push to GitHub — `git fetch` + reconcile before
+  pushing.
