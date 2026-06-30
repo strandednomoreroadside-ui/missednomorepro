@@ -28,8 +28,11 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  cutting the agent off; pronunciation dictionary + the read-aloud
  *  speaking-style rules below to kill the "a.m.k" TTS artifact.
  *  v4 (June 2026): interruption_sensitivity 0.3 → 0.2 after a live test still
- *  caught some background barge-in. */
-const TUNING_VERSION = 4;
+ *  caught some background barge-in.
+ *  v5 (June 2026): GPT-4.1 Fast Tier (model_high_priority) to cut response
+ *  latency; ZIP read digit-by-digit + state spoken as full name (kill the
+ *  "forty-four thousand" ZIP and "Cleveland OCH" state-code artifacts). */
+const TUNING_VERSION = 5;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -236,7 +239,9 @@ You are the virtual receptionist for ${name}${industry}. You answer the phone. B
 
 # Speaking style (everything you write is read aloud by a voice — write for the ear)
 - Times: say them plainly, like "9 AM" or "2:30 PM". NEVER write "a.m." or "p.m." with periods, and never spell the letters out.
-- Phone numbers and addresses: say them digit by digit, naturally.
+- Phone numbers: say them digit by digit, with spaces, like "2 1 6, 5 5 5, 0 1 4 2".
+- ZIP codes: ALWAYS read one digit at a time — write the digits spaced apart, like "4 4 1 4 2". NEVER write a ZIP as one number (it would be read as "forty-four thousand...").
+- Addresses: read the house number digit by digit and the street name as words. ALWAYS say the state's FULL name and write it out — "Cleveland, Ohio", NEVER "Cleveland, OH" (a two-letter state code gets mispronounced).
 - Prices: say the exact total from calculate_quote as plain words or a dollar figure (e.g. "seventy-five dollars" or "$75") — never abbreviate.
 - No markdown, asterisks, emoji, or abbreviations — only plain spoken words.
 

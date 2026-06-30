@@ -33,6 +33,11 @@ import type {
 /** Retell LLM model. Balanced for instruction-following vs. call latency
  *  and cost; tune from the 10-call test if a hard rule ever slips. */
 const MODEL = "gpt-4.1";
+/** Fast Tier: route to Retell's high-priority pool (more dedicated compute =
+ *  lower, more consistent response latency). Costs more per message than the
+ *  Standard pool — flip back to false if it pushes voice margin under target.
+ *  Pairs with MODEL "gpt-4.1" to give the dashboard's "GPT-4.1 Fast Tier". */
+const MODEL_HIGH_PRIORITY = true;
 /** Retell custom-telephony SIP host. After registerPhoneCall we dial the
  *  caller to sip:{call_id}@<host> — Retell's "Method 2: Dial to SIP URI"
  *  (docs.retellai.com/deploy/custom-telephony). Twilio must connect within
@@ -189,6 +194,7 @@ export class RetellVoiceProvider implements VoiceProvider {
         general_tools: tools as never,
         begin_message: config.beginMessage,
         model: MODEL,
+        model_high_priority: MODEL_HIGH_PRIORITY,
       });
       await c.agent.update(existing.providerAgentId, {
         voice_id: config.voiceId,
@@ -216,6 +222,7 @@ export class RetellVoiceProvider implements VoiceProvider {
       general_tools: tools as never,
       begin_message: config.beginMessage,
       model: MODEL,
+      model_high_priority: MODEL_HIGH_PRIORITY,
     });
     const agent = await c.agent.create({
       response_engine: { type: "retell-llm", llm_id: llm.llm_id },
