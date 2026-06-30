@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BadgeCheck,
   BookOpen,
   Bot,
   CalendarCheck,
@@ -144,6 +145,13 @@ export default async function DashboardLayout({
           >
             <LineChart className="size-4" aria-hidden />
             Insights
+          </Link>
+          <Link
+            href="/dashboard/membership"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <BadgeCheck className="size-4" aria-hidden />
+            Membership
           </Link>
           <Link
             href="/dashboard/team"

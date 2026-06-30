@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  BadgeCheck,
   CreditCard,
   ImageIcon,
   MessageSquare,
@@ -27,10 +28,17 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { requireActiveOrg } from "@/lib/auth";
+import { getEntitlements } from "@/lib/billing/entitlements";
 import { getBusinessTimezone } from "@/lib/business/timezone";
 import { formatDateInZone, formatDateTimeInZone } from "@/lib/calendar/timezone";
+import { INTERVAL_LABEL, type MembershipInterval } from "@/lib/membership/queries";
 import { formatUsPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
+import {
+  cancelMembership,
+  enrollMembership,
+  sendRenewal,
+} from "@/app/dashboard/membership/actions";
 
 import {
   addNote,
@@ -100,6 +108,13 @@ const EVENT_ICONS: Record<string, typeof NotebookPen> = {
 };
 
 type MediaRow = { id: string; content_type: string | null; created_at: string };
+
+type ActiveMembership = {
+  id: string;
+  current_period_end: string;
+  membership_plans: { name: string; price_cents: number; interval: MembershipInterval } | null;
+};
+type PlanOption = { id: string; name: string; price_cents: number; interval: MembershipInterval };
 
 const LEAD_STATUSES = [
   "new_lead",
@@ -179,6 +194,31 @@ export default async function ContactDetailPage({
   const ltvCents = payments
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + p.amount_cents, 0);
+
+  const ent = await getEntitlements(active.organization_id);
+  const membershipEnabled = ent.has("membership");
+  let activeMembership: ActiveMembership | null = null;
+  let availablePlans: PlanOption[] = [];
+  if (membershipEnabled) {
+    const [{ data: mem }, { data: plansData }] = await Promise.all([
+      supabase
+        .from("customer_memberships")
+        .select("id, current_period_end, membership_plans(name, price_cents, interval)")
+        .eq("contact_id", id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("membership_plans")
+        .select("id, name, price_cents, interval")
+        .eq("tenant_id", active.organization_id)
+        .eq("active", true)
+        .order("name", { ascending: true }),
+    ]);
+    activeMembership = (mem as unknown as ActiveMembership | null) ?? null;
+    availablePlans = (plansData ?? []) as PlanOption[];
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -465,6 +505,88 @@ export default async function ContactDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {/* ── Membership (Phase 12, Elite) ── */}
+          {membershipEnabled && (
+            <Card className="bg-card/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 font-display text-base">
+                  <BadgeCheck className="size-4 text-cyan" aria-hidden />
+                  Membership
+                </CardTitle>
+                <CardDescription>
+                  Enroll this customer in a recurring plan.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {activeMembership ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="font-medium text-foreground">
+                        {activeMembership.membership_plans?.name ?? "Plan"}
+                      </span>
+                      {activeMembership.membership_plans && (
+                        <span className="font-mono text-sm text-cyan">
+                          {money(activeMembership.membership_plans.price_cents)}
+                          <span className="text-steel">
+                            {" "}/{" "}
+                            {INTERVAL_LABEL[
+                              activeMembership.membership_plans.interval
+                            ].toLowerCase()}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Next renewal {formatDateInZone(activeMembership.current_period_end, tz)}.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <form action={sendRenewal}>
+                        <input type="hidden" name="contact_id" value={c.id} />
+                        <input type="hidden" name="membership_id" value={activeMembership.id} />
+                        <Button type="submit" variant="outline" size="sm">
+                          Send renewal link
+                        </Button>
+                      </form>
+                      <form action={cancelMembership}>
+                        <input type="hidden" name="contact_id" value={c.id} />
+                        <input type="hidden" name="membership_id" value={activeMembership.id} />
+                        <Button type="submit" variant="ghost" size="sm">
+                          Cancel
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                ) : availablePlans.length > 0 ? (
+                  <form action={enrollMembership} className="flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="contact_id" value={c.id} />
+                    <label className="flex-1 text-xs text-muted-foreground">
+                      Plan
+                      <Select name="plan_id" className="mt-1" aria-label="Membership plan">
+                        {availablePlans.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} — {money(p.price_cents)}/
+                            {INTERVAL_LABEL[p.interval].toLowerCase()}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <Button type="submit" variant="outline">
+                      Enroll
+                    </Button>
+                  </form>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No active plans yet.{" "}
+                    <Link href="/dashboard/membership" className="text-cyan hover:underline">
+                      Create one
+                    </Link>
+                    .
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* ── Photos texted in (Ph13 MMS intake) ── */}
           {media.length > 0 && (
