@@ -41,24 +41,21 @@ function quote({ service, miles, towMiles, timeMin, maxMiles = 25 }) {
   return { ok: true, total: Math.round(total * 100) / 100 };
 }
 
-// Mirrors calculateQuote's multi-service path: ONE dispatch fee for the
-// whole visit no matter how many services are quoted together.
-function quoteMulti({ services, miles, towMiles, timeMin, maxMiles = 25 }) {
+// Multi-service trip: ONE dispatch fee for the visit + a fee per available
+// service + auto surcharge once (mirrors calculateQuote's trip model).
+function quoteTrip({ services, miles, timeMin, maxMiles = 25 }) {
   if (miles > maxMiles) return { ok: false, reason: "out_of_area" };
-  for (const service of services) {
-    if (service.availStart != null && !inWindow(timeMin, service.availStart, service.availEnd)) {
-      return { ok: false, reason: "service_unavailable" };
-    }
-  }
   const z = resolveZone(ZONES, miles);
   if (!z) return { ok: false, reason: "no_zone" };
-  let total = z.fee; // charged once, not once per service
-  for (const service of services) {
-    if (service.type === "tow") {
-      total += service.hook + service.rate * Math.max(0, towMiles - (service.free ?? 0));
-    } else total += service.fee;
+  let total = z.fee; // dispatch charged ONCE, regardless of service count
+  let priced = 0;
+  for (const s of services) {
+    if (s.availStart != null && !inWindow(timeMin, s.availStart, s.availEnd)) continue;
+    total += s.type === "tow" ? s.hook + s.rate * Math.max(0, (s.towMiles ?? 0) - (s.free ?? 0)) : s.fee;
+    priced++;
   }
-  if (inWindow(timeMin, LATE[0], LATE[1])) total += 20;
+  if (priced === 0) return { ok: false, reason: "service_unavailable" };
+  if (inWindow(timeMin, LATE[0], LATE[1])) total += 20; // auto late-night, once
   return { ok: true, total: Math.round(total * 100) / 100 };
 }
 
@@ -74,11 +71,9 @@ const cases = [
   ["Tow, Zone1 (5mi) + 10 tow mi, 5 free, 2PM", quote({ service: TOW, miles: 5, towMiles: 10, timeMin: 840 }), { ok: true, total: 127.5 }],
   ["Out of area (30mi)", quote({ service: JUMP, miles: 30, timeMin: 840 }), { ok: false, reason: "out_of_area" }],
   ["No-spare tire at 6PM (closed)", quote({ service: NOSPARE, miles: 5, timeMin: 1080 }), { ok: false, reason: "service_unavailable" }],
-  [
-    "Jump + Lockout together, Zone1 (5mi), 10AM — ONE dispatch fee",
-    quoteMulti({ services: [JUMP, LOCK], miles: 5, timeMin: 600 }),
-    { ok: true, total: 145 },
-  ],
+  ["Jump + Lockout, Zone1 (5mi), 2PM — ONE dispatch fee", quoteTrip({ services: [JUMP, LOCK], miles: 5, timeMin: 840 }), { ok: true, total: 145 }],
+  ["Jump + Lockout, Zone2 (12mi), 11PM late — ONE dispatch + one surcharge", quoteTrip({ services: [JUMP, LOCK], miles: 12, timeMin: 1380 }), { ok: true, total: 175 }],
+  ["Jump + no-spare tire at 6PM (tire closed, jump only)", quoteTrip({ services: [JUMP, NOSPARE], miles: 5, timeMin: 1080 }), { ok: true, total: 95 }],
 ];
 
 console.log("========== PRICING MATH ==========");

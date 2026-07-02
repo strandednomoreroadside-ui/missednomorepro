@@ -326,6 +326,11 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
             "ALL services needed this visit, e.g. [\"Jump Start\"] or [\"Jump Start\", \"Tire Change\"]. Always " +
             "list every service the caller needs in this one call — never call the tool separately per service.",
         },
+        service: {
+          type: "string",
+          description:
+            "A single requested service, e.g. 'Jump Start'. Use 'services' instead when there are two or more.",
+        },
         location: {
           type: "string",
           description:
@@ -336,7 +341,7 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
           description: "Drop-off location (TOWS ONLY) — where the vehicle is being towed to.",
         },
       },
-      required: ["services", "location"],
+      required: ["location"],
     },
   },
   {

@@ -33,7 +33,11 @@ import {
   isMapsConfigured,
 } from "@/lib/maps/client";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
-import { calculateQuote, type QuoteResult, type ServicePrice } from "@/lib/pricing/engine";
+import {
+  calculateQuote,
+  type QuoteResult,
+  type ServicePrice,
+} from "@/lib/pricing/engine";
 import { bundleQuotingEnabled, loadPricing } from "@/lib/pricing/loader";
 import { sendCustomerSms, sendStaffSms } from "@/lib/sms/outbound";
 
@@ -1530,6 +1534,13 @@ function clock(t: string): string {
   return min === 0 ? `${h12} ${period}` : `${h12}:${String(min).padStart(2, "0")} ${period}`;
 }
 
+/** Join names into a spoken list: "a", "a and b", "a, b, and c". */
+function joinWords(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
 function formatQuote(r: QuoteResult): Record<string, unknown> {
   if (!r.ok) {
     if (r.reason === "out_of_area") {
@@ -1540,14 +1551,18 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
         say: `That spot is about ${Math.round(r.miles)} miles from us, past our service area — I can't price it, but I can take your details for the owner to follow up.`,
       };
     }
-    if (r.reason === "service_unavailable" && r.availabilityWindow) {
+    if (r.reason === "service_unavailable") {
+      const sentences = r.unavailableServices.map(
+        (u) =>
+          `${u.name} is only available between ${clock(u.window.start)} and ${clock(u.window.end)}`
+      );
       return {
         ok: false,
         reason: r.reason,
-        window: r.availabilityWindow,
-        say:
-          `${r.availabilityWindow.service} is only available between ${clock(r.availabilityWindow.start)} and ${clock(r.availabilityWindow.end)}.` +
-          (r.services.length > 1 ? " I can price your other service separately if you'd like." : ""),
+        unavailable_services: r.unavailableServices,
+        say: sentences.length
+          ? `${sentences.join("; ")}.`
+          : "That service isn't available right now.",
       };
     }
     if (r.reason === "need_destination") {
@@ -1575,7 +1590,14 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
   // quoted total.
   let say = `Your total comes to ${dollars(r.total)}.`;
   if (r.variableParts.length) {
-    say += ` Plus the cost of the ${r.variableParts.join(" and ")}, which we confirm before dispatch.`;
+    say += ` Plus the cost of the ${joinWords(r.variableParts)}, which we confirm before dispatch.`;
+  }
+  if (r.unavailableServices.length) {
+    const notes = r.unavailableServices.map(
+      (u) =>
+        `${u.name} isn't available right now (only between ${clock(u.window.start)} and ${clock(u.window.end)})`
+    );
+    say += ` Note: ${joinWords(notes)}.`;
   }
   if (r.possibleSurcharges.length) {
     const names = r.possibleSurcharges.map((s) => s.name.toLowerCase()).join(", ");
@@ -1586,6 +1608,7 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
     services: r.services,
     total: r.total,
     currency: r.currency,
+    unavailable_services: r.unavailableServices,
     miles: r.miles,
     tow_miles: r.towMiles ?? null,
     say,
@@ -1594,7 +1617,8 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
 
 const calculateQuoteTool = defineTool(
   z.object({
-    services: z.array(z.string().min(1).max(160)).min(1).max(4),
+    service: z.string().min(1).max(160).optional(),
+    services: z.array(z.string().min(1).max(160)).max(4).optional(),
     location: z.string().min(1).max(300),
     destination: z.string().max(300).optional(),
   }),
@@ -1611,9 +1635,23 @@ const calculateQuoteTool = defineTool(
       };
     }
 
+    // Accept a single service or a list. The whole list is ONE trip, so the
+    // dispatch/zone fee is charged once and each service adds its own fee.
+    const requested = (args.services?.length ? args.services : args.service ? [args.service] : [])
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (requested.length === 0) {
+      return {
+        status: "blocked",
+        data: { ok: false, reason: "no_service" },
+        error: "no service provided",
+      };
+    }
+
+    // Match each requested name to a priced service; dedupe; collect unknowns.
     const matched: ServicePrice[] = [];
     const unmatched: string[] = [];
-    for (const name of args.services) {
+    for (const name of requested) {
       const svc = matchService(bundle.services, name);
       if (svc) matched.push(svc);
       else unmatched.push(name);
@@ -1665,6 +1703,7 @@ const calculateQuoteTool = defineTool(
       };
     }
 
+    // A tow's drop-off distance is shared by any tow in the request.
     let towMiles: number | null = null;
     const towService = services.find((s) => s.pricing_type === "tow");
     if (towService && args.destination) {
@@ -1705,7 +1744,7 @@ const calculateQuoteTool = defineTool(
     if (result.ok) {
       const contactId = await resolveCallerContactId(ctx);
       await advanceLead(ctx.admin, ctx.tenantId, contactId, "quoted", {
-        service: services.map((s) => s.name).join(" + "),
+        service: result.services.join(" + "),
         estimatedValue: result.total,
       });
       if (contactId) {

@@ -1,14 +1,17 @@
 /**
  * Deterministic quote engine. PURE — no I/O. Given a business's approved
  * rules + a real driving distance + the call time, it produces an itemized,
- * exact quote — for one service, or several quoted together in the SAME
- * visit. The AI's calculate_quote tool calls this and reads the result back
- * verbatim; the LLM never computes a price itself.
+ * exact quote for a single trip. The AI's calculate_quote tool calls this and
+ * reads the result back verbatim; the LLM never computes a price itself.
  *
- * Total = ONE zone dispatch fee (by miles from home base) — charged once
- *       for the whole visit, never once per service
- *       + each service's fee (flat, or tow = hook + per-mile × tow miles)
- *       + auto time-window surcharges (e.g. late-night), applied once.
+ * A trip is ONE visit to ONE location that may perform SEVERAL services. So:
+ *
+ * Total = zone dispatch fee (by miles from home base), charged once
+ *       + service fee for each available service
+ *       + auto time-window surcharges, charged once.
+ *
+ * Charging the dispatch/trip fee per service would over-bill a caller who asks
+ * for two things at one stop, so it is added a single time for the visit.
  * Conditional surcharges are returned for the AI to MENTION, never added.
  */
 
@@ -63,20 +66,21 @@ export interface QuoteInput {
 
 export interface QuoteResult {
   ok: boolean;
-  /** Set when ok=false: out_of_area | service_unavailable | no_zone | need_destination */
+  /** Set when ok=false: out_of_area | service_unavailable | no_zone | need_destination | no_service */
   reason?: string;
+  /** Services actually priced into the total. */
   services: string[];
+  /** Requested services outside their availability window — MENTION, not charged. */
+  unavailableServices: { name: string; window: { start: string; end: string } }[];
   zoneNumber?: number;
   lines: QuoteLine[];
   total: number;
-  /** Non-null variable parts across the quoted services, e.g. ["tire"] → the
-   *  AI says "+ the cost of the tire, confirmed before dispatch". */
+  /** Non-null variable parts across the quoted services. */
   variableParts: string[];
   /** Conditional surcharges to MENTION (not added to total). */
   possibleSurcharges: { name: string; amount: number }[];
   miles: number;
   towMiles?: number | null;
-  availabilityWindow?: { service: string; start: string; end: string };
   currency: string;
 }
 
@@ -105,12 +109,21 @@ export function resolveZone(zones: PricingZone[], miles: number): PricingZone | 
   return null;
 }
 
+/** Can this service be performed at `minutes` (its availability window)? */
+function serviceAvailable(service: ServicePrice, minutes: number): boolean {
+  const start = toMinutes(service.available_start);
+  const end = toMinutes(service.available_end);
+  if (start == null || end == null) return true;
+  return inWindow(minutes, start, end);
+}
+
 export function calculateQuote(input: QuoteInput): QuoteResult {
   const currency = input.currency ?? "usd";
   const minutes = input.localTime.hour * 60 + input.localTime.minute;
   const base: QuoteResult = {
     ok: false,
-    services: input.services.map((s) => s.name),
+    services: [],
+    unavailableServices: [],
     lines: [],
     total: 0,
     variableParts: [],
@@ -120,41 +133,46 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     currency,
   };
 
-  // 1. Out of service area.
+  // 0. Nothing to price.
+  if (input.services.length === 0) return { ...base, reason: "no_service" };
+
+  // 1. Out of service area (one location for the whole visit).
   if (input.distanceMiles > input.maxServiceMiles) {
     return { ...base, reason: "out_of_area" };
   }
 
-  // 2. Service availability window (e.g. no-spare tire 9 AM–4 PM) — checked
-  // for every requested service; the first one outside its window blocks
-  // the whole quote.
-  for (const svc of input.services) {
-    const availStart = toMinutes(svc.available_start);
-    const availEnd = toMinutes(svc.available_end);
-    if (availStart != null && availEnd != null && !inWindow(minutes, availStart, availEnd)) {
-      return {
-        ...base,
-        reason: "service_unavailable",
-        availabilityWindow: {
-          service: svc.name,
-          start: svc.available_start!,
-          end: svc.available_end!,
-        },
-      };
-    }
-  }
-
-  // 3. ONE zone dispatch fee for the whole visit, regardless of how many
-  // services are being quoted together.
+  // 2. Zone dispatch fee — charged once for the trip.
   const zone = resolveZone(input.zones, input.distanceMiles);
   if (!zone) return { ...base, reason: "no_zone" };
+
+  // 3. A tow missing its drop-off can't be priced — pause the whole quote and
+  //    ask for the destination, then re-quote every service together.
+  const towNeedingDest = input.services.find(
+    (service) => service.pricing_type === "tow" && input.towMiles == null
+  );
+  if (towNeedingDest) {
+    return { ...base, reason: "need_destination", services: [towNeedingDest.name] };
+  }
+
+  // 4. One dispatch line, then a fee line per AVAILABLE service. Services
+  //    outside their window are surfaced (to mention) but never charged.
   const lines: QuoteLine[] = [
     { label: `Dispatch (Zone ${zone.zone_number})`, amount: money(zone.dispatch_fee) },
   ];
-
-  // 4. Each service's own fee.
+  const priced: string[] = [];
+  const unavailable: QuoteResult["unavailableServices"] = [];
   const variableParts: string[] = [];
+
+  // 4. Each available service adds its own fee. Unavailable services are
+  // surfaced to the caller but do not block pricing the rest of the visit.
   for (const svc of input.services) {
+    if (!serviceAvailable(svc, minutes)) {
+      unavailable.push({
+        name: svc.name,
+        window: { start: svc.available_start!, end: svc.available_end! },
+      });
+      continue;
+    }
     if (svc.pricing_type === "tow") {
       if (input.towMiles == null) return { ...base, reason: "need_destination" };
       const hook = svc.hook_fee ?? 0;
@@ -175,9 +193,15 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     if (svc.variable_part && !variableParts.includes(svc.variable_part)) {
       variableParts.push(svc.variable_part);
     }
+    priced.push(svc.name);
   }
 
-  // 5. Auto time-window surcharges (e.g. late-night) — applied once per visit.
+  // 5. Every requested service is unavailable at this time.
+  if (priced.length === 0) {
+    return { ...base, reason: "service_unavailable", unavailableServices: unavailable };
+  }
+
+  // 6. Auto time-window surcharges are applied once per visit.
   for (const s of input.surcharges) {
     if (s.apply_type !== "auto_time") continue;
     const ws = toMinutes(s.window_start);
@@ -187,7 +211,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     }
   }
 
-  // 6. Conditional surcharges — surfaced, not added.
+  // 7. Conditional surcharges — surfaced, not added.
   const possible = input.surcharges
     .filter((s) => s.apply_type === "conditional")
     .map((s) => ({ name: s.name, amount: money(s.amount) }));
@@ -198,6 +222,8 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     ...base,
     ok: true,
     zoneNumber: zone.zone_number,
+    services: priced,
+    unavailableServices: unavailable,
     lines,
     total,
     variableParts,
