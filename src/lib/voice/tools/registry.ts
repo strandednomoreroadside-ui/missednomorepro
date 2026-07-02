@@ -296,17 +296,27 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
   {
     name: "calculate_quote",
     description:
-      "Get an EXACT price for a service. You must call this BEFORE saying any price, and read back ONLY the " +
-      "total it returns — never invent, estimate, round, or adjust a number yourself. Provide the service and " +
-      "the caller's location (for the distance-based dispatch fee). For a tow, also provide the drop-off " +
-      "location. If it returns ok=false, follow the 'say' guidance (e.g. ask for the drop-off, or that they're " +
-      "out of area).",
+      "Get an EXACT price. You must call this BEFORE saying any price, and read back ONLY the total it " +
+      "returns — never invent, estimate, round, or adjust a number yourself. Provide the caller's location " +
+      "(for the distance-based dispatch fee) and the service(s) they need. If the caller wants MORE THAN ONE " +
+      "service at the same stop, pass them all together in the 'services' list in a SINGLE call — the dispatch " +
+      "fee is charged once for the trip and each service adds its own fee, so calling this once per service " +
+      "would overcharge them. For a tow, also provide the drop-off location. If it returns ok=false, follow " +
+      "the 'say' guidance (e.g. ask for the drop-off, or that they're out of area).",
     parameters: {
       type: "object",
       properties: {
+        services: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "All services the caller needs at this stop, e.g. ['Jump Start', 'Vehicle Lockout']. Use this " +
+            "(not 'service') whenever there is more than one, so the dispatch fee is only charged once.",
+        },
         service: {
           type: "string",
-          description: "The service requested, e.g. 'Jump Start', 'Vehicle Lockout', 'Local Towing'.",
+          description:
+            "A single requested service, e.g. 'Jump Start'. Use 'services' instead when there are two or more.",
         },
         location: {
           type: "string",
@@ -318,7 +328,7 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
           description: "Drop-off location (TOWS ONLY) — where the vehicle is being towed to.",
         },
       },
-      required: ["service", "location"],
+      required: ["location"],
     },
   },
   {

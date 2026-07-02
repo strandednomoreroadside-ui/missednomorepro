@@ -33,7 +33,12 @@ import {
   isMapsConfigured,
 } from "@/lib/maps/client";
 import { formatUsPhone, normalizeUsPhone } from "@/lib/phone";
-import { calculateQuote, type QuoteResult, type ServicePrice } from "@/lib/pricing/engine";
+import {
+  calculateQuote,
+  type QuoteResult,
+  type QuoteServiceInput,
+  type ServicePrice,
+} from "@/lib/pricing/engine";
 import { bundleQuotingEnabled, loadPricing } from "@/lib/pricing/loader";
 import { sendCustomerSms, sendStaffSms } from "@/lib/sms/outbound";
 
@@ -1482,6 +1487,13 @@ function clock(t: string): string {
   return min === 0 ? `${h12} ${period}` : `${h12}:${String(min).padStart(2, "0")} ${period}`;
 }
 
+/** Join names into a spoken list: "a", "a and b", "a, b, and c". */
+function joinWords(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
 function formatQuote(r: QuoteResult): Record<string, unknown> {
   if (!r.ok) {
     if (r.reason === "out_of_area") {
@@ -1492,12 +1504,18 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
         say: `That spot is about ${Math.round(r.miles)} miles from us, past our service area — I can't price it, but I can take your details for the owner to follow up.`,
       };
     }
-    if (r.reason === "service_unavailable" && r.availabilityWindow) {
+    if (r.reason === "service_unavailable") {
+      const sentences = r.unavailableServices.map(
+        (u) =>
+          `${u.name} is only available between ${clock(u.window.start)} and ${clock(u.window.end)}`
+      );
       return {
         ok: false,
         reason: r.reason,
-        window: r.availabilityWindow,
-        say: `${r.service} is only available between ${clock(r.availabilityWindow.start)} and ${clock(r.availabilityWindow.end)}.`,
+        unavailable_services: r.unavailableServices,
+        say: sentences.length
+          ? `${sentences.join("; ")}.`
+          : "That service isn't available right now.",
       };
     }
     if (r.reason === "need_destination") {
@@ -1514,13 +1532,21 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
     };
   }
 
-  // Speak the total only — the operator doesn't want the line-item breakdown
-  // read out loud (the itemized lines are still returned in `breakdown` for the
-  // record/dashboard). Variable-part + conditional surcharges stay: they're
-  // necessary disclosures, not a breakdown of the base price.
+  // Speak the ONE combined total — one trip charges the dispatch fee a single
+  // time plus a fee for each service. The operator doesn't want the line-item
+  // breakdown read out loud (itemized lines stay in `breakdown` for the record).
+  // Variable-part + conditional surcharges stay: necessary disclosures.
   let say = `Your total comes to ${dollars(r.total)}.`;
-  if (r.variablePart) {
-    say += ` Plus the cost of the ${r.variablePart}, which we confirm before dispatch.`;
+  if (r.variableParts.length) {
+    const parts = r.variableParts.map((v) => v.part);
+    say += ` Plus the cost of the ${joinWords(parts)}, which we confirm before dispatch.`;
+  }
+  if (r.unavailableServices.length) {
+    const notes = r.unavailableServices.map(
+      (u) =>
+        `${u.name} isn't available right now (only between ${clock(u.window.start)} and ${clock(u.window.end)})`
+    );
+    say += ` Note: ${joinWords(notes)}.`;
   }
   if (r.possibleSurcharges.length) {
     const names = r.possibleSurcharges.map((s) => s.name.toLowerCase()).join(", ");
@@ -1528,21 +1554,22 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
   }
   return {
     ok: true,
-    service: r.service,
+    services: r.services,
     total: r.total,
     currency: r.currency,
     breakdown: r.lines,
-    variable_part: r.variablePart ?? null,
+    variable_parts: r.variableParts,
+    unavailable_services: r.unavailableServices,
     possible_surcharges: r.possibleSurcharges,
     miles: r.miles,
-    tow_miles: r.towMiles ?? null,
     say,
   };
 }
 
 const calculateQuoteTool = defineTool(
   z.object({
-    service: z.string().min(1).max(160),
+    service: z.string().min(1).max(160).optional(),
+    services: z.array(z.string().min(1).max(160)).max(6).optional(),
     location: z.string().min(1).max(300),
     destination: z.string().max(300).optional(),
   }),
@@ -1559,8 +1586,28 @@ const calculateQuoteTool = defineTool(
       };
     }
 
-    const svc = matchService(bundle.services, args.service);
-    if (!svc) {
+    // Accept a single service or a list. The whole list is ONE trip, so the
+    // dispatch/zone fee is charged once and each service adds its own fee.
+    const requested = (args.services?.length ? args.services : args.service ? [args.service] : [])
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (requested.length === 0) {
+      return {
+        status: "blocked",
+        data: { ok: false, reason: "no_service" },
+        error: "no service provided",
+      };
+    }
+
+    // Match each requested name to a priced service; dedupe; collect unknowns.
+    const matched: ServicePrice[] = [];
+    const unknown: string[] = [];
+    for (const name of requested) {
+      const svc = matchService(bundle.services, name);
+      if (!svc) unknown.push(name);
+      else if (!matched.some((m) => m.name === svc.name)) matched.push(svc);
+    }
+    if (matched.length === 0) {
       const names = bundle.services.map((s) => s.name);
       return {
         status: "ok",
@@ -1590,18 +1637,22 @@ const calculateQuoteTool = defineTool(
       };
     }
 
+    // A tow's drop-off distance is shared by any tow in the request.
     let towMiles: number | null = null;
-    if (svc.pricing_type === "tow" && args.destination) {
+    if (matched.some((s) => s.pricing_type === "tow") && args.destination) {
       towMiles = await drivingDistanceMiles(args.location, args.destination);
     }
+    const services: QuoteServiceInput[] = matched.map((s) => ({
+      service: s,
+      towMiles: s.pricing_type === "tow" ? towMiles : null,
+    }));
 
     const parts = getZonedParts(new Date(), business.timezone);
     const result = calculateQuote({
-      service: svc,
+      services,
       zones: bundle.zones,
       surcharges: bundle.surcharges,
       distanceMiles,
-      towMiles,
       maxServiceMiles: bundle.settings.max_service_miles,
       localTime: { hour: parts.hour, minute: parts.minute },
       currency: bundle.settings.currency,
@@ -1613,7 +1664,7 @@ const calculateQuoteTool = defineTool(
       entityType: "call",
       entityId: ctx.callId ?? undefined,
       metadata: {
-        service: svc.name,
+        services: matched.map((s) => s.name),
         ok: result.ok,
         reason: result.reason ?? null,
         total: result.total,
@@ -1626,7 +1677,7 @@ const calculateQuoteTool = defineTool(
     if (result.ok) {
       const contactId = await resolveCallerContactId(ctx);
       await advanceLead(ctx.admin, ctx.tenantId, contactId, "quoted", {
-        service: svc.name,
+        service: result.services.join(" + "),
         estimatedValue: result.total,
       });
       if (contactId) {
@@ -1641,7 +1692,9 @@ const calculateQuoteTool = defineTool(
       }
     }
 
-    return { status: "ok", data: formatQuote(result) };
+    const data = formatQuote(result);
+    if (unknown.length) data.unrecognized_services = unknown;
+    return { status: "ok", data };
   }
 );
 
