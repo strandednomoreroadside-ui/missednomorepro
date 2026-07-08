@@ -1,13 +1,26 @@
-# CLAUDE.md — Missed No More Pro OS
+# CLAUDE.md - Coding Profile (J-drona23-v5)
+# Best for: dev projects, code review, debugging, refactoring
+# Profile: J-drona23-v5 from claude-token-efficient
 
-Multi-tenant SaaS: AI receptionist + field-service OS for local service businesses (1–15 employees). The operator is a **non-developer** — Claude codes everything; they handle accounts, keys, payments, and test calls. Explain things in plain English.
+Read the rules and agent definitions in .claude/ before starting work:
+- .claude/rules/workflow.md   - workflow enforcement rules
+- .claude/agents/builder.md   - builder agent budget and protocol
+- .claude/reference/patterns.md - known good/bad patterns
 
-## The two source-of-truth documents
+---
 
-1. **BUILD_GUIDE.md** — the milestone roadmap (M0–M10). Always know which milestone we're on; never build ahead of it.
-2. **docs/master-plan-v3.md** — the full product spec (schema §8, security §9, AI tool contracts §10, phases §11, pricing §6).
+## Approach
+- Read existing files before writing. Don't re-read unless changed.
+- Thorough in reasoning, concise in output.
+- Skip files over 100KB unless required.
+- No sycophantic openers or closing fluff.
+- No emojis or em-dashes.
+- Do not guess APIs, versions, flags, commit SHAs, or package names. Verify by reading code or docs before asserting.
 
-## Current state (update this section as milestones complete)
+## Output
+- Return code first. Explanation after, only if non-obvious.
+- No inline prose. Use comments sparingly - only where logic is unclear.
+- No boilerplate unless explicitly requested.
 
 - ✅ M1 scaffold: Next.js 16 + TS strict + Tailwind v4 + shadcn-style components, brand theme, landing page, legal pages (drafts — finalize at M10), env validation
 - ✅ M0 accounts: Vercel/Supabase/Stripe/Twilio/OpenAI all exist (user, June 2026). Remaining: domain (confirm), fill `.env.local`
@@ -62,20 +75,27 @@ Multi-tenant SaaS: AI receptionist + field-service OS for local service business
 - 🟢 **Public demo line + industry-aware prompt + 30-day marketing system (July 24 2026, built — build+typecheck green, 16/16 unit tests, demo business LIVE; NO migration)**: unblocking the go-to-market push. **(1) REAL BUG FIXED — the prompt was roadside-only for every tenant.** `prompt.ts` hard-coded roadside intake into EVERY business's call script: step 4 asked all callers for "the vehicle — year, make, and model", step 5 ran a drive-to-customer service-area check, and the quoting step carried tow/`find_tow_destination` language. Any HVAC/plumbing/cleaning/landscaping tenant had an AI asking callers about their car. New pure module `src/lib/voice/industry.ts` (`capturesVehicle` / `travelsToCustomer`, substring match on a normalized industry, unknown → safe general-trade default) now gates those three blocks; `industry.test.ts` covers it (**the repo's pure modules skip `server-only` — see `pricing/engine.ts` — so it's directly unit-testable; note `node --test` needs the `./industry.ts` extension in the import**). **The roadside branch is byte-identical** (`capturesVehicle("Roadside assistance")` → true takes the original strings verbatim; all 6 distinctive fragments verified present) so the live business's promptHash does NOT drift and no re-sync churn. **(2) NICHES expanded** 14 → 50 in `src/lib/setup/steps.ts` (primary §1.3 trades first, then extended local-service trades, + "Other" catch-all). Only consumer is the `includes()` validation in setup `actions.ts`, so widening is safe. **(3) Public demo line `+14406442423` is LIVE** — the "call it and hear the AI" mechanic the entire marketing funnel points at. `scripts/seed-demo-business.mjs` (idempotent) stands up **"Summit Home Services"** (industry `HVAC` → no vehicle question), a **deliberately separate org/tenant** so stranger demo calls never touch the real roadside CRM/usage/billing; operator added as owner (their real org stays default — `requireActiveOrg` falls back to the FIRST membership by `created_at`). Seeded: 9 services, 7-day hours, 8 Cleveland-area service areas, lead alerts → `+12164151568`, missed-call text-back, **20 FAQs** (incl. a real gas-leak safety answer) and flat all-in pricing (1 zone / 75 mi / geocoded base) so **quoting is ON and every spoken price is server-computed** (§5.1 intact). Comped `starter` plan, **status `active` NOT `trialing`** (trialing would force the 30-min trial cap) + **`daily_spend_cap_cents = 300` ($3/day)**; org `founder_excluded` so it can never eat a founder slot. Twilio webhooks were already pointed at prod; the missing piece was only the `phone_numbers` row. **No calendar connected → booking OFF on purpose** (avoids the slowest tool + its known hang-up race on a first-impression call); connect a Google Calendar to enable. **Caveat: the first `notify_on_lead` staff contact is also the warm-transfer target**, so a demo caller asking for a human rings the operator's cell (a buying signal; clear the contact to disable). `scripts/demo-verify.mjs` = read-only health check that walks the whole inbound path and, once the agent provisions on the first call, **pulls the live prompt back from Retell to assert no vehicle question / no tow language / correct quoting**. **(4) `marketing/` = a complete 30-day system** built by 6 specialist agents (offer, LinkedIn, outbound, Facebook+$500 ad test, growth/funnel/KPIs, objections+nurture) + `README.md` control panel and `07-30-day-execution-calendar.md`; all config tokens filled (demo number, trial URL, 10/10 founder slots, founder name) while per-prospect merge fields (`{{first_name}}` etc.) and dynamic counts (`[N]`, `[X] days`) were deliberately preserved. **Honest math baked in: base case ~11-13 paying in 30 days, 20 is the stretch; the bottleneck is trial STARTS (the card gate), and the highest-leverage lever is forcing "hear the AI" before the trial ask.** **Operator TODO: place a test call to (440) 644-2423, then re-run `node scripts/demo-verify.mjs` for the live-prompt assertions.**
 
 - 🟢 **Site-audit fixes + founder-offer wording clarified (Aug 14 2026, mobile Claude Code session — build+typecheck green; committed + pushed directly to `main`; NO migration)**: a third-party site audit (heycatch.ai) scored the marketing site across positioning/conversion/trust/SEO; worked every below-max finding dimension-by-dimension (lowest-scoring first — the audit page had no action plan to follow instead). **Shipped (`d006286`):** hero H1 swapped "Every lead captured" → "Every price computed exact" + subhead reordered to lead with the deterministic-quote wedge (D1.1); wasted-ad-spend line added to the missed-call-math section for HVAC/plumbing/electrical (D1.2); new FAQ item rebuts "will the AI fumble a complicated call" via warm-transfer + never-invents-details (D1.4) + FAQPage JSON-LD schema on all FAQs (D5.5); plain one-line "what's an AI minute" definition on the pricing cards (D1.6); **unified the primary CTA to self-serve "Start free trial" → `/signup`** across header/hero/proof-band/final-CTA — was split against a "founding access" mailto that no longer even matches the real (automatic, on-payment) founder mechanic (D2.2); **real `/pricing` and `/about` routes** (both previously 404'd) via a new shared `src/components/landing/marketing-shell.tsx`, reusing the existing `Pricing`/`Faq` components — `/about` has the founder/origin story with **no fabricated name/photo/LinkedIn** (flagged for the operator) (D2.4/D3.3/D5.3/Brief-fit); `public/llms.txt` added (D5.5); showcase's mock revenue-dashboard tile now labeled "Sample data" so it doesn't read as real proof (D3.1); description + self-referencing canonical added to signup/login (were title-only) and to privacy/terms/sms-terms, which were silently inheriting the root layout's `canonical="/"` — i.e. every legal page was telling Google to index the homepage instead of itself (D5.1). **Left untouched, need real content only the operator can supply:** D3.2 (zero testimonials — need 2-3 real name+trade+city+quote), D3.5 (no Product Hunt/press/ratings), full D3.3 credit (founder's real name, headshot, LinkedIn URL — `/about` is written to drop them in without a rewrite). D2.1/D2.3/D2.5 scored below max but their one-line findings were purely positive with no described defect (D2.5 explicitly capped because the audit didn't run a live device test) — left alone rather than invent an unfounded fix. **Follow-up (`86c6cac`):** the founding-offer copy ("every current and future add-on included free") was vague now that most add-ons are already free for every customer (July fold-4-add-ons pass) — reworded on the landing pricing banner and the billing-page founder card to name the actual current paid add-on (AI Outbound Assistant, "plus anything we add later") and use "lifetime of your subscription, as long as it stays continuously active" phrasing; did **not** adopt the operator's literal "Growth Suite bundle" suggestion since that bundle is `retired: true` in `src/lib/billing/addons.ts` and two of its three original members are already free for everyone — naming it would've reintroduced the same confusion pointing at a non-existent product. **Also researched (no code): JobNimbus/ServiceTitan CRM integrations** — see SESSION_SUMMARY "Next session" for the findings; nothing built yet, awaiting an operator go-ahead. **Operator TODO: re-run the heycatch.ai audit against the live site to confirm the score deltas; when you have them, send 2-3 real testimonials (name/trade/city/quote) and your name+headshot+LinkedIn for `/about`.**
+## Code Rules
+- Simplest working solution. No over-engineering.
+- No abstractions for single-use operations.
+- No speculative features or "you might also want..."
+- Read the file before modifying it. Never edit blind.
+- No docstrings or type annotations on code not being changed.
+- No error handling for scenarios that cannot happen.
+- Three similar lines is better than a premature abstraction.
 
-## Hard rules (from master plan §5.1, §9, §10 — never violate)
+## Review Rules
+- State the bug. Show the fix. Stop.
+- No suggestions beyond the scope of the review.
+- No compliments on the code before or after the review.
 
-- `tenant_id` + RLS on **every** tenant-owned table; service-role key never in client code
-- AI never: claims to be human, invents prices, takes card numbers by voice, books outside approved windows, texts opted-out contacts
-- Every risky AI action goes through a §10 backend tool with server-side validation + audit log
-- Webhooks (Stripe/Twilio): signature-validated + idempotent, always
-- Stripe: **LIVE in production as of June 25 2026** (real cards). Keep `.env.local` on **test** keys so dev + scripts never touch live money; gate test-only UI behind `isStripeTestMode()` (see [[stripe-live-mode]])
-- Scope discipline: pricing engine, deposits, dispatch, invoicing, reviews, reporting, command center are **post-MVP** — do not build early
+## Debugging Rules
+- Never speculate about a bug without reading the relevant code first.
+- State what you found, where, and the fix. One pass.
+- If cause is unclear: say so. Do not guess.
 
-## Conventions
-
-- App Router server components by default; `src/` layout; `@/*` imports
-- Brand: dark-first only. Tokens in `src/app/globals.css` from `brand/missed_no_more_pro_brand_colors.txt` (night `#020817`, navy `#0A1B3D`, cyan `#00E5FF`, blue `#006BFF`, steel `#A7B0C0`). Fonts: Bricolage Grotesque (display) / Instrument Sans (body) / IBM Plex Mono (numbers, labels)
-- Env vars: add to `src/lib/env.ts` schema + BUILD_GUIDE template together; everything optional until its milestone needs it
-- Verify before done: `npm run build` + `npm run typecheck` pass; commit per milestone step
-- Budget: ~$50–70/mo until revenue — prefer free tiers, flag anything that costs money **before** doing it
+## Simple Formatting
+- No em dashes, smart quotes, or decorative Unicode symbols.
+- Plain hyphens and straight quotes only.
+- Natural language characters (accented letters, CJK, etc.) are fine when the content requires them.
+- Code output must be copy-paste safe.
