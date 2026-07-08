@@ -1483,6 +1483,7 @@ function clock(t: string): string {
 }
 
 function formatQuote(r: QuoteResult): Record<string, unknown> {
+  const serviceList = r.services.join(" and ");
   if (!r.ok) {
     if (r.reason === "out_of_area") {
       return {
@@ -1497,7 +1498,9 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
         ok: false,
         reason: r.reason,
         window: r.availabilityWindow,
-        say: `${r.service} is only available between ${clock(r.availabilityWindow.start)} and ${clock(r.availabilityWindow.end)}.`,
+        say:
+          `${r.availabilityWindow.service} is only available between ${clock(r.availabilityWindow.start)} and ${clock(r.availabilityWindow.end)}.` +
+          (r.services.length > 1 ? " I can price your other service separately if you'd like." : ""),
       };
     }
     if (r.reason === "need_destination") {
@@ -1518,9 +1521,12 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
   // read out loud (the itemized lines are still returned in `breakdown` for the
   // record/dashboard). Variable-part + conditional surcharges stay: they're
   // necessary disclosures, not a breakdown of the base price.
-  let say = `Your total comes to ${dollars(r.total)}.`;
-  if (r.variablePart) {
-    say += ` Plus the cost of the ${r.variablePart}, which we confirm before dispatch.`;
+  let say =
+    r.services.length > 1
+      ? `For ${serviceList}, there's just the one dispatch fee — your total comes to ${dollars(r.total)}.`
+      : `Your total comes to ${dollars(r.total)}.`;
+  if (r.variableParts.length) {
+    say += ` Plus the cost of the ${r.variableParts.join(" and ")}, which we confirm before dispatch.`;
   }
   if (r.possibleSurcharges.length) {
     const names = r.possibleSurcharges.map((s) => s.name.toLowerCase()).join(", ");
@@ -1528,11 +1534,11 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
   }
   return {
     ok: true,
-    service: r.service,
+    services: r.services,
     total: r.total,
     currency: r.currency,
     breakdown: r.lines,
-    variable_part: r.variablePart ?? null,
+    variable_parts: r.variableParts,
     possible_surcharges: r.possibleSurcharges,
     miles: r.miles,
     tow_miles: r.towMiles ?? null,
@@ -1542,7 +1548,7 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
 
 const calculateQuoteTool = defineTool(
   z.object({
-    service: z.string().min(1).max(160),
+    services: z.array(z.string().min(1).max(160)).min(1).max(4),
     location: z.string().min(1).max(300),
     destination: z.string().max(300).optional(),
   }),
@@ -1559,8 +1565,14 @@ const calculateQuoteTool = defineTool(
       };
     }
 
-    const svc = matchService(bundle.services, args.service);
-    if (!svc) {
+    const matched: ServicePrice[] = [];
+    const unmatched: string[] = [];
+    for (const name of args.services) {
+      const svc = matchService(bundle.services, name);
+      if (svc) matched.push(svc);
+      else unmatched.push(name);
+    }
+    if (matched.length === 0 || unmatched.length > 0) {
       const names = bundle.services.map((s) => s.name);
       return {
         status: "ok",
@@ -1568,10 +1580,18 @@ const calculateQuoteTool = defineTool(
           ok: false,
           reason: "unknown_service",
           available_services: names,
-          say: `I can price these: ${names.join(", ")}. Which one do you need?`,
+          say:
+            unmatched.length && matched.length
+              ? `I can price these: ${names.join(", ")}. I didn't recognize "${unmatched.join(", ")}" — which of these did you mean?`
+              : `I can price these: ${names.join(", ")}. Which one do you need?`,
         },
       };
     }
+    // Dedupe in case the caller (or the AI) named the same service twice.
+    const seenNames = new Set<string>();
+    const services = matched.filter((s) =>
+      seenNames.has(s.name) ? false : (seenNames.add(s.name), true)
+    );
 
     const base = {
       lat: bundle.settings.base_lat as number,
@@ -1591,13 +1611,14 @@ const calculateQuoteTool = defineTool(
     }
 
     let towMiles: number | null = null;
-    if (svc.pricing_type === "tow" && args.destination) {
+    const towService = services.find((s) => s.pricing_type === "tow");
+    if (towService && args.destination) {
       towMiles = await drivingDistanceMiles(args.location, args.destination);
     }
 
     const parts = getZonedParts(new Date(), business.timezone);
     const result = calculateQuote({
-      service: svc,
+      services,
       zones: bundle.zones,
       surcharges: bundle.surcharges,
       distanceMiles,
@@ -1613,7 +1634,7 @@ const calculateQuoteTool = defineTool(
       entityType: "call",
       entityId: ctx.callId ?? undefined,
       metadata: {
-        service: svc.name,
+        services: services.map((s) => s.name),
         ok: result.ok,
         reason: result.reason ?? null,
         total: result.total,
@@ -1626,7 +1647,7 @@ const calculateQuoteTool = defineTool(
     if (result.ok) {
       const contactId = await resolveCallerContactId(ctx);
       await advanceLead(ctx.admin, ctx.tenantId, contactId, "quoted", {
-        service: svc.name,
+        service: services.map((s) => s.name).join(" + "),
         estimatedValue: result.total,
       });
       if (contactId) {

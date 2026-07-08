@@ -1,12 +1,14 @@
 /**
  * Deterministic quote engine. PURE — no I/O. Given a business's approved
  * rules + a real driving distance + the call time, it produces an itemized,
- * exact quote. The AI's calculate_quote tool calls this and reads the
- * result back verbatim; the LLM never computes a price itself.
+ * exact quote — for one service, or several quoted together in the SAME
+ * visit. The AI's calculate_quote tool calls this and reads the result back
+ * verbatim; the LLM never computes a price itself.
  *
- * Total = zone dispatch fee (by miles from home base)
- *       + service fee (flat, or tow = hook + per-mile × tow miles)
- *       + auto time-window surcharges (e.g. late-night).
+ * Total = ONE zone dispatch fee (by miles from home base) — charged once
+ *       for the whole visit, never once per service
+ *       + each service's fee (flat, or tow = hook + per-mile × tow miles)
+ *       + auto time-window surcharges (e.g. late-night), applied once.
  * Conditional surcharges are returned for the AI to MENTION, never added.
  */
 
@@ -44,7 +46,9 @@ export interface QuoteLine {
 }
 
 export interface QuoteInput {
-  service: ServicePrice;
+  /** One or more services quoted together in the same visit — the dispatch
+   *  fee below is charged once for the whole list, never once per service. */
+  services: ServicePrice[];
   zones: PricingZone[];
   surcharges: Surcharge[];
   /** Driving miles from home base to the customer (tow: to the pickup). */
@@ -61,17 +65,18 @@ export interface QuoteResult {
   ok: boolean;
   /** Set when ok=false: out_of_area | service_unavailable | no_zone | need_destination */
   reason?: string;
-  service: string;
+  services: string[];
   zoneNumber?: number;
   lines: QuoteLine[];
   total: number;
-  /** e.g. "tire" → the AI says "+ the cost of the tire, confirmed before dispatch". */
-  variablePart?: string | null;
+  /** Non-null variable parts across the quoted services, e.g. ["tire"] → the
+   *  AI says "+ the cost of the tire, confirmed before dispatch". */
+  variableParts: string[];
   /** Conditional surcharges to MENTION (not added to total). */
   possibleSurcharges: { name: string; amount: number }[];
   miles: number;
   towMiles?: number | null;
-  availabilityWindow?: { start: string; end: string };
+  availabilityWindow?: { service: string; start: string; end: string };
   currency: string;
 }
 
@@ -105,10 +110,10 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   const minutes = input.localTime.hour * 60 + input.localTime.minute;
   const base: QuoteResult = {
     ok: false,
-    service: input.service.name,
+    services: input.services.map((s) => s.name),
     lines: [],
     total: 0,
-    variablePart: input.service.variable_part,
+    variableParts: [],
     possibleSurcharges: [],
     miles: money(input.distanceMiles),
     towMiles: input.towMiles ?? null,
@@ -120,49 +125,59 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     return { ...base, reason: "out_of_area" };
   }
 
-  // 2. Service availability window (e.g. no-spare tire 9 AM–4 PM).
-  const availStart = toMinutes(input.service.available_start);
-  const availEnd = toMinutes(input.service.available_end);
-  if (availStart != null && availEnd != null) {
-    if (!inWindow(minutes, availStart, availEnd)) {
+  // 2. Service availability window (e.g. no-spare tire 9 AM–4 PM) — checked
+  // for every requested service; the first one outside its window blocks
+  // the whole quote.
+  for (const svc of input.services) {
+    const availStart = toMinutes(svc.available_start);
+    const availEnd = toMinutes(svc.available_end);
+    if (availStart != null && availEnd != null && !inWindow(minutes, availStart, availEnd)) {
       return {
         ...base,
         reason: "service_unavailable",
         availabilityWindow: {
-          start: input.service.available_start!,
-          end: input.service.available_end!,
+          service: svc.name,
+          start: svc.available_start!,
+          end: svc.available_end!,
         },
       };
     }
   }
 
-  // 3. Zone dispatch fee.
+  // 3. ONE zone dispatch fee for the whole visit, regardless of how many
+  // services are being quoted together.
   const zone = resolveZone(input.zones, input.distanceMiles);
   if (!zone) return { ...base, reason: "no_zone" };
   const lines: QuoteLine[] = [
     { label: `Dispatch (Zone ${zone.zone_number})`, amount: money(zone.dispatch_fee) },
   ];
 
-  // 4. Service fee.
-  if (input.service.pricing_type === "tow") {
-    if (input.towMiles == null) return { ...base, reason: "need_destination" };
-    const hook = input.service.hook_fee ?? 0;
-    const rate = input.service.per_mile_rate ?? 0;
-    const free = input.service.free_miles ?? 0;
-    const towMiles = money(input.towMiles);
-    const chargeableMiles = Math.max(0, input.towMiles - free);
-    lines.push({ label: "Tow hook fee", amount: money(hook) });
-    lines.push({
-      label:
-        `Towing ${towMiles} mi @ $${rate.toFixed(2)}/mi` +
-        (free > 0 ? ` (first ${free} free)` : ""),
-      amount: money(rate * chargeableMiles),
-    });
-  } else {
-    lines.push({ label: input.service.name, amount: money(input.service.service_fee) });
+  // 4. Each service's own fee.
+  const variableParts: string[] = [];
+  for (const svc of input.services) {
+    if (svc.pricing_type === "tow") {
+      if (input.towMiles == null) return { ...base, reason: "need_destination" };
+      const hook = svc.hook_fee ?? 0;
+      const rate = svc.per_mile_rate ?? 0;
+      const free = svc.free_miles ?? 0;
+      const towMiles = money(input.towMiles);
+      const chargeableMiles = Math.max(0, input.towMiles - free);
+      lines.push({ label: `${svc.name} — hook fee`, amount: money(hook) });
+      lines.push({
+        label:
+          `Towing ${towMiles} mi @ $${rate.toFixed(2)}/mi` +
+          (free > 0 ? ` (first ${free} free)` : ""),
+        amount: money(rate * chargeableMiles),
+      });
+    } else {
+      lines.push({ label: svc.name, amount: money(svc.service_fee) });
+    }
+    if (svc.variable_part && !variableParts.includes(svc.variable_part)) {
+      variableParts.push(svc.variable_part);
+    }
   }
 
-  // 5. Auto time-window surcharges (e.g. late-night).
+  // 5. Auto time-window surcharges (e.g. late-night) — applied once per visit.
   for (const s of input.surcharges) {
     if (s.apply_type !== "auto_time") continue;
     const ws = toMinutes(s.window_start);
@@ -185,6 +200,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     zoneNumber: zone.zone_number,
     lines,
     total,
+    variableParts,
     possibleSurcharges: possible,
   };
 }

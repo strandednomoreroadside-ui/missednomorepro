@@ -92,6 +92,7 @@ const PRONUNCIATION_DICTIONARY: { word: string; alphabet: "ipa"; phoneme: string
   { word: "Strongsville", alphabet: "ipa", phoneme: "ˈstrɔŋzvɪl" },
   { word: "Cuyahoga", alphabet: "ipa", phoneme: "ˌkaɪəˈhoʊɡə" },
   { word: "Lakewood", alphabet: "ipa", phoneme: "ˈleɪkwʊd" },
+  { word: "Sunoco", alphabet: "ipa", phoneme: "səˈnoʊkoʊ" },
 ];
 
 /** Warm-transfer tool: the agent privately briefs the teammate (who's

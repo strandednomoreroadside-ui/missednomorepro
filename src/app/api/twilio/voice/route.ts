@@ -162,13 +162,33 @@ export async function POST(request: Request) {
         if (contact) {
           const { data: lead } = await admin
             .from("leads")
-            .select("service_needed")
+            .select("service_needed, status")
             .eq("tenant_id", business.tenant_id)
             .eq("contact_id", contact.id)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
-          lastNeed = lead?.service_needed ?? "";
+
+          if (lead?.service_needed) {
+            // Don't reference a lead that's already resolved (job done, or the
+            // caller became a repeat/lost) — and don't reference a "scheduled"
+            // lead whose appointment has already passed (job completion isn't
+            // always marked promptly), since that produces a stale "are you
+            // calling about your <past date> appointment?" opener.
+            const resolved = ["completed", "repeat", "lost"].includes(lead.status);
+            let scheduledButPast = false;
+            if (lead.status === "scheduled") {
+              const { count } = await admin
+                .from("appointments")
+                .select("id", { count: "exact", head: true })
+                .eq("tenant_id", business.tenant_id)
+                .eq("contact_id", contact.id)
+                .eq("status", "confirmed")
+                .gt("starts_at", new Date().toISOString());
+              scheduledButPast = (count ?? 0) === 0;
+            }
+            if (!resolved && !scheduledButPast) lastNeed = lead.service_needed;
+          }
         }
         const firstName = (contact?.name ?? "").trim().split(" ")[0] ?? "";
         const openingLine = contact

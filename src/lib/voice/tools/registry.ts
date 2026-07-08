@@ -296,17 +296,23 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
   {
     name: "calculate_quote",
     description:
-      "Get an EXACT price for a service. You must call this BEFORE saying any price, and read back ONLY the " +
-      "total it returns — never invent, estimate, round, or adjust a number yourself. Provide the service and " +
-      "the caller's location (for the distance-based dispatch fee). For a tow, also provide the drop-off " +
-      "location. If it returns ok=false, follow the 'say' guidance (e.g. ask for the drop-off, or that they're " +
-      "out of area).",
+      "Get an EXACT price for one or more services in the SAME visit. You must call this BEFORE saying any " +
+      "price, and read back ONLY the total it returns — never invent, estimate, round, or adjust a number " +
+      "yourself. If the caller needs MORE THAN ONE service (e.g. a jump start AND a tire change), pass ALL of " +
+      "them together in the `services` array in ONE call — do NOT call this tool once per service, that would " +
+      "charge the dispatch fee more than once; the dispatch fee is only ever charged one time per visit. " +
+      "Provide the caller's location (for the distance-based dispatch fee); for a tow, also provide the " +
+      "drop-off location. If it returns ok=false, follow the 'say' guidance (e.g. ask for the drop-off, or " +
+      "that they're out of area).",
     parameters: {
       type: "object",
       properties: {
-        service: {
-          type: "string",
-          description: "The service requested, e.g. 'Jump Start', 'Vehicle Lockout', 'Local Towing'.",
+        services: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "ALL services needed this visit, e.g. [\"Jump Start\"] or [\"Jump Start\", \"Tire Change\"]. Always " +
+            "list every service the caller needs in this one call — never call the tool separately per service.",
         },
         location: {
           type: "string",
@@ -318,7 +324,7 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
           description: "Drop-off location (TOWS ONLY) — where the vehicle is being towed to.",
         },
       },
-      required: ["service", "location"],
+      required: ["services", "location"],
     },
   },
   {
@@ -328,8 +334,9 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
       "auto-repair, tire shop, body shop, dealership, gas station, or auto-parts store. Returns 1–2 real " +
       "nearby options (name, address, driving miles). Provide what KIND of place (place_type) and the " +
       "caller's pickup location (near). Read the options back and let the caller choose, THEN call " +
-      "calculate_quote for the tow with the chosen place's address as the destination. Never name a " +
-      "business or distance you didn't get from this tool.",
+      "calculate_quote with the tow service and the chosen place's address as the destination (include any " +
+      "other service the caller also needs in the same `services` array). Never name a business or distance " +
+      "you didn't get from this tool.",
     parameters: {
       type: "object",
       properties: {

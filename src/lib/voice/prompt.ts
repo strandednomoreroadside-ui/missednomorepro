@@ -31,8 +31,11 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  caught some background barge-in.
  *  v5 (June 2026): GPT-4.1 Fast Tier (model_high_priority) to cut response
  *  latency; ZIP read digit-by-digit + state spoken as full name (kill the
- *  "forty-four thousand" ZIP and "Cleveland OCH" state-code artifacts). */
-const TUNING_VERSION = 5;
+ *  "forty-four thousand" ZIP and "Cleveland OCH" state-code artifacts).
+ *  v6 (July 2026): pronunciation entry for "Sunoco" (common gas-station
+ *  landmark callers use to describe their location) after a live call
+ *  mangled it. */
+const TUNING_VERSION = 6;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -166,7 +169,7 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
   const rule2 = `2. ${pricingRuleBody(quotingEnabled)}`;
 
   const pricingStep = quotingEnabled
-    ? 'Pricing — ALWAYS quote proactively: the moment you know the service and the caller\'s location (for a tow, also the drop-off), call calculate_quote and tell them the exact total it returns. Do NOT wait for them to ask the price — give it to them as you confirm the service and address, before you book or hand off to the team. Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2). For a TOW where the caller has no drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
+    ? 'Pricing — ALWAYS quote proactively: the moment you know the service and the caller\'s location (for a tow, also the drop-off), call calculate_quote and tell them the exact total it returns. Do NOT wait for them to ask the price — give it to them as you confirm the service and address, before you book or hand off to the team. If the caller needs MORE THAN ONE service in the same visit (e.g. a jump start AND a tire change), pass ALL of them together in ONE calculate_quote call (the services list) — NEVER call it once per service, that charges the dispatch fee more than once when it should only ever apply one time per visit. Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2). For a TOW where the caller has no drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
     : "Pricing questions → rule 2.";
 
   const rule4 = `4. ${bookingRuleBody(bookingEnabled)}`;
@@ -184,7 +187,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
     "Greet with the business name (your opening line already does this).",
     "Spam check: if this is clearly a sales pitch, vendor, or robocall, call mark_spam and end politely. Do not collect info or notify staff.",
     'Identify the caller (their number is {{caller_phone}}). If this is a returning customer ({{is_returning}} is "true"), your opening line already greeted {{caller_name}} by name — do NOT ask their name again. Call lookup_contact right away to recall their history, then confirm what they need today. If this is a NEW caller, ask their name, then call lookup_contact.',
-    "Capture the need — one question at a time: what's the problem/service, the location or address, and the best callback number.",
+    "Capture the need — one question at a time: what's the problem/service, the location or address, and the best callback number. If they can't give an exact street address (stranded on a highway, don't know the street name), ask for the nearest cross streets, a mile marker, or a recognizable landmark/business nearby (a gas station, store, or exit number) — then read back what you understood to confirm it's right before using it in any tool call.",
     'Once you have a ZIP or city, call check_service_area. If it\'s NOT covered: be kind, say they may be just outside the area, still offer to take their details, and call create_contact + create_follow_up_task (type "callback", note out-of-area). Don\'t promise service.',
     "Answer questions only from the Known answers / search_knowledge_base or the services list. If you can't, say the team will follow up — don't make things up.",
     pricingStep,

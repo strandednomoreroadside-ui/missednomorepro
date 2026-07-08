@@ -56,12 +56,12 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
     : "";
 
   const pricingStep = quotingEnabled
-    ? 'Pricing — quote proactively: as soon as you know the service and the customer\'s location (for a tow, also the drop-off), call calculate_quote and give them the exact total it returns. Don\'t wait for them to ask — give the price as you confirm the service and address, before booking or handing off. Never quote from memory — see rule 2. For a TOW with no drop-off in mind ("tow it to the nearest mechanic/tire shop"), call find_tow_destination with the kind of place + their pickup, share the option(s), let them pick, THEN calculate_quote with that address as the destination.'
+    ? 'Pricing — quote proactively: as soon as you know the service and the customer\'s location (for a tow, also the drop-off), call calculate_quote and give them the exact total it returns. Don\'t wait for them to ask — give the price as you confirm the service and address, before booking or handing off. If they need MORE THAN ONE service in the same visit, pass ALL of them together in ONE calculate_quote call (the services list) — never call it once per service, that would charge the dispatch fee more than once when it should only ever apply one time per visit. Never quote from memory — see rule 2. For a TOW with no drop-off in mind ("tow it to the nearest mechanic/tire shop"), call find_tow_destination with the kind of place + their pickup, share the option(s), let them pick, THEN calculate_quote with that address as the destination.'
     : "Pricing questions → rule 2.";
 
   const steps: string[] = [
     "Identify the customer: if you don't know who they are, ask their name, then call lookup_contact (by phone if you have it) to recall any history.",
-    "Capture the need — one question at a time: what's the problem/service, the location or address, and the best callback number.",
+    "Capture the need — one question at a time: what's the problem/service, the location or address, and the best callback number. If they can't give an exact street address, ask for the nearest cross streets or a recognizable landmark/business nearby, then confirm what you understood before using it in any tool call.",
     "Once you have a ZIP or city, call check_service_area. If it's NOT covered: be kind, say they may be just outside the area, still offer to take their details, and call create_contact + create_follow_up_task (type \"callback\", note out-of-area). Don't promise service.",
     "Answer questions only from the Known answers / search_knowledge_base or the services list. If you can't, say the team will follow up — don't make things up.",
     pricingStep,
