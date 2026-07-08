@@ -1483,7 +1483,6 @@ function clock(t: string): string {
 }
 
 function formatQuote(r: QuoteResult): Record<string, unknown> {
-  const serviceList = r.services.join(" and ");
   if (!r.ok) {
     if (r.reason === "out_of_area") {
       return {
@@ -1517,14 +1516,16 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
     };
   }
 
-  // Speak the total only — the operator doesn't want the line-item breakdown
-  // read out loud (the itemized lines are still returned in `breakdown` for the
-  // record/dashboard). Variable-part + conditional surcharges stay: they're
-  // necessary disclosures, not a breakdown of the base price.
-  let say =
-    r.services.length > 1
-      ? `For ${serviceList}, there's just the one dispatch fee — your total comes to ${dollars(r.total)}.`
-      : `Your total comes to ${dollars(r.total)}.`;
+  // Speak ONE total, never an itemized breakdown — the operator does not want
+  // the dispatch fee / per-service costs read out loud individually, even
+  // when several services are quoted together. The itemized `lines` are
+  // logged to the audit trail for the record (see the calculate_quote tool
+  // below) but are deliberately NOT included in this response, since
+  // anything returned here is visible to the model and it will otherwise
+  // narrate it. Variable-part + conditional surcharges stay: they're
+  // necessary disclosures (an unknown add-on cost), not a breakdown of the
+  // quoted total.
+  let say = `Your total comes to ${dollars(r.total)}.`;
   if (r.variableParts.length) {
     say += ` Plus the cost of the ${r.variableParts.join(" and ")}, which we confirm before dispatch.`;
   }
@@ -1537,9 +1538,6 @@ function formatQuote(r: QuoteResult): Record<string, unknown> {
     services: r.services,
     total: r.total,
     currency: r.currency,
-    breakdown: r.lines,
-    variable_parts: r.variableParts,
-    possible_surcharges: r.possibleSurcharges,
     miles: r.miles,
     tow_miles: r.towMiles ?? null,
     say,
@@ -1639,6 +1637,9 @@ const calculateQuoteTool = defineTool(
         reason: result.reason ?? null,
         total: result.total,
         miles: result.miles,
+        // Itemized breakdown for the record only — deliberately not part of
+        // the response returned to the model (see formatQuote).
+        lines: result.lines,
       },
     });
 

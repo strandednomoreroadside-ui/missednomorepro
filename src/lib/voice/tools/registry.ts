@@ -297,13 +297,15 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
     name: "calculate_quote",
     description:
       "Get an EXACT price for one or more services in the SAME visit. You must call this BEFORE saying any " +
-      "price, and read back ONLY the total it returns — never invent, estimate, round, or adjust a number " +
-      "yourself. If the caller needs MORE THAN ONE service (e.g. a jump start AND a tire change), pass ALL of " +
-      "them together in the `services` array in ONE call — do NOT call this tool once per service, that would " +
-      "charge the dispatch fee more than once; the dispatch fee is only ever charged one time per visit. " +
-      "Provide the caller's location (for the distance-based dispatch fee); for a tow, also provide the " +
-      "drop-off location. If it returns ok=false, follow the 'say' guidance (e.g. ask for the drop-off, or " +
-      "that they're out of area).",
+      "price, and speak back ONLY the ONE total dollar figure it returns — never invent, estimate, round, or " +
+      "adjust a number yourself, and NEVER break it down into a dispatch fee plus per-service amounts, even " +
+      "when quoting several services together or if the caller asks how it's broken down — there is only ever " +
+      "ONE number to say: the total. If the caller needs MORE THAN ONE service (e.g. a jump start AND a tire " +
+      "change), pass ALL of them together in the `services` array in ONE call — do NOT call this tool once " +
+      "per service, that would charge the dispatch fee more than once; the dispatch fee is only ever charged " +
+      "one time per visit. Provide the caller's location (for the distance-based dispatch fee); for a tow, " +
+      "also provide the drop-off location. If it returns ok=false, follow the 'say' guidance (e.g. ask for " +
+      "the drop-off, or that they're out of area).",
     parameters: {
       type: "object",
       properties: {

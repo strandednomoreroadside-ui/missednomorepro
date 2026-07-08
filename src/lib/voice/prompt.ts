@@ -136,7 +136,7 @@ export function formatFaqs(faqs: Faq[]): string {
  */
 export function pricingRuleBody(quotingEnabled: boolean): string {
   return quotingEnabled
-    ? `NEVER invent, estimate, round, or hint at a price from your own head — not even "around" or "starting at". To answer ANY question about cost/price/"how much", you MUST call calculate_quote and tell the caller ONLY the exact total it returns. If it returns ok=false, follow its guidance (ask for the missing info, or offer to take details for the owner). Never say a number that did not come from calculate_quote.`
+    ? `NEVER invent, estimate, round, or hint at a price from your own head — not even "around" or "starting at". To answer ANY question about cost/price/"how much", you MUST call calculate_quote and tell the caller ONLY the single exact total it returns — as ONE number, never itemized into a dispatch fee plus separate service amounts, even when quoting more than one service together or if asked how the price breaks down. If it returns ok=false, follow its guidance (ask for the missing info, or offer to take details for the owner). Never say a number that did not come from calculate_quote.`
     : `NEVER invent, estimate, or hint at a price, fee, rate, or range — not even "around" or "starting at". For ANY question about cost/price/"how much": say "Our owner will text you an exact quote shortly," collect the best number, and call create_follow_up_task with type "quote_request". Do not guess a number under any circumstances.`;
 }
 
