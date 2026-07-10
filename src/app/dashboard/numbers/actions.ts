@@ -11,6 +11,7 @@ import { normalizeUsPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   addToMessagingService,
+  configureNumberWebhooks,
   isTwilioConfigured,
   purchaseNumber,
   searchAvailableNumbers,
@@ -133,6 +134,56 @@ export async function claimNumber(phoneNumber: string): Promise<ClaimResult> {
   revalidatePath("/dashboard/numbers");
   revalidatePath("/dashboard/settings");
   return { ok: true, phone: finalNumber };
+}
+
+export type ActivateResult = { ok: boolean; error?: string };
+
+/**
+ * "Activate" an assigned number: point its Twilio webhooks at the app so the
+ * AI answers it. Owner/admin only. The number must already belong to this
+ * tenant (numbers are server-owned; we verify ownership before touching
+ * Twilio). Idempotent — safe to press even if it's already connected.
+ */
+export async function activateNumber(phoneNumber: string): Promise<ActivateResult> {
+  const { user, active } = await requireActiveOrg();
+  const tenantId = active.organization_id;
+  if (active.role !== "owner" && active.role !== "admin") {
+    return { ok: false, error: "not_allowed" };
+  }
+  if (!isTwilioConfigured()) return { ok: false, error: "twilio_not_configured" };
+
+  const phone = normalizeUsPhone(phoneNumber);
+  if (!phone) return { ok: false, error: "bad_number" };
+
+  // Ownership check — this number must be one of THIS tenant's rows.
+  const admin = createAdminClient();
+  const { data: row } = await admin
+    .from("phone_numbers")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("phone_number", phone)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "not_yours" };
+
+  const cfg = await configureNumberWebhooks({ phoneNumber: phone, appUrl: env.NEXT_PUBLIC_APP_URL });
+  if (!cfg.ok) return { ok: false, error: cfg.error ?? "activate_failed" };
+
+  await admin
+    .from("phone_numbers")
+    .update({ twilio_sid: cfg.sid ?? null, voice_enabled: true, sms_enabled: true })
+    .eq("id", row.id);
+
+  await logAudit({
+    tenantId,
+    actorUserId: user?.id,
+    action: "phone_number.activated",
+    entityType: "phone_number",
+    entityId: phone,
+    metadata: { sid: cfg.sid },
+  });
+
+  revalidatePath("/dashboard/numbers");
+  return { ok: true };
 }
 
 export type DemoCallResult = { ok: boolean; error?: string; to?: string };

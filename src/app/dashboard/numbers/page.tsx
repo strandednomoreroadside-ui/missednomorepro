@@ -12,11 +12,13 @@ import {
 import { requireActiveOrg } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { getSubscription } from "@/lib/billing/subscription";
+import { env } from "@/lib/env";
 import { formatUsPhone } from "@/lib/phone";
-import { isTwilioConfigured } from "@/lib/twilio/numbers";
+import { isNumberConnected, isTwilioConfigured } from "@/lib/twilio/numbers";
 import { createClient } from "@/lib/supabase/server";
 
 import { provisionEligibility } from "./actions";
+import { ActivateNumber } from "./activate";
 import { ProvisionNumber } from "./provision";
 import { TestMyAi } from "./test-my-ai";
 
@@ -49,9 +51,20 @@ export default async function NumbersPage() {
     .order("created_at", { ascending: true });
   const rows = (data ?? []) as NumberRow[];
 
+  // For owner/admin, check each number's LIVE Twilio wiring so we can show
+  // "AI answering" vs. an Activate button. (Small N — the plan caps numbers.)
+  const twilioReady = isTwilioConfigured();
+  const connected = new Map<string, boolean>();
+  if (canManage && twilioReady) {
+    await Promise.all(
+      rows.map(async (n) => {
+        connected.set(n.id, await isNumberConnected(n.phone_number, env.NEXT_PUBLIC_APP_URL).catch(() => false));
+      })
+    );
+  }
+
   // Provisioning is gated server-side (card on file + plan number cap). Only
   // show the picker when the tenant can actually claim one.
-  const twilioReady = isTwilioConfigured();
   const eligibility = canManage && twilioReady ? await provisionEligibility(tenantId) : { ok: false };
   const showProvision = canManage && twilioReady;
 
@@ -117,6 +130,9 @@ export default async function NumbersPage() {
                       <MessageSquare className="size-3.5" aria-hidden />
                       {n.sms_enabled ? `sms ${n.a2p_status}` : "sms off"}
                     </span>
+                    {canManage && twilioReady && (
+                      <ActivateNumber phone={n.phone_number} connected={connected.get(n.id) ?? false} />
+                    )}
                   </span>
                 </li>
               ))}

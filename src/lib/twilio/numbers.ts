@@ -41,6 +41,82 @@ export function isTwilioConfigured(): boolean {
   return Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN);
 }
 
+/** The voice webhook URL a number must point at for the AI to answer it. */
+export function voiceWebhookUrl(appUrl: string): string {
+  return `${appUrl.replace(/\/$/, "")}/api/twilio/voice`;
+}
+
+/** The webhook fields every one of our numbers must have set on Twilio. */
+function webhookBody(appUrl: string): URLSearchParams {
+  const base = appUrl.replace(/\/$/, "");
+  return new URLSearchParams({
+    VoiceUrl: `${base}/api/twilio/voice`,
+    VoiceMethod: "POST",
+    StatusCallback: `${base}/api/twilio/voice/status`,
+    StatusCallbackMethod: "POST",
+    SmsUrl: `${base}/api/twilio/sms`,
+    SmsMethod: "POST",
+  });
+}
+
+/** Look up an owned Twilio number by E.164, returning its record (sid, urls). */
+async function findOwnedNumber(
+  phoneNumber: string
+): Promise<{ sid: string; voiceUrl: string | null } | null> {
+  const auth = authHeader();
+  if (!auth) return null;
+  const res = await fetch(
+    `${API}/Accounts/${env.TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(phoneNumber)}`,
+    { headers: { Authorization: auth } }
+  );
+  if (!res.ok) return null;
+  const json = (await res.json().catch(() => ({}))) as {
+    incoming_phone_numbers?: { sid: string; voice_url?: string | null }[];
+  };
+  const n = json.incoming_phone_numbers?.[0];
+  return n ? { sid: n.sid, voiceUrl: n.voice_url ?? null } : null;
+}
+
+/** Is this number's Twilio voice webhook already pointed at our app? */
+export async function isNumberConnected(phoneNumber: string, appUrl: string): Promise<boolean> {
+  const rec = await findOwnedNumber(phoneNumber);
+  return rec?.voiceUrl === voiceWebhookUrl(appUrl);
+}
+
+/**
+ * Point an already-owned number's webhooks at the app so the AI answers it,
+ * and attach it to the A2P Messaging Service (best-effort). Idempotent — safe
+ * to run on a number that's already connected. Used by the dashboard
+ * "Activate" button and admin number assignment; buying a NEW number uses
+ * purchaseNumber which sets the same webhooks at purchase time.
+ */
+export async function configureNumberWebhooks(opts: {
+  phoneNumber: string;
+  appUrl: string;
+}): Promise<{ ok: boolean; sid?: string; error?: string }> {
+  const auth = authHeader();
+  if (!auth) return { ok: false, error: "twilio_not_configured" };
+
+  const rec = await findOwnedNumber(opts.phoneNumber);
+  if (!rec) return { ok: false, error: "not_owned" };
+
+  const res = await fetch(
+    `${API}/Accounts/${env.TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers/${rec.sid}.json`,
+    {
+      method: "POST",
+      headers: { Authorization: auth, "Content-Type": "application/x-www-form-urlencoded" },
+      body: webhookBody(opts.appUrl),
+    }
+  );
+  if (!res.ok) {
+    console.error(`[twilio] configure webhooks failed (${res.status}): ${await res.text()}`);
+    return { ok: false, error: `http_${res.status}` };
+  }
+  // A2P SMS — best-effort (409 = already attached, which is success for us).
+  await addToMessagingService(rec.sid).catch(() => false);
+  return { ok: true, sid: rec.sid };
+}
+
 /** Search US local numbers (voice + SMS capable) by 3-digit area code. */
 export async function searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]> {
   const auth = authHeader();
@@ -82,16 +158,8 @@ export async function purchaseNumber(opts: {
 }): Promise<PurchaseResult> {
   const auth = authHeader();
   if (!auth) return { ok: false, error: "twilio_not_configured" };
-  const appUrl = opts.appUrl.replace(/\/$/, "");
-  const body = new URLSearchParams({
-    PhoneNumber: opts.phoneNumber,
-    VoiceUrl: `${appUrl}/api/twilio/voice`,
-    VoiceMethod: "POST",
-    StatusCallback: `${appUrl}/api/twilio/voice/status`,
-    StatusCallbackMethod: "POST",
-    SmsUrl: `${appUrl}/api/twilio/sms`,
-    SmsMethod: "POST",
-  });
+  const body = webhookBody(opts.appUrl);
+  body.set("PhoneNumber", opts.phoneNumber);
   const res = await fetch(`${API}/Accounts/${env.TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json`, {
     method: "POST",
     headers: { Authorization: auth, "Content-Type": "application/x-www-form-urlencoded" },

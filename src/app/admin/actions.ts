@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/audit";
 import { getUser, isPlatformAdmin } from "@/lib/auth";
+import { env } from "@/lib/env";
 import { normalizeUsPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { configureNumberWebhooks, isTwilioConfigured } from "@/lib/twilio/numbers";
 
 /**
  * Assigns a platform-owned Twilio number to a tenant (M6). Numbers are
@@ -34,11 +36,24 @@ export async function assignPhoneNumber(formData: FormData) {
     .limit(1)
     .maybeSingle();
 
+  // Point the number's Twilio webhooks at the app so the AI answers it right
+  // away — without this the number is assigned in our DB but still on Twilio's
+  // defaults (the "assigned but dead" trap). Best-effort; store the sid if we
+  // get it. Voice works regardless of the A2P SMS attach inside this helper.
+  let twilioSid: string | null = null;
+  if (isTwilioConfigured()) {
+    const cfg = await configureNumberWebhooks({ phoneNumber: phone, appUrl: env.NEXT_PUBLIC_APP_URL });
+    if (cfg.ok) twilioSid = cfg.sid ?? null;
+    else console.error(`[admin] assigned ${phone} but webhook config failed: ${cfg.error}`);
+  }
+
   const { error } = await admin.from("phone_numbers").upsert(
     {
       tenant_id: tenantId,
       business_id: business?.id ?? null,
       phone_number: phone,
+      // Only overwrite the sid when we actually resolved one this run.
+      ...(twilioSid ? { twilio_sid: twilioSid } : {}),
       voice_enabled: true,
       sms_enabled: true,
     },
