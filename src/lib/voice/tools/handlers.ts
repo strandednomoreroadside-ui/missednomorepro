@@ -714,6 +714,50 @@ function ymd(d: { year: number; month: number; day: number }): string {
   return `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
 }
 
+/**
+ * Send the booking/reschedule confirmation text (transactional — the caller
+ * asked to book, so consent isn't required; STOP still wins). Resolves the
+ * customer's number from their contact record so web/email bookings confirm
+ * too, falling back to the caller's number. Shared by book + reschedule.
+ */
+async function sendBookingConfirmation(
+  ctx: ToolContext,
+  businessId: string,
+  contactId: string | null,
+  label: string
+): Promise<boolean> {
+  if (!contactId) return false;
+  const { data: smsSettings } = await ctx.admin
+    .from("sms_settings")
+    .select("booking_confirmation_template")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  const template =
+    (smsSettings?.booking_confirmation_template as string | undefined) ??
+    "You're booked with {business} for {time}. Reply STOP to opt out.";
+  const body = template.replaceAll("{business}", ctx.businessName).replaceAll("{time}", label);
+
+  const { data: contact } = await ctx.admin
+    .from("contacts")
+    .select("phone")
+    .eq("id", contactId)
+    .eq("tenant_id", ctx.tenantId)
+    .maybeSingle();
+  const toPhone = normalizeUsPhone((contact?.phone as string | null) ?? "") ?? ctx.fromNumber;
+  if (!toPhone) return false;
+
+  const res = await sendCustomerSms(ctx.admin, {
+    tenantId: ctx.tenantId,
+    businessId,
+    contactId,
+    toPhone,
+    body,
+    kind: "confirmation",
+    requireConsent: false,
+  });
+  return res.sent;
+}
+
 const checkCalendarAvailability = defineTool(
   z.object({
     date: z.string().min(1).max(20),
@@ -980,30 +1024,7 @@ const bookAppointment = defineTool(
 
     // Confirmation text (transactional — they asked to book; STOP still wins).
     const label = formatSlotLabel(start, tz);
-    let smsSent = false;
-    if (contactId) {
-      const { data: smsSettings } = await ctx.admin
-        .from("sms_settings")
-        .select("booking_confirmation_template")
-        .eq("business_id", business.id)
-        .maybeSingle();
-      const template =
-        (smsSettings?.booking_confirmation_template as string | undefined) ??
-        "You're booked with {business} for {time}. Reply STOP to opt out.";
-      const body = template
-        .replaceAll("{business}", ctx.businessName)
-        .replaceAll("{time}", label);
-      const res = await sendCustomerSms(ctx.admin, {
-        tenantId: ctx.tenantId,
-        businessId: business.id,
-        contactId,
-        toPhone: ctx.fromNumber,
-        body,
-        kind: "confirmation",
-        requireConsent: false,
-      });
-      smsSent = res.sent;
-    }
+    const smsSent = await sendBookingConfirmation(ctx, business.id, contactId, label);
 
     await logAudit({
       tenantId: ctx.tenantId,
@@ -1402,35 +1423,7 @@ const rescheduleAppointment = defineTool(
 
     // Confirmation text with the new time (transactional; STOP wins).
     const label = formatSlotLabel(newStart, tz);
-    let smsSent = false;
-    const { data: smsSettings } = await ctx.admin
-      .from("sms_settings")
-      .select("booking_confirmation_template")
-      .eq("business_id", business.id)
-      .maybeSingle();
-    const template =
-      (smsSettings?.booking_confirmation_template as string | undefined) ??
-      "You're booked with {business} for {time}. Reply STOP to opt out.";
-    const body = template.replaceAll("{business}", ctx.businessName).replaceAll("{time}", label);
-    const { data: contact } = await ctx.admin
-      .from("contacts")
-      .select("phone")
-      .eq("id", contactId)
-      .eq("tenant_id", ctx.tenantId)
-      .maybeSingle();
-    const toPhone = (contact?.phone as string | null) ?? ctx.fromNumber;
-    if (toPhone) {
-      const res = await sendCustomerSms(ctx.admin, {
-        tenantId: ctx.tenantId,
-        businessId: business.id,
-        contactId,
-        toPhone,
-        body,
-        kind: "confirmation",
-        requireConsent: false,
-      });
-      smsSent = res.sent;
-    }
+    const smsSent = await sendBookingConfirmation(ctx, business.id, contactId, label);
 
     await logAudit({
       tenantId: ctx.tenantId,

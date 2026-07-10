@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { deleteConnection } from "@/lib/google/connection";
 import { isGoogleConfigured } from "@/lib/google/credentials";
@@ -76,6 +76,9 @@ export async function updateBookingConfirmation(formData: FormData) {
  *  AI. Members may manage their own business (RLS). */
 export async function updateAiSwitch(formData: FormData) {
   const { active } = await requireActiveOrg();
+  // The AI kill switch silences the whole business's receptionist — owner/admin
+  // only, so a plain member (e.g. a field tech) can't turn it off.
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
   const supabase = await createClient();
 
   const enabled = formData.get("ai_enabled") === "on";
@@ -275,7 +278,10 @@ export async function updateEmailSettings(formData: FormData) {
  * /api/google/callback.
  */
 export async function connectGoogleCalendar() {
-  await requireActiveOrg();
+  const { active } = await requireActiveOrg();
+  // Connecting a calendar controls booking for the whole business (and points
+  // it at someone's personal Google account) — owner/admin only.
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
   if (!isGoogleConfigured()) redirect("/dashboard/settings?calendar=unconfigured");
 
   const state = randomBytes(16).toString("hex");
@@ -296,6 +302,7 @@ export async function connectGoogleCalendar() {
 /** Disconnect Google Calendar: revoke at Google + delete our row (M9). */
 export async function disconnectGoogleCalendar() {
   const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
   const admin = createAdminClient();
 
   const { data: business } = await admin

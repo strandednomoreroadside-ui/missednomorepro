@@ -65,6 +65,12 @@ export async function requireActiveOrg() {
   return { user, memberships, active };
 }
 
+/** Owner/admin can manage business-wide config (the AI kill switch, calendar
+ *  booking, numbers, team); a plain `member` (e.g. a field tech) cannot. */
+export function isOrgManager(role: string): boolean {
+  return role === "owner" || role === "admin";
+}
+
 /** True when the signed-in user's email is in ADMIN_EMAILS (platform admin). */
 export async function isPlatformAdmin() {
   const user = await getUser();
