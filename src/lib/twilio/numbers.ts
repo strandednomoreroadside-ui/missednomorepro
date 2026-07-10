@@ -178,6 +178,31 @@ export async function purchaseNumber(opts: {
 }
 
 /**
+ * Release (give back) an owned number on Twilio so it stops billing us. Used
+ * by the dashboard "Release" action when an owner wants to swap numbers.
+ * Idempotent: a number we no longer own is treated as already released.
+ */
+export async function releaseNumberFromTwilio(
+  phoneNumber: string
+): Promise<{ ok: boolean; error?: string }> {
+  const auth = authHeader();
+  if (!auth) return { ok: false, error: "twilio_not_configured" };
+
+  const rec = await findOwnedNumber(phoneNumber);
+  if (!rec) return { ok: true }; // already gone on Twilio — nothing to release
+
+  const res = await fetch(
+    `${API}/Accounts/${env.TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers/${rec.sid}.json`,
+    { method: "DELETE", headers: { Authorization: auth } }
+  );
+  if (!res.ok && res.status !== 404) {
+    console.error(`[twilio] release failed (${res.status}): ${await res.text()}`);
+    return { ok: false, error: `http_${res.status}` };
+  }
+  return { ok: true };
+}
+
+/**
  * Attach a purchased number to the approved A2P Messaging Service so its
  * outbound SMS rides the approved 10DLC campaign (best deliverability) and
  * its inbound is handled at the Service level (STOP/HELP). Best-effort: a

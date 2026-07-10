@@ -18,7 +18,7 @@ import { isNumberConnected, isTwilioConfigured } from "@/lib/twilio/numbers";
 import { createClient } from "@/lib/supabase/server";
 
 import { provisionEligibility } from "./actions";
-import { ActivateNumber } from "./activate";
+import { ActivateNumber, ReleaseNumber } from "./activate";
 import { ProvisionNumber } from "./provision";
 import { TestMyAi } from "./test-my-ai";
 
@@ -138,7 +138,10 @@ export default async function NumbersPage() {
                       {n.sms_enabled ? `sms ${n.a2p_status}` : "sms off"}
                     </span>
                     {canManage && twilioReady && (
-                      <ActivateNumber phone={n.phone_number} connected={connected.get(n.id) ?? false} />
+                      <>
+                        <ActivateNumber phone={n.phone_number} connected={connected.get(n.id) ?? false} />
+                        <ReleaseNumber phone={n.phone_number} isOnly={rows.length === 1} />
+                      </>
                     )}
                   </span>
                 </li>

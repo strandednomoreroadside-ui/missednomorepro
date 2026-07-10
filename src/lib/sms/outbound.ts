@@ -56,6 +56,31 @@ interface MessageRow {
   consentChecked: boolean;
 }
 
+/**
+ * The number a given tenant should text FROM: its own SMS-enabled line
+ * (preferring the one attached to this business), so every business texts
+ * from its own number. Returns null when the tenant has no number yet — the
+ * transport then falls back to the shared Messaging Service so a not-yet-
+ * provisioned tenant's staff alerts still go out.
+ */
+async function resolveTenantFrom(
+  admin: SupabaseClient,
+  tenantId: string,
+  businessId?: string | null
+): Promise<string | null> {
+  const { data } = await admin
+    .from("phone_numbers")
+    .select("phone_number, business_id")
+    .eq("tenant_id", tenantId)
+    .eq("sms_enabled", true)
+    .order("created_at", { ascending: true });
+  const rows = (data ?? []) as { phone_number: string; business_id: string | null }[];
+  if (rows.length === 0) return null;
+  // Prefer the number attached to this business; else the tenant's first.
+  const match = businessId ? rows.find((r) => r.business_id === businessId) : undefined;
+  return (match ?? rows[0]).phone_number;
+}
+
 export async function isSuppressed(
   admin: SupabaseClient,
   tenantId: string,
@@ -137,7 +162,8 @@ async function recordCarrierOptOut(
 /** Log a 'queued' row, send via Twilio, then update status + Sid. */
 async function logAndSend(admin: SupabaseClient, row: MessageRow): Promise<SmsSendResult> {
   const id = await insertMessage(admin, row, "queued", null);
-  const res = await sendTwilioSms({ to: row.toPhone, body: row.body });
+  const from = await resolveTenantFrom(admin, row.tenantId, row.businessId);
+  const res = await sendTwilioSms({ to: row.toPhone, body: row.body, from });
 
   // Carrier-level opt-out: suppress locally so this never happens twice.
   if (!res.ok && res.code != null && OPT_OUT_CODES.has(res.code)) {

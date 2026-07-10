@@ -14,6 +14,7 @@ import {
   configureNumberWebhooks,
   isTwilioConfigured,
   purchaseNumber,
+  releaseNumberFromTwilio,
   searchAvailableNumbers,
   type AvailableNumber,
 } from "@/lib/twilio/numbers";
@@ -183,6 +184,59 @@ export async function activateNumber(phoneNumber: string): Promise<ActivateResul
   });
 
   revalidatePath("/dashboard/numbers");
+  return { ok: true };
+}
+
+export type ReleaseResult = { ok: boolean; error?: string };
+
+/**
+ * Release (give back) a number the tenant no longer wants — e.g. to swap for a
+ * different area code. Owner/admin only, ownership-checked. Releases it on
+ * Twilio (stops billing us) then removes our row. Irreversible: the number is
+ * gone for good, so the UI gates this behind an explicit confirm.
+ */
+export async function releaseNumber(phoneNumber: string): Promise<ReleaseResult> {
+  const { user, active } = await requireActiveOrg();
+  const tenantId = active.organization_id;
+  if (active.role !== "owner" && active.role !== "admin") {
+    return { ok: false, error: "not_allowed" };
+  }
+  if (!isTwilioConfigured()) return { ok: false, error: "twilio_not_configured" };
+
+  const phone = normalizeUsPhone(phoneNumber);
+  if (!phone) return { ok: false, error: "bad_number" };
+
+  // Ownership check — must be one of THIS tenant's rows.
+  const admin = createAdminClient();
+  const { data: row } = await admin
+    .from("phone_numbers")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("phone_number", phone)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "not_yours" };
+
+  // Release on Twilio first — if that fails we keep the row so the number
+  // isn't billing us invisibly (the orphan trap).
+  const rel = await releaseNumberFromTwilio(phone);
+  if (!rel.ok) return { ok: false, error: rel.error ?? "release_failed" };
+
+  const { error } = await admin.from("phone_numbers").delete().eq("id", row.id);
+  if (error) {
+    console.error(`[numbers] released ${phone} on Twilio but row delete failed: ${error.message}`);
+    return { ok: false, error: "record_failed" };
+  }
+
+  await logAudit({
+    tenantId,
+    actorUserId: user?.id,
+    action: "phone_number.released",
+    entityType: "phone_number",
+    entityId: phone,
+  });
+
+  revalidatePath("/dashboard/numbers");
+  revalidatePath("/dashboard/settings");
   return { ok: true };
 }
 
