@@ -42,3 +42,6 @@ Account home*_files/
 # Python bytecode caches (from local skill scripts)
 __pycache__/
 *.pyc
+
+# Local scratch repo (not part of the app)
+claude-token-efficient/
