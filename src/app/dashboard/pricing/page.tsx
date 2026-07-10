@@ -10,7 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
+import { ManagerOnlyNote } from "@/components/manager-only-note";
 import { isMapsConfigured } from "@/lib/maps/client";
 import { createClient } from "@/lib/supabase/server";
 
@@ -94,6 +95,7 @@ export default async function PricingPage({
   searchParams: Promise<{ pricing?: string }>;
 }) {
   const { active } = await requireActiveOrg();
+  const canManage = isOrgManager(active.role);
   const supabase = await createClient();
   const banner = (await searchParams).pricing
     ? BANNERS[(await searchParams).pricing as string]
@@ -246,7 +248,12 @@ export default async function PricingPage({
             </p>
           )}
 
-          {quotingOn ? (
+          {!canManage ? (
+            <ManagerOnlyNote>
+              AI quoting is currently {quotingOn ? "ON" : "OFF"}. Only an owner or admin can
+              turn it on or off.
+            </ManagerOnlyNote>
+          ) : quotingOn ? (
             <form action={unapprovePricing}>
               <Button type="submit" variant="outline" size="sm">
                 Turn quoting off

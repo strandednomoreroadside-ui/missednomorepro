@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { getBusinessTimezone } from "@/lib/business/timezone";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { formatDateInZone } from "@/lib/calendar/timezone";
 import { createClient } from "@/lib/supabase/server";
+import { ManagerOnlyNote } from "@/components/manager-only-note";
 
 import { updateReputation } from "./actions";
 
@@ -37,6 +38,7 @@ const STATUS_LABEL: Record<ReviewRow["status"], string> = {
 export default async function ReputationPage() {
   const { active } = await requireActiveOrg();
   const tenantId = active.organization_id;
+  const canManage = isOrgManager(active.role);
   const tz = await getBusinessTimezone(tenantId);
   const ent = await getEntitlements(tenantId);
 
@@ -126,6 +128,17 @@ export default async function ReputationPage() {
           <CardTitle className="font-display text-base">Settings</CardTitle>
         </CardHeader>
         <CardContent>
+          {!canManage ? (
+            <div className="space-y-3 text-sm">
+              <p>
+                <span className="font-medium text-foreground">Review requests:</span>{" "}
+                {settings?.reputation_enabled ? "On" : "Off"}
+              </p>
+              <ManagerOnlyNote>
+                Only an owner or admin can change review settings.
+              </ManagerOnlyNote>
+            </div>
+          ) : (
           <form action={updateReputation} className="space-y-5">
             <label className="flex items-start gap-3 text-sm">
               <input
@@ -194,6 +207,7 @@ export default async function ReputationPage() {
               Save settings
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
 

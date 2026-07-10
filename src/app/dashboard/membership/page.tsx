@@ -15,8 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
+import { ManagerOnlyNote } from "@/components/manager-only-note";
 import {
   INTERVAL_LABEL,
   INTERVAL_MONTHS,
@@ -45,6 +46,7 @@ export default async function MembershipPage({
 
   const { active } = await requireActiveOrg();
   const tenantId = active.organization_id;
+  const canManage = isOrgManager(active.role);
   const ent = await getEntitlements(tenantId);
 
   if (!ent.has("membership")) {
@@ -121,7 +123,14 @@ export default async function MembershipPage({
         ))}
       </div>
 
-      {/* ── Create a plan ── */}
+      {/* ── Create a plan (owner/admin only) ── */}
+      {!canManage ? (
+        <div className="mt-6">
+          <ManagerOnlyNote>
+            Only an owner or admin can create or change membership plans.
+          </ManagerOnlyNote>
+        </div>
+      ) : (
       <Card className="mt-6 bg-card/60">
         <CardHeader>
           <CardTitle className="font-display text-base">New plan</CardTitle>
@@ -184,6 +193,7 @@ export default async function MembershipPage({
           </form>
         </CardContent>
       </Card>
+      )}
 
       {/* ── Existing plans ── */}
       <Card className="mt-6 bg-card/60">
@@ -219,12 +229,14 @@ export default async function MembershipPage({
                         Inactive
                       </span>
                     )}
-                    <form action={togglePlanActive} className="ml-auto">
-                      <input type="hidden" name="id" value={p.id} />
-                      <Button type="submit" variant="ghost" size="sm" className="text-xs">
-                        {p.active ? "Deactivate" : "Reactivate"}
-                      </Button>
-                    </form>
+                    {canManage && (
+                      <form action={togglePlanActive} className="ml-auto">
+                        <input type="hidden" name="id" value={p.id} />
+                        <Button type="submit" variant="ghost" size="sm" className="text-xs">
+                          {p.active ? "Deactivate" : "Reactivate"}
+                        </Button>
+                      </form>
+                    )}
                   </div>
                   {p.description && (
                     <p className="mt-1 text-sm text-muted-foreground">{p.description}</p>

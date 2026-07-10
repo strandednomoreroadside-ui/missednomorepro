@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { getEntitlements, outboundEnabled } from "@/lib/billing/entitlements";
 import { AUTOMATION_DEFAULTS, AUTOMATION_KINDS } from "@/lib/sms/outbound-engine";
 import { createClient } from "@/lib/supabase/server";
+import { ManagerOnlyNote } from "@/components/manager-only-note";
 
 import { saveAutomation } from "./actions";
 
@@ -31,6 +32,7 @@ type AutomationRow = {
 
 export default async function AutomationsPage() {
   const { active } = await requireActiveOrg();
+  const canManage = isOrgManager(active.role);
   const supabase = await createClient();
 
   const { data: business } = await supabase
@@ -79,6 +81,14 @@ export default async function AutomationsPage() {
         </p>
       )}
 
+      {!canManage && (
+        <div className="mt-4">
+          <ManagerOnlyNote>
+            Only an owner or admin can change follow-ups. Here&rsquo;s the current setup.
+          </ManagerOnlyNote>
+        </div>
+      )}
+
       <div className="mt-6 space-y-4">
         {AUTOMATION_KINDS.map((kind) => {
           const def = AUTOMATION_DEFAULTS[kind];
@@ -100,45 +110,53 @@ export default async function AutomationsPage() {
                 <CardDescription>{def.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <form action={saveAutomation} className="space-y-3">
-                  <input type="hidden" name="kind" value={kind} />
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      name="enabled"
-                      defaultChecked={isOn}
-                      className="accent-cyan"
+                {canManage ? (
+                  <form action={saveAutomation} className="space-y-3">
+                    <input type="hidden" name="kind" value={kind} />
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="enabled"
+                        defaultChecked={isOn}
+                        className="accent-cyan"
+                      />
+                      <span className="font-medium text-foreground">Send this automatically</span>
+                    </label>
+                    <label className="block text-sm">
+                      <span className="text-muted-foreground">
+                        Send {def.unit === "hours" ? "hours" : "days"} after{" "}
+                        {kind === "quote_followup" ? "the quote" : "the job"}
+                      </span>
+                      <Input
+                        type="number"
+                        name="delay"
+                        min={1}
+                        max={def.unit === "hours" ? 720 : 730}
+                        defaultValue={delay ?? def.delay}
+                        className="mt-1 w-28"
+                        aria-label="Delay"
+                      />
+                    </label>
+                    <Textarea
+                      name="template"
+                      defaultValue={row?.template ?? def.template}
+                      rows={3}
+                      maxLength={480}
+                      aria-label={`${def.label} message`}
                     />
-                    <span className="font-medium text-foreground">Send this automatically</span>
-                  </label>
-                  <label className="block text-sm">
-                    <span className="text-muted-foreground">
-                      Send {def.unit === "hours" ? "hours" : "days"} after{" "}
-                      {kind === "quote_followup" ? "the quote" : "the job"}
-                    </span>
-                    <Input
-                      type="number"
-                      name="delay"
-                      min={1}
-                      max={def.unit === "hours" ? 720 : 730}
-                      defaultValue={delay ?? def.delay}
-                      className="mt-1 w-28"
-                      aria-label="Delay"
-                    />
-                  </label>
-                  <Textarea
-                    name="template"
-                    defaultValue={row?.template ?? def.template}
-                    rows={3}
-                    maxLength={480}
-                    aria-label={`${def.label} message`}
-                  />
-                  <p className="text-xs text-steel">
-                    Use <code className="text-cyan">{"{name}"}</code> and{" "}
-                    <code className="text-cyan">{"{business}"}</code>.
+                    <p className="text-xs text-steel">
+                      Use <code className="text-cyan">{"{name}"}</code> and{" "}
+                      <code className="text-cyan">{"{business}"}</code>.
+                    </p>
+                    <Button type="submit" size="sm">Save</Button>
+                  </form>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {isOn
+                      ? `On — sends ${delay ?? def.delay} ${def.unit} after ${kind === "quote_followup" ? "the quote" : "the job"}.`
+                      : "Off."}
                   </p>
-                  <Button type="submit" size="sm">Save</Button>
-                </form>
+                )}
               </CardContent>
             </Card>
           );
