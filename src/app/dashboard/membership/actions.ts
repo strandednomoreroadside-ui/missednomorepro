@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { createPaymentCheckout } from "@/lib/billing/payments";
 import { advancePeriodEnd, isMembershipInterval, periodEndFromToday } from "@/lib/membership/queries";
@@ -17,9 +17,16 @@ function failTo(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
 }
 
-/** Membership is an Elite-tier feature (the `membership` plan flag). */
-async function requireMembership(tenantId: string, back: string) {
-  const ent = await getEntitlements(tenantId);
+/**
+ * Membership actions manage customer recurring billing (create plans, enroll,
+ * send renewal charges) — owner/admin only, AND Elite-tier (the `membership`
+ * plan flag).
+ */
+async function requireMembership(active: { organization_id: string; role: string }, back: string) {
+  if (!isOrgManager(active.role)) {
+    failTo(back, "Only an owner or admin can manage memberships.");
+  }
+  const ent = await getEntitlements(active.organization_id);
   if (!ent.has("membership")) {
     failTo(back, "Membership plans are on the Elite plan.");
   }
@@ -56,7 +63,7 @@ function parseBenefits(raw: string): string[] {
 export async function createPlan(formData: FormData) {
   const { active, user } = await requireActiveOrg();
   const back = "/dashboard/membership";
-  await requireMembership(active.organization_id, back);
+  await requireMembership(active, back);
   const supabase = await createClient();
 
   const name = text(formData, "name");
@@ -89,7 +96,7 @@ export async function createPlan(formData: FormData) {
 export async function togglePlanActive(formData: FormData) {
   const { active } = await requireActiveOrg();
   const back = "/dashboard/membership";
-  await requireMembership(active.organization_id, back);
+  await requireMembership(active, back);
   const supabase = await createClient();
 
   const id = text(formData, "id");
@@ -117,7 +124,7 @@ export async function enrollMembership(formData: FormData) {
   const { active, user } = await requireActiveOrg();
   const contactId = text(formData, "contact_id");
   const back = `/dashboard/contacts/${contactId}`;
-  await requireMembership(active.organization_id, back);
+  await requireMembership(active, back);
   const supabase = await createClient();
 
   const planId = text(formData, "plan_id");
@@ -159,7 +166,7 @@ export async function cancelMembership(formData: FormData) {
   const { active } = await requireActiveOrg();
   const contactId = text(formData, "contact_id");
   const back = `/dashboard/contacts/${contactId}`;
-  await requireMembership(active.organization_id, back);
+  await requireMembership(active, back);
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -181,7 +188,7 @@ export async function sendRenewal(formData: FormData) {
   const { active, user } = await requireActiveOrg();
   const contactId = text(formData, "contact_id");
   const back = `/dashboard/contacts/${contactId}`;
-  await requireMembership(active.organization_id, back);
+  await requireMembership(active, back);
   const supabase = await createClient();
 
   const membershipId = text(formData, "membership_id");

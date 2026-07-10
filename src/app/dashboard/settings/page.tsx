@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { env } from "@/lib/env";
 import { isGoogleConfigured } from "@/lib/google/credentials";
@@ -101,6 +101,10 @@ export default async function SettingsPage({
     .maybeSingle();
   const aiEnabled = (business?.ai_enabled ?? true) as boolean;
   const forwardNumber = (business?.forward_number ?? "") as string;
+  // Business-wide config (AI kill switch, calendar booking) is owner/admin
+  // only — matches the server-side gate in actions.ts. Members see status,
+  // read-only.
+  const canManage = isOrgManager(active.role);
 
   const [{ data: numbers }, { data: sms }, { data: calendar }] = await Promise.all([
     supabase
@@ -261,43 +265,54 @@ export default async function SettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={updateAiSwitch} className="space-y-4">
-            <label className="flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
-                name="ai_enabled"
-                defaultChecked={aiEnabled}
-                className="mt-1 accent-cyan"
-              />
-              <span>
-                <span className="font-medium text-foreground">
-                  AI answers my calls
+          {canManage ? (
+            <form action={updateAiSwitch} className="space-y-4">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="ai_enabled"
+                  defaultChecked={aiEnabled}
+                  className="mt-1 accent-cyan"
+                />
+                <span>
+                  <span className="font-medium text-foreground">
+                    AI answers my calls
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    When off (or when you hit your plan&rsquo;s minutes), calls
+                    forward to your phone — never to voicemail.
+                  </span>
                 </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  When off (or when you hit your plan&rsquo;s minutes), calls
-                  forward to your phone — never to voicemail.
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">
+                  Forward calls to this phone
                 </span>
+                <Input
+                  type="tel"
+                  name="forward_number"
+                  defaultValue={forwardNumber}
+                  placeholder="+1 440 555 0199"
+                  className="mt-1 w-56 font-mono"
+                  aria-label="Forward-to number"
+                />
+                <span className="mt-1 block text-xs text-steel">
+                  Leave blank to use your first staff-alert number. If neither is
+                  set, callers hear your voicemail greeting.
+                </span>
+              </label>
+              <Button type="submit">Save</Button>
+            </form>
+          ) : (
+            <div className="rounded-lg border border-border/40 px-3.5 py-3 text-sm">
+              <span className="font-medium text-foreground">
+                The AI is currently {aiEnabled ? "ON" : "OFF"}.
               </span>
-            </label>
-            <label className="block text-sm">
-              <span className="text-muted-foreground">
-                Forward calls to this phone
+              <span className="mt-0.5 block text-xs text-steel">
+                Only an owner or admin can change the receptionist switch.
               </span>
-              <Input
-                type="tel"
-                name="forward_number"
-                defaultValue={forwardNumber}
-                placeholder="+1 440 555 0199"
-                className="mt-1 w-56 font-mono"
-                aria-label="Forward-to number"
-              />
-              <span className="mt-1 block text-xs text-steel">
-                Leave blank to use your first staff-alert number. If neither is
-                set, callers hear your voicemail greeting.
-              </span>
-            </label>
-            <Button type="submit">Save</Button>
-          </form>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -322,12 +337,19 @@ export default async function SettingsPage({
                   <span className="text-muted-foreground"> as {cal.google_account_email}</span>
                 ) : null}
               </span>
-              <form action={disconnectGoogleCalendar} className="ml-auto">
-                <Button type="submit" variant="outline" size="sm">
-                  Disconnect
-                </Button>
-              </form>
+              {canManage && (
+                <form action={disconnectGoogleCalendar} className="ml-auto">
+                  <Button type="submit" variant="outline" size="sm">
+                    Disconnect
+                  </Button>
+                </form>
+              )}
             </div>
+          ) : !canManage ? (
+            <p className="rounded-lg border border-border/40 px-3.5 py-4 text-sm text-muted-foreground">
+              No calendar is connected. Only an owner or admin can connect
+              Google Calendar for booking.
+            </p>
           ) : !googleConfigured ? (
             <p className="rounded-lg border border-border/40 px-3.5 py-4 text-sm text-muted-foreground">
               Google Calendar isn&rsquo;t configured on the server yet. Once the

@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { AUTOMATION_DEFAULTS, AUTOMATION_KINDS, type AutomationKind } from "@/lib/sms/outbound-engine";
 import { createClient } from "@/lib/supabase/server";
 
-/** Save one follow-up automation's config (members manage; RLS). */
+/** Save one follow-up automation's config. Owner/admin only — automations
+ *  drive proactive outbound texting (cost + TCPA compliance surface). */
 export async function saveAutomation(formData: FormData): Promise<void> {
   const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) return;
   const supabase = await createClient();
 
   const kind = String(formData.get("kind") ?? "") as AutomationKind;

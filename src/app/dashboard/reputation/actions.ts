@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { createClient } from "@/lib/supabase/server";
 
-/** Save Reputation Manager settings (members manage; RLS). Gated on add-on. */
+/** Save Reputation Manager settings. Owner/admin only (proactive outbound
+ *  review-request campaign) + gated on the add-on. */
 export async function updateReputation(formData: FormData): Promise<void> {
   const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) return;
   const tenantId = active.organization_id;
 
   const ent = await getEntitlements(tenantId);

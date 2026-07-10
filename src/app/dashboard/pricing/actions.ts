@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { geocodeAddress } from "@/lib/maps/client";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -29,6 +29,8 @@ async function firstBusinessId(
  */
 export async function approvePricing() {
   const { active } = await requireActiveOrg();
+  // Approving turns on real-money AI quoting — owner/admin only.
+  if (!isOrgManager(active.role)) redirect("/dashboard/pricing?pricing=permission");
   const supabase = await createClient();
   const businessId = await firstBusinessId(supabase, active.organization_id);
   if (!businessId) redirect("/dashboard/pricing?pricing=nobiz");
@@ -80,6 +82,7 @@ export async function updateServiceRadius(formData: FormData) {
 /** Turn AI quoting back off (revert to "owner will text a quote"). */
 export async function unapprovePricing() {
   const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) redirect("/dashboard/pricing?pricing=permission");
   const supabase = await createClient();
   const businessId = await firstBusinessId(supabase, active.organization_id);
   if (!businessId) redirect("/dashboard/pricing?pricing=nobiz");

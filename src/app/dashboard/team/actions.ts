@@ -4,18 +4,16 @@ import { randomUUID } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
 
-import { requireActiveOrg } from "@/lib/auth";
+import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-const isManager = (role: string) => role === "owner" || role === "admin";
 
 /** Invite a teammate. Inserts a pending invitation; the team page shows the
  *  copyable accept link (email delivery is deferred until Resend is set up). */
 export async function inviteMember(formData: FormData): Promise<void> {
   const { user, active } = await requireActiveOrg();
-  if (!isManager(active.role)) return;
+  if (!isOrgManager(active.role)) return;
   const tenantId = active.organization_id;
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -49,7 +47,7 @@ export async function inviteMember(formData: FormData): Promise<void> {
 /** Revoke a pending invitation. */
 export async function revokeInvite(formData: FormData): Promise<void> {
   const { active } = await requireActiveOrg();
-  if (!isManager(active.role)) return;
+  if (!isOrgManager(active.role)) return;
   const tenantId = active.organization_id;
   const id = String(formData.get("invite_id") ?? "");
   if (!id) return;
@@ -67,7 +65,7 @@ export async function revokeInvite(formData: FormData): Promise<void> {
  *  write organization_members directly). */
 export async function changeRole(formData: FormData): Promise<void> {
   const { active } = await requireActiveOrg();
-  if (!isManager(active.role)) return;
+  if (!isOrgManager(active.role)) return;
   const tenantId = active.organization_id;
   const userId = String(formData.get("user_id") ?? "");
   const role = String(formData.get("role") ?? "");
@@ -92,7 +90,7 @@ export async function changeRole(formData: FormData): Promise<void> {
 /** Remove a member (non-owner, not yourself). */
 export async function removeMember(formData: FormData): Promise<void> {
   const { user, active } = await requireActiveOrg();
-  if (!isManager(active.role)) return;
+  if (!isOrgManager(active.role)) return;
   const tenantId = active.organization_id;
   const userId = String(formData.get("user_id") ?? "");
   if (!userId || userId === user.id) return;
