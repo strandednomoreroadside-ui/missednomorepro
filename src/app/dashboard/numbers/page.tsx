@@ -73,8 +73,12 @@ export default async function NumbersPage() {
   const sub =
     canManage && twilioReady ? await getSubscription(tenantId).catch(() => null) : null;
   const canDemo = canManage && twilioReady && !!sub && CARDED_STATUSES.has(sub.status);
-  let demoPrefill = "";
-  if (canDemo) {
+
+  // The owner's own phone: powers the "Test my AI" prefill AND a sensible
+  // default area code for the number picker (most owners want a number local
+  // to themselves), so a first-time owner rarely has to think about it.
+  let ownerPhone = "";
+  if (canManage && twilioReady) {
     const { data: staff } = await supabase
       .from("staff_contacts")
       .select("phone")
@@ -83,8 +87,11 @@ export default async function NumbersPage() {
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    demoPrefill = formatUsPhone((staff as { phone: string } | null)?.phone ?? "");
+    ownerPhone = (staff as { phone: string } | null)?.phone ?? "";
   }
+  const demoPrefill = canDemo ? formatUsPhone(ownerPhone) : "";
+  // Area code = the 3 digits after the +1 country code of a normalized number.
+  const defaultAreaCode = /^\+1(\d{3})/.exec(ownerPhone)?.[1] ?? "";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -173,7 +180,7 @@ export default async function NumbersPage() {
           </CardHeader>
           <CardContent>
             {eligibility.ok ? (
-              <ProvisionNumber />
+              <ProvisionNumber defaultAreaCode={defaultAreaCode} />
             ) : "reason" in eligibility && eligibility.reason === "limit_reached" ? (
               <p className="rounded-lg border border-border/50 px-3.5 py-3 text-sm text-muted-foreground">
                 Your plan includes one number.{" "}
