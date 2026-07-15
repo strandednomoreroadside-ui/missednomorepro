@@ -41,6 +41,7 @@ function extFor(fileName: string, mime: string): string {
     "text/plain": "txt",
     "text/csv": "csv",
     "text/markdown": "md",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
   };
   return map[mime] ?? "bin";
 }

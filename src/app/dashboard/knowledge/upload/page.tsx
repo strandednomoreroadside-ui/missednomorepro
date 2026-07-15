@@ -123,10 +123,10 @@ export default async function UploadDocsPage({
         Upload documents
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Drop in a price sheet or FAQ document. We read it and propose structured
-        services, prices, and FAQs for {business?.name ?? "your business"} below —
-        you approve each one. Your AI still only quotes computed numbers, never
-        text from a file.
+        Drop in a price sheet, FAQ document, or even a spreadsheet/log you use to
+        track jobs and income — we read it and propose structured services, prices,
+        and FAQs for {business?.name ?? "your business"} below — you approve each
+        one. Your AI still only quotes computed numbers, never text from a file.
       </p>
 
       {!configured && (
@@ -144,8 +144,8 @@ export default async function UploadDocsPage({
             Upload a document
           </CardTitle>
           <CardDescription>
-            PDF, image (PNG/JPG), or text/CSV. Up to 10&nbsp;MB. Reading a file
-            can take up to a minute.
+            PDF, image (PNG/JPG), spreadsheet (XLSX/CSV), or text. Up to
+            10&nbsp;MB. Reading a file can take up to a minute.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -154,7 +154,7 @@ export default async function UploadDocsPage({
               type="file"
               name="file"
               required
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.md,application/pdf,image/png,image/jpeg,image/webp,text/plain,text/csv,text/markdown"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.md,.xlsx,application/pdf,image/png,image/jpeg,image/webp,text/plain,text/csv,text/markdown,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-cyan/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-cyan hover:file:bg-cyan/20"
             />
             <Button type="submit">Upload &amp; read</Button>
@@ -166,7 +166,8 @@ export default async function UploadDocsPage({
       <div className="mt-6 space-y-4">
         {docs.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            No documents yet. Upload your price sheet or an FAQ doc to get started.
+            No documents yet. Upload your price sheet, an FAQ doc, or a job/income
+            log to get started.
           </p>
         ) : (
           docs.map((doc) => {

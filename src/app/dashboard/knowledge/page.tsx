@@ -232,16 +232,17 @@ export default async function KnowledgeHubPage() {
               )}
             </CardTitle>
             <CardDescription>
-              Drop in a price sheet or FAQ doc and we&rsquo;ll turn it into structured
-              services, prices, and answers for you to approve — your AI still only
-              quotes computed numbers, never text from a file.
+              Drop in a price sheet, FAQ doc, or a spreadsheet/log you use to track
+              jobs and income — we&rsquo;ll turn it into structured services, prices,
+              and answers for you to approve. Your AI still only quotes computed
+              numbers, never text from a file.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <span className="font-mono text-sm text-foreground">
               {pendingCount > 0
                 ? `${pendingCount} suggestion${pendingCount === 1 ? "" : "s"} pending`
-                : "PDF, image, or text"}
+                : "PDF, image, spreadsheet, or text"}
             </span>
             <Link
               href="/dashboard/knowledge/upload"

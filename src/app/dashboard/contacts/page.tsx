@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Search, UserPlus } from "lucide-react";
+import { Search, Upload, UserPlus } from "lucide-react";
 
 import { FormBanner } from "@/components/form-banner";
 import { Button } from "@/components/ui/button";
@@ -80,21 +80,29 @@ export default async function ContactsPage({
             Every caller becomes a contact with history — this is your business&rsquo;s memory.
           </p>
         </div>
-        <form method="get" className="flex items-center gap-2" role="search">
-          <Label htmlFor="q" className="sr-only">
-            Search by name or phone
-          </Label>
-          <Input
-            id="q"
-            name="q"
-            defaultValue={q}
-            placeholder="Search name or phone…"
-            className="w-64"
-          />
-          <Button type="submit" variant="outline" size="sm" aria-label="Search">
-            <Search className="size-4" aria-hidden />
-          </Button>
-        </form>
+        <div className="flex items-center gap-2">
+          <form method="get" className="flex items-center gap-2" role="search">
+            <Label htmlFor="q" className="sr-only">
+              Search by name or phone
+            </Label>
+            <Input
+              id="q"
+              name="q"
+              defaultValue={q}
+              placeholder="Search name or phone…"
+              className="w-64"
+            />
+            <Button type="submit" variant="outline" size="sm" aria-label="Search">
+              <Search className="size-4" aria-hidden />
+            </Button>
+          </form>
+          <Link href="/dashboard/contacts/import">
+            <Button type="button" variant="outline" size="sm">
+              <Upload className="size-4" aria-hidden />
+              Import
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && <div className="mt-5"><FormBanner kind="error">{error}</FormBanner></div>}
