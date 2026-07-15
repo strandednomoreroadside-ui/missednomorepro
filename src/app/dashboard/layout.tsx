@@ -5,6 +5,7 @@ import {
   Bot,
   CalendarCheck,
   CalendarRange,
+  Contact,
   CreditCard,
   Hash,
   Inbox,
@@ -159,6 +160,13 @@ export default async function DashboardLayout({
           >
             <UserPlus className="size-4" aria-hidden />
             Team
+          </Link>
+          <Link
+            href="/dashboard/staff"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Contact className="size-4" aria-hidden />
+            Staff
           </Link>
           <Link
             href="/dashboard/numbers"

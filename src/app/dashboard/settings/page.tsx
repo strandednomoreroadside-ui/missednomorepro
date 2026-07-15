@@ -320,7 +320,7 @@ export default async function SettingsPage({
         </CardContent>
       </Card>
 
-      <Card className="mt-4 bg-card/60">
+      <Card id="callback-ivr" className="mt-4 scroll-mt-24 bg-card/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <PhoneOutgoing className="size-4 text-cyan" aria-hidden />
