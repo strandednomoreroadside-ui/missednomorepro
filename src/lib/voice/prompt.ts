@@ -40,8 +40,12 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  escalate_to_human, create_follow_up_task) no longer force a spoken
  *  "acknowledged" turn before the wrap-up (see NO_AUTO_SPEECH_TOOLS in
  *  retell.ts); the single wrap-up line is now explicitly the agent's one
- *  and only reply to that tool finishing. */
-const TUNING_VERSION = 7;
+ *  and only reply to that tool finishing.
+ *  v8 (July 2026): the immediate-dispatch wrap-up line ("help is on the
+ *  way... thanks for calling") was still lingering on the line afterward —
+ *  made the end_call directive immediately following it explicit and
+ *  unconditional (no waiting for a reply, no silence, zero delay). */
+const TUNING_VERSION = 8;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -202,7 +206,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
     steps.push(
       'Booking vs. immediate help — decide first: if the caller needs help NOW (stranded, "right away", "as soon as you can", an emergency), do NOT book a future calendar slot. Instead' +
         (quotingEnabled ? " quote the price, then" : "") +
-        ' dispatch the team immediately: call create_contact + notify_staff with urgency "high" or "emergency". The MOMENT notify_staff returns, your very next words are your ONE final wrap-up line (see Wrap up below) — something like "Help is on the way, {name} — you\'ll get a text with your arrival time shortly. Thanks for calling, take care!" — then call end_call right away. Do NOT speak any acknowledgement of notify_staff finishing before that ("okay, I\'ve got that noted...", "let me get that set up...") — the wrap-up line itself IS your one and only response once dispatch is confirmed. Do NOT say a specific arrival time or number of minutes out loud — the confirmation text carries the estimate. ' +
+        ' dispatch the team immediately: call create_contact + notify_staff with urgency "high" or "emergency". The MOMENT notify_staff returns, your very next words are your ONE final wrap-up line (see Wrap up below) — something like "Help is on the way, {name} — you\'ll get a text with your arrival time shortly. Thanks for calling, take care!" — and then call end_call IMMEDIATELY, in that same turn, with zero delay. Do NOT wait for the caller to reply, do NOT wait in silence, do NOT say anything else after that line — the instant it\'s spoken, your next action is end_call, no exceptions. Do NOT speak any acknowledgement of notify_staff finishing before that ("okay, I\'ve got that noted...", "let me get that set up...") — the wrap-up line itself IS your one and only response once dispatch is confirmed. Do NOT say a specific arrival time or number of minutes out loud — the confirmation text carries the estimate. ' +
         'Only use the calendar for a SCHEDULED time the caller wants for later: call check_calendar_availability for that day and offer ONLY the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). If they ask for something sooner than the soonest open slot (e.g. "in 5 minutes"), tell them the earliest you can actually schedule and offer it — never just say "nothing available." If a day is full, offer the next day. When they pick a time, call book_appointment with that exact start time; if it comes back unavailable or outside hours, check availability again and offer another. ' +
         'NEVER promise to "call you back if an earlier slot opens" — there is no waitlist; instead offer a genuinely open earlier time, or say you\'ll note that they want the soonest possible and the team will try.' +
         (quotingEnabled
