@@ -93,7 +93,7 @@ export default async function DispatchPage({
       .order("starts_at", { ascending: true }),
     supabase
       .from("jobs")
-      .select("id, title, scheduled_for, address, status, assigned_to, contacts ( name )")
+      .select("id, title, scheduled_for, address, status, assigned_to, appointment_id, contacts ( name )")
       .eq("tenant_id", tenantId)
       .in("status", ["scheduled", "in_progress"])
       .gte("scheduled_for", fromIso)
@@ -109,17 +109,27 @@ export default async function DispatchPage({
   const staff = (staffRows ?? []) as Staff[];
   const staffName = new Map(staff.map((s) => [s.id, s.name]));
 
+  // A booking creates both an appointment row (what syncs to Google Calendar)
+  // and a linked job row (the work order — status + tech assignment) in the
+  // same call. Showing both on the board reads as a double-booking for what
+  // is really one job. The job is the operationally useful one (it carries
+  // status + assignment), so once a job links back to an appointment, drop
+  // that appointment's own row and let the job represent it.
+  const jobbedApptIds = new Set((jobs ?? []).map((j) => j.appointment_id as string | null).filter(Boolean));
+
   const items: Item[] = [
-    ...(appts ?? []).map((a) => ({
-      kind: "appointment" as const,
-      id: a.id as string,
-      iso: a.starts_at as string,
-      title: a.title as string,
-      customer: one(a.contacts)?.name ?? null,
-      address: (a.location as string | null) ?? null,
-      status: a.status as string,
-      assignedTo: (a.assigned_to as string | null) ?? null,
-    })),
+    ...(appts ?? [])
+      .filter((a) => !jobbedApptIds.has(a.id as string))
+      .map((a) => ({
+        kind: "appointment" as const,
+        id: a.id as string,
+        iso: a.starts_at as string,
+        title: a.title as string,
+        customer: one(a.contacts)?.name ?? null,
+        address: (a.location as string | null) ?? null,
+        status: a.status as string,
+        assignedTo: (a.assigned_to as string | null) ?? null,
+      })),
     ...(jobs ?? []).map((j) => ({
       kind: "job" as const,
       id: j.id as string,
