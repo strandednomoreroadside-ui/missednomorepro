@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Phone,
   PhoneCall,
+  PhoneOutgoing,
   Truck,
   TriangleAlert,
 } from "lucide-react";
@@ -38,6 +39,7 @@ import {
   disconnectGoogleCalendar,
   updateAiSwitch,
   updateBookingConfirmation,
+  updateCallbackIvr,
   updateChatSettings,
   updateDispatchEta,
   updateEmailSettings,
@@ -116,7 +118,7 @@ export default async function SettingsPage({
       ? supabase
           .from("sms_settings")
           .select(
-            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes, weekly_report_enabled, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key, email_inbound_enabled, email_inbound_token, email_signature"
+            "text_back_enabled, text_back_template, booking_confirmation_template, reminder_enabled, reminder_lead_hours, reminder_template, dispatch_confirmation_enabled, dispatch_confirmation_template, eta_base_minutes, eta_per_job_minutes, weekly_report_enabled, web_chat_enabled, web_greeting, widget_accent, two_way_sms_ai_enabled, widget_key, email_inbound_enabled, email_inbound_token, email_signature, callback_ivr_enabled, callback_ivr_pin"
           )
           .eq("business_id", business.id)
           .maybeSingle()
@@ -145,6 +147,8 @@ export default async function SettingsPage({
   const etaBaseMinutes = (sms?.eta_base_minutes ?? 60) as number;
   const etaPerJobMinutes = (sms?.eta_per_job_minutes ?? 30) as number;
   const weeklyReportEnabled = (sms?.weekly_report_enabled ?? true) as boolean;
+  const callbackIvrEnabled = (sms?.callback_ivr_enabled ?? false) as boolean;
+  const callbackIvrPin = (sms?.callback_ivr_pin ?? "") as string;
   const cal = calendar as
     | { google_account_email: string | null; status: string; connected_at: string }
     | null;
@@ -310,6 +314,71 @@ export default async function SettingsPage({
               </span>
               <span className="mt-0.5 block text-xs text-steel">
                 Only an owner or admin can change the receptionist switch.
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <PhoneOutgoing className="size-4 text-cyan" aria-hidden />
+            Callback IVR — call from your business number, no app
+          </CardTitle>
+          <CardDescription>
+            Call your own business number from your personal cell. If it&rsquo;s
+            you (your number is on file as staff), you&rsquo;ll skip the AI and hear
+            a PIN prompt instead — enter it, then the number you want to call,
+            and we&rsquo;ll connect you with your business number as caller ID.
+            Real customers never see or hear this.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {canManage ? (
+            <form action={updateCallbackIvr} className="space-y-4">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="callback_ivr_enabled"
+                  defaultChecked={callbackIvrEnabled}
+                  className="mt-1 accent-cyan"
+                />
+                <span>
+                  <span className="font-medium text-foreground">
+                    Turn on the callback IVR
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Only works for numbers already saved under Staff — add yours there first.
+                  </span>
+                </span>
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">PIN (4–8 digits)</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{4,8}"
+                  name="callback_ivr_pin"
+                  defaultValue={callbackIvrPin}
+                  placeholder="1234"
+                  className="mt-1 w-32 font-mono"
+                  aria-label="Callback IVR PIN"
+                />
+                <span className="mt-1 block text-xs text-steel">
+                  Only digits. Keep it private — anyone who knows it (and calls from a saved
+                  staff number) can place calls on your line.
+                </span>
+              </label>
+              <Button type="submit">Save</Button>
+            </form>
+          ) : (
+            <div className="rounded-lg border border-border/40 px-3.5 py-3 text-sm">
+              <span className="font-medium text-foreground">
+                The callback IVR is currently {callbackIvrEnabled ? "ON" : "OFF"}.
+              </span>
+              <span className="mt-0.5 block text-xs text-steel">
+                Only an owner or admin can change this.
               </span>
             </div>
           )}

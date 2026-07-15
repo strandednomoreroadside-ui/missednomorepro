@@ -78,6 +78,25 @@ export function dialNumberTwiml(number: string): string {
   return `<Dial timeout="25">${xmlEscape(number)}</Dial>`;
 }
 
+/** Prompt for touch-tone digits, terminated by #. Used by the callback IVR
+ *  (call your own business number → enter a PIN → enter a number to dial).
+ *  If the caller enters nothing before the timeout, Twilio still POSTs to
+ *  `actionPath` with empty Digits — the receiving route treats that as a
+ *  failed attempt rather than hanging here. */
+export function gatherDigitsTwiml(opts: {
+  prompt: string;
+  actionPath: string;
+  timeoutSeconds?: number;
+}): string {
+  return (
+    `<Gather finishOnKey="#" timeout="${opts.timeoutSeconds ?? 12}" ` +
+    `action="${xmlEscape(opts.actionPath)}" method="POST">` +
+    `<Say ${VOICE}>${xmlEscape(opts.prompt)}</Say>` +
+    `</Gather>` +
+    `<Say ${VOICE}>We didn't get any input. Goodbye.</Say><Hangup/>`
+  );
+}
+
 /** Click-to-call bridge: ring the target number, presenting the tenant's own
  *  business number as caller ID (so customers see/recognize the business,
  *  not a random staff cell). Used after a staff member's own phone answers

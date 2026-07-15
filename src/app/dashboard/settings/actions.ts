@@ -108,6 +108,49 @@ export async function updateAiSwitch(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/** Callback IVR — "call your own business number to place a call from it."
+ *  Owner/admin only: it's a shared PIN that lets ANY staff member on file
+ *  place outbound calls billed to the business, so only a manager should be
+ *  able to turn it on or change the PIN. */
+export async function updateCallbackIvr(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
+  const supabase = await createClient();
+
+  const enabled = formData.get("callback_ivr_enabled") === "on";
+  const rawPin = String(formData.get("callback_ivr_pin") ?? "").trim();
+  const pin = rawPin.replace(/\D/g, "");
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  // Blank PIN means "leave it unchanged" — the field is prefilled with the
+  // saved PIN, so blank only happens if it was never set. Either way,
+  // maybeStartCallbackIvr() already refuses to activate without a PIN, so
+  // this checkbox alone can never open the gate with no second factor.
+  const patch: Record<string, unknown> = { callback_ivr_enabled: enabled };
+  if (rawPin) {
+    if (pin.length < 4 || pin.length > 8) {
+      redirect("/dashboard/settings?error=bad_pin");
+    }
+    patch.callback_ivr_pin = pin;
+  }
+
+  await supabase
+    .from("sms_settings")
+    .update(patch)
+    .eq("business_id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 /** Update appointment-reminder settings (roadmap #3). */
 export async function updateReminders(formData: FormData) {
   const { active } = await requireActiveOrg();

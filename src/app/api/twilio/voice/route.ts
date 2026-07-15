@@ -12,6 +12,7 @@ import {
 } from "@/lib/twilio/twiml";
 import { getVoiceProvider } from "@/lib/voice";
 import { ensureAgentSynced, type AgentBusiness } from "@/lib/voice/agent-sync";
+import { maybeStartCallbackIvr } from "@/lib/voice/callback-ivr";
 
 import { forbidden, parseValidTwilioRequest } from "./shared";
 
@@ -97,6 +98,16 @@ export async function POST(request: Request) {
     business = (data as VoiceBusiness | null) ?? null;
   }
   const businessName = business?.name ?? "our team";
+
+  // Staff calling their OWN business number to place a call from it (the
+  // callback IVR — no app needed). Only intercepts when the caller ID
+  // matches a known staff contact AND the business opted in with a PIN;
+  // everyone else (real customers) falls straight through to the AI/greeting
+  // below, unaffected.
+  if (business) {
+    const ivr = await maybeStartCallbackIvr(admin, business, from);
+    if (ivr) return ivr;
+  }
 
   // Known caller? (M5 keeps phone unique per tenant for exactly this.)
   const { data: contact } = await admin
