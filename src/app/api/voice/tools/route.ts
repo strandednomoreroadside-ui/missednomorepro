@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isVoiceToolName } from "@/lib/voice/tools/registry";
-import { TOOLS, type ToolContext } from "@/lib/voice/tools/handlers";
+import { TOOLS, type ToolContext, type ToolResult } from "@/lib/voice/tools/handlers";
 
 /**
  * AI tool router (master plan §10, BUILD_GUIDE M7 step 4). The voice
@@ -105,8 +105,22 @@ export async function POST(request: Request) {
     businessName,
   };
 
-  // 4) Run the tool.
-  const result = await TOOLS[toolName].run(ctx, rawArgs);
+  // 4) Run the tool. An uncaught throw here (a transient DB/Google/Twilio
+  // error deep in a handler) must never surface as a bare 500 — the model
+  // gets nothing to read and the agent goes silent for the rest of the
+  // call instead of recovering with words. Always hand back a body it can
+  // react to.
+  let result: ToolResult;
+  try {
+    result = await TOOLS[toolName].run(ctx, rawArgs);
+  } catch (err) {
+    console.error(`[voice/tools] ${toolName} threw:`, err);
+    result = {
+      status: "error",
+      data: {},
+      error: "temporary system error — apologize briefly and offer to have the team follow up",
+    };
+  }
 
   // 5) Record the invocation (never let logging break the tool response).
   try {
