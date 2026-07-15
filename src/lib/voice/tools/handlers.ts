@@ -138,6 +138,21 @@ async function notifyOnLeadStaff(ctx: ToolContext): Promise<{ name: string; phon
   return data ?? [];
 }
 
+/** "2018 Ford F-150" (or "") for the current call — captured via
+ *  create_contact's vehicle_year/make/model args. Empty on chat channels
+ *  (no call row) or when the AI never captured a vehicle this call. */
+async function getVehicleLine(ctx: ToolContext): Promise<string> {
+  if (!ctx.callId) return "";
+  const { data } = await ctx.admin
+    .from("calls")
+    .select("vehicle_year, vehicle_make, vehicle_model")
+    .eq("id", ctx.callId)
+    .eq("tenant_id", ctx.tenantId)
+    .maybeSingle();
+  const parts = [data?.vehicle_year, data?.vehicle_make, data?.vehicle_model].filter(Boolean);
+  return parts.length ? parts.join(" ") : "";
+}
+
 // ── Tool implementations ───────────────────────────────────────
 
 const lookupContact = defineTool(
@@ -146,7 +161,7 @@ const lookupContact = defineTool(
     const phone = normalizeUsPhone(args.phone ?? "") ?? ctx.fromNumber;
     const { data: contact } = await ctx.admin
       .from("contacts")
-      .select("id, name, consent_sms, tags")
+      .select("id, name, consent_sms, tags, vehicle_year, vehicle_make, vehicle_model")
       .eq("tenant_id", ctx.tenantId)
       .eq("phone", phone)
       .maybeSingle();
@@ -171,6 +186,10 @@ const lookupContact = defineTool(
       .eq("contact_id", contact.id)
       .eq("status", "open");
 
+    const vehicleParts = [contact.vehicle_year, contact.vehicle_make, contact.vehicle_model].filter(
+      Boolean
+    );
+
     return {
       status: "ok",
       data: {
@@ -182,6 +201,7 @@ const lookupContact = defineTool(
         tags: contact.tags ?? [],
         last_need: lead?.service_needed ?? null,
         open_tasks: openTasks ?? 0,
+        last_vehicle: vehicleParts.length ? vehicleParts.join(" ") : null,
       },
     };
   }
@@ -194,10 +214,17 @@ const createContact = defineTool(
     need: z.string().max(500).optional(),
     address: z.string().max(500).optional(),
     email: z.string().max(320).optional(),
+    vehicle_year: z.string().max(20).optional(),
+    vehicle_make: z.string().max(60).optional(),
+    vehicle_model: z.string().max(60).optional(),
     sms_consent: z.boolean().optional(),
   }),
   async (ctx, args) => {
     const phone = normalizeUsPhone(args.phone ?? "") ?? ctx.fromNumber;
+    const vehiclePatch: Record<string, unknown> = {};
+    if (args.vehicle_year) vehiclePatch.vehicle_year = args.vehicle_year;
+    if (args.vehicle_make) vehiclePatch.vehicle_make = args.vehicle_make;
+    if (args.vehicle_model) vehiclePatch.vehicle_model = args.vehicle_model;
     const consentPatch =
       args.sms_consent === true
         ? {
@@ -222,7 +249,7 @@ const createContact = defineTool(
 
     let contactId: string;
     if (existing) {
-      const patch: Record<string, unknown> = { name: args.name, ...consentPatch };
+      const patch: Record<string, unknown> = { name: args.name, ...consentPatch, ...vehiclePatch };
       if (args.address) patch.address = args.address;
       if (args.email) patch.email = args.email;
       await ctx.admin
@@ -241,6 +268,7 @@ const createContact = defineTool(
           address: args.address ?? null,
           email: args.email ?? null,
           ...consentPatch,
+          ...vehiclePatch,
         })
         .select("id")
         .single();
@@ -249,6 +277,17 @@ const createContact = defineTool(
     }
 
     await linkCallToContact(ctx, contactId);
+
+    // Mirror the vehicle onto THIS call row too (source of truth for dispatch
+    // — a returning caller may be calling about a different vehicle than the
+    // one on file, so the per-call value is what notify_staff/dispatch read).
+    if (ctx.callId && Object.keys(vehiclePatch).length > 0) {
+      await ctx.admin
+        .from("calls")
+        .update(vehiclePatch)
+        .eq("id", ctx.callId)
+        .eq("tenant_id", ctx.tenantId);
+    }
 
     // Keep the STOP suppression list in sync with an explicit voice opt-out/
     // opt-in, so even transactional sends (the missed-call text-back) honor it.
@@ -450,9 +489,11 @@ const notifyStaff = defineTool(
       return { status: "ok", data: { notified: false, reason: "no staff configured" } };
     }
 
+    const vehicleLine = await getVehicleLine(ctx);
     const prefix = urgency === "emergency" ? "URGENT lead" : "New lead";
     const body =
       `${prefix} - ${ctx.businessName}. ${args.summary} ` +
+      `${vehicleLine ? `Vehicle: ${vehicleLine}. ` : ""}` +
       `Call back: ${formatUsPhone(callback)}`;
 
     let sent = 0;
@@ -1842,6 +1883,7 @@ async function dispatchEtaToCustomer(
   const etaMinutes = base + perJob * jobsAhead;
 
   const contactId = await resolveCallerContactId(ctx);
+  const vehicleLine = await getVehicleLine(ctx);
 
   // Open the dispatch job so it shows on the board AND counts for the next caller.
   const { data: job } = await ctx.admin
@@ -1850,7 +1892,7 @@ async function dispatchEtaToCustomer(
       tenant_id: ctx.tenantId,
       business_id: business.id,
       contact_id: contactId,
-      title: (summary || "Roadside service request").slice(0, 120),
+      title: (vehicleLine ? `${vehicleLine} — ${summary || "Roadside service request"}` : summary || "Roadside service request").slice(0, 120),
       status: "scheduled",
       scheduled_for: new Date().toISOString(),
       source: "ai",

@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hash, Headphones, MessageSquare, PhoneCall, PhoneForwarded, Sparkles } from "lucide-react";
+import {
+  Hash,
+  Headphones,
+  MessageSquare,
+  PhoneCall,
+  PhoneForwarded,
+  PhoneOutgoing,
+  Send,
+  Sparkles,
+} from "lucide-react";
 
 import {
   Card,
@@ -19,7 +28,9 @@ import { createClient } from "@/lib/supabase/server";
 
 import { provisionEligibility } from "./actions";
 import { ActivateNumber, ReleaseNumber } from "./activate";
+import { CallNumber } from "./call-number";
 import { ProvisionNumber } from "./provision";
+import { SendText } from "./send-text";
 import { TestMyAi } from "./test-my-ai";
 
 /** A card on file (any of these statuses) lets the owner place a demo call. */
@@ -165,6 +176,41 @@ export default async function NumbersPage() {
           </CardHeader>
           <CardContent>
             <TestMyAi defaultPhone={demoPrefill} />
+          </CardContent>
+        </Card>
+      )}
+
+      {canDemo && (
+        <Card className="mt-4 bg-card/60">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <Send className="size-4 text-cyan" aria-hidden />
+              Send a text
+            </CardTitle>
+            <CardDescription>
+              Text any number from your business line — for yourself or any customer.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SendText />
+          </CardContent>
+        </Card>
+      )}
+
+      {canDemo && (
+        <Card className="mt-4 bg-card/60">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <PhoneOutgoing className="size-4 text-cyan" aria-hidden />
+              Make a call
+            </CardTitle>
+            <CardDescription>
+              We&rsquo;ll ring your phone, then connect you to any number — the customer sees your
+              business number, not your personal cell.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CallNumber defaultRingPhone={demoPrefill} />
           </CardContent>
         </Card>
       )}

@@ -60,8 +60,9 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
     name: "create_contact",
     description:
       "Save or update the caller as a contact once you know their name. Include whatever " +
-      "you've gathered (name, phone, what they need, address). Call this before notify_staff " +
-      "so the team has a record. Set sms_consent only if the caller clearly agreed to texts.",
+      "you've gathered (name, phone, what they need, address, vehicle year/make/model). Call " +
+      "this before notify_staff so the team has a record. Set sms_consent only if the caller " +
+      "clearly agreed to texts.",
     parameters: {
       type: "object",
       properties: {
@@ -70,6 +71,9 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         need: { type: "string", description: "One line: the service/problem they're calling about." },
         address: { type: "string", description: "Service address or location, if given." },
         email: { type: "string", description: "Email, if given." },
+        vehicle_year: { type: "string", description: "The vehicle's model year, e.g. '2018'." },
+        vehicle_make: { type: "string", description: "The vehicle's make, e.g. 'Ford'." },
+        vehicle_model: { type: "string", description: "The vehicle's model, e.g. 'F-150'." },
         sms_consent: {
           type: "boolean",
           description: "True ONLY if the caller agreed to receive text messages.",

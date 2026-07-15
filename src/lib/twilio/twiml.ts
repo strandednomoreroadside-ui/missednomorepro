@@ -78,6 +78,23 @@ export function dialNumberTwiml(number: string): string {
   return `<Dial timeout="25">${xmlEscape(number)}</Dial>`;
 }
 
+/** Click-to-call bridge: ring the target number, presenting the tenant's own
+ *  business number as caller ID (so customers see/recognize the business,
+ *  not a random staff cell). Used after a staff member's own phone answers
+ *  the first leg of an outbound "call this number" request. Hard-capped by
+ *  `timeLimitSeconds` so a forgotten open line can't run up cost forever. */
+export function bridgeCallTwiml(
+  number: string,
+  opts?: { callerId?: string; timeLimitSeconds?: number }
+): string {
+  const callerId = opts?.callerId ? ` callerId="${xmlEscape(opts.callerId)}"` : "";
+  const limit = opts?.timeLimitSeconds ? ` timeLimit="${opts.timeLimitSeconds}"` : "";
+  return (
+    `<Say ${VOICE}>Connecting you now.</Say>` +
+    `<Dial${callerId}${limit} timeout="25">${xmlEscape(number)}</Dial>`
+  );
+}
+
 /** Media-stream bridge (kept for stream-based providers / Path B). Twilio
  *  streams audio straight to the provider's websocket. */
 export function connectStreamTwiml(streamUrl: string): string {

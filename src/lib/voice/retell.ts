@@ -47,6 +47,22 @@ const SIP_HOST = "sip.retellai.com";
  *  filler line so the caller isn't met with silence. */
 const SLOW_TOOLS = new Set(["notify_staff", "escalate_to_human"]);
 
+/** Terminal action tools — the caller's need is fully handled once these
+ *  return, and the prompt's Wrap up section is the agent's ONE scripted
+ *  reply to them finishing. Without this, Retell's default
+ *  speak_after_execution forced a SECOND mandatory spoken turn right before
+ *  the wrap-up ("okay, I've got that noted..." + the actual goodbye) — the
+ *  "multiple goodbyes" bug. Turning it off here lets the model go straight
+ *  to the single wrap-up line the prompt already instructs it to say. */
+const NO_AUTO_SPEECH_TOOLS = new Set([
+  "notify_staff",
+  "escalate_to_human",
+  "book_appointment",
+  "cancel_appointment",
+  "reschedule_appointment",
+  "create_follow_up_task",
+]);
+
 /** Retell built-in end-call tool so the agent can hang up when finished —
  *  otherwise it lingers on the line and burns minutes. */
 const END_CALL_TOOL = {
@@ -158,7 +174,7 @@ function mapTools(tools: VoiceToolDef[]): unknown[] {
     description: t.description,
     parameters: t.parameters,
     query_params: { tool: t.name, key: secret },
-    speak_after_execution: true,
+    speak_after_execution: !NO_AUTO_SPEECH_TOOLS.has(t.name),
     speak_during_execution: SLOW_TOOLS.has(t.name),
     timeout_ms: 20000,
   }));

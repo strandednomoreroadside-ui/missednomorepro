@@ -8,7 +8,9 @@ import { getEntitlements } from "@/lib/billing/entitlements";
 import { getSubscription } from "@/lib/billing/subscription";
 import { env } from "@/lib/env";
 import { normalizeUsPhone } from "@/lib/phone";
+import { sendCustomerSms } from "@/lib/sms/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createOutboundCall } from "@/lib/twilio/calls";
 import {
   addToMessagingService,
   configureNumberWebhooks,
@@ -19,6 +21,10 @@ import {
   type AvailableNumber,
 } from "@/lib/twilio/numbers";
 import { placeDemoCall, type DemoError } from "@/lib/voice/demo";
+
+/** A card on file (any of these statuses) — the same anti-fraud gate the
+ *  demo call uses, reused for the manual "text/call from my number" tools. */
+const COMMS_CARDED_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 /** Only carded customers may provision (active or trialing — both have a
  *  card on file under our trial policy). past_due is excluded: fix billing
@@ -273,4 +279,180 @@ export async function startDemoCall(toPhone: string): Promise<DemoCallResult> {
     return { ok: false, error: DEMO_ERROR_COPY[result.error] };
   }
   return { ok: true, to: result.to };
+}
+
+// ── Outbound texting & calling from the business's own number ──────
+//
+// A general "compose a text" / "call this number" tool for the operator AND
+// any future tenant — separate from the AI's own send_sms tool and from the
+// two-way SMS Inbox (which only replies inside an existing conversation
+// thread). Both bill the platform's Twilio account, so both are gated the
+// same way self-serve provisioning and the demo call are: owner/admin only,
+// card on file, and a daily rate cap re-checked server-side on every call.
+
+const MANUAL_SMS_DAILY_CAP = 300;
+const OUTBOUND_CALL_DAILY_CAP = 100;
+const OUTBOUND_CALL_COOLDOWN_SECONDS = 15;
+const OUTBOUND_CALL_AUDIT_ACTION = "staff_call.placed";
+
+export type SendTextResult = { ok: boolean; error?: string };
+
+/** Send a one-off text to any number from the tenant's own business line. */
+export async function sendManualText(toPhone: string, body: string): Promise<SendTextResult> {
+  const { active } = await requireActiveOrg();
+  const tenantId = active.organization_id;
+  if (active.role !== "owner" && active.role !== "admin") {
+    return { ok: false, error: "Only an owner or admin can send a text." };
+  }
+  if (!isTwilioConfigured()) return { ok: false, error: "Phone service isn't fully set up yet." };
+
+  const to = normalizeUsPhone(toPhone);
+  if (!to) return { ok: false, error: "That doesn't look like a valid US phone number." };
+  const text = (body ?? "").trim();
+  if (!text) return { ok: false, error: "Write a message first." };
+  if (text.length > 1000) return { ok: false, error: "That message is too long." };
+
+  const admin = createAdminClient();
+
+  const sub = await getSubscription(tenantId);
+  if (!sub || !COMMS_CARDED_STATUSES.has(sub.status)) {
+    return { ok: false, error: "Start a plan or free trial first, then you can send texts." };
+  }
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("kind", "manual")
+    .eq("direction", "outbound")
+    .gte("created_at", since);
+  if ((count ?? 0) >= MANUAL_SMS_DAILY_CAP) {
+    return { ok: false, error: "You've hit today's texting limit — try again tomorrow." };
+  }
+
+  const { data: business } = await admin
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const { data: contact } = await admin
+    .from("contacts")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("phone", to)
+    .maybeSingle();
+
+  const result = await sendCustomerSms(admin, {
+    tenantId,
+    businessId: (business?.id as string | undefined) ?? null,
+    contactId: (contact?.id as string | undefined) ?? null,
+    toPhone: to,
+    body: text,
+    kind: "manual",
+    // Staff-composed, one-to-one, human-in-the-loop — treated like the other
+    // transactional kinds. The STOP list is still a hard block either way.
+    requireConsent: false,
+  });
+
+  if (result.blocked) {
+    return {
+      ok: false,
+      error:
+        result.reason === "suppressed" || result.reason === "suppressed_carrier"
+          ? "This number has opted out of texts (STOP) — we can't text them."
+          : "Couldn't send that text.",
+    };
+  }
+  if (!result.sent) return { ok: false, error: "Couldn't send that text. Please try again." };
+
+  revalidatePath("/dashboard/messages");
+  return { ok: true };
+}
+
+export type CallNumberResult = { ok: boolean; error?: string };
+
+/**
+ * Click-to-call: ring the staff member's own phone, then bridge them to the
+ * target number — presenting the tenant's business number as caller ID. Two
+ * legs so the browser never has to hold live audio.
+ */
+export async function startOutboundCall(
+  targetPhone: string,
+  ringPhone: string
+): Promise<CallNumberResult> {
+  const { user, active } = await requireActiveOrg();
+  const tenantId = active.organization_id;
+  if (active.role !== "owner" && active.role !== "admin") {
+    return { ok: false, error: "Only an owner or admin can place a call." };
+  }
+  if (!isTwilioConfigured() || !env.INTERNAL_API_SECRET) {
+    return { ok: false, error: "Phone service isn't fully set up yet." };
+  }
+
+  const target = normalizeUsPhone(targetPhone);
+  const ring = normalizeUsPhone(ringPhone);
+  if (!target) return { ok: false, error: "That doesn't look like a valid number to call." };
+  if (!ring) return { ok: false, error: "That doesn't look like a valid number to ring you at." };
+
+  const admin = createAdminClient();
+
+  const sub = await getSubscription(tenantId);
+  if (!sub || !COMMS_CARDED_STATUSES.has(sub.status)) {
+    return { ok: false, error: "Start a plan or free trial first, then you can place calls." };
+  }
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: recent } = await admin
+    .from("audit_logs")
+    .select("created_at")
+    .eq("tenant_id", tenantId)
+    .eq("action", OUTBOUND_CALL_AUDIT_ACTION)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false });
+  const recentCalls = (recent ?? []) as { created_at: string }[];
+  if (recentCalls.length >= OUTBOUND_CALL_DAILY_CAP) {
+    return { ok: false, error: "You've hit today's calling limit — try again tomorrow." };
+  }
+  if (
+    recentCalls.length > 0 &&
+    Date.now() - new Date(recentCalls[0].created_at).getTime() < OUTBOUND_CALL_COOLDOWN_SECONDS * 1000
+  ) {
+    return { ok: false, error: "Give it a few seconds and try again." };
+  }
+
+  const { data: numberRow } = await admin
+    .from("phone_numbers")
+    .select("phone_number")
+    .eq("tenant_id", tenantId)
+    .eq("voice_enabled", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const fromNumber =
+    (numberRow as { phone_number: string } | null)?.phone_number ?? env.TWILIO_PHONE_NUMBER ?? null;
+  if (!fromNumber) return { ok: false, error: "No phone number set up yet to call from." };
+
+  const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const twimlUrl =
+    `${appUrl}/api/twilio/voice/bridge` +
+    `?tid=${encodeURIComponent(tenantId)}&t=${encodeURIComponent(target)}&f=${encodeURIComponent(fromNumber)}` +
+    `&key=${encodeURIComponent(env.INTERNAL_API_SECRET)}`;
+
+  const placed = await createOutboundCall({ to: ring, from: fromNumber, twimlUrl, timeoutSeconds: 25 });
+  if (!placed.ok) return { ok: false, error: "Couldn't place the call. Please try again." };
+
+  await logAudit({
+    tenantId,
+    actorUserId: user?.id,
+    action: OUTBOUND_CALL_AUDIT_ACTION,
+    entityType: "call",
+    entityId: placed.sid,
+    metadata: { target, ring, from: fromNumber },
+  });
+
+  revalidatePath("/dashboard/calls");
+  return { ok: true };
 }

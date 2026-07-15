@@ -33,10 +33,14 @@ type CallRow = {
   disposition: string | null;
   duration_seconds: number | null;
   ended_at: string | null;
+  vehicle_year: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
 };
 
 const CALL_COLUMNS =
-  "id, tenant_id, contact_id, direction, disposition, duration_seconds, ended_at";
+  "id, tenant_id, contact_id, direction, disposition, duration_seconds, ended_at, " +
+  "vehicle_year, vehicle_make, vehicle_model";
 
 async function loadCall(
   admin: SupabaseClient,
@@ -151,11 +155,15 @@ async function backstopStaffAlert(
     if (lead?.service_needed) need = ` · ${lead.service_needed as string}`;
   }
 
+  const vehicleParts = [call.vehicle_year, call.vehicle_make, call.vehicle_model].filter(Boolean);
+  const vehiclePart = vehicleParts.length ? ` Vehicle: ${vehicleParts.join(" ")}.` : "";
+
   const prefix =
     disposition === "booked" ? "New booking" : disposition === "escalated" ? "URGENT" : "New lead";
   const summaryPart = summary ? ` ${summary.slice(0, 120)}` : "";
   const callbackPart = phone ? ` Call back: ${formatUsPhone(phone)}` : "";
-  const body = `${prefix} — ${businessName}. ${who}${need}.${summaryPart}${callbackPart}`.slice(0, 480);
+  const body =
+    `${prefix} — ${businessName}. ${who}${need}.${vehiclePart}${summaryPart}${callbackPart}`.slice(0, 480);
 
   for (const s of staff) {
     await sendStaffSms(admin, {
