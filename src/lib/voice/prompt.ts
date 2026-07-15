@@ -44,8 +44,10 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  v8 (July 2026): the immediate-dispatch wrap-up line ("help is on the
  *  way... thanks for calling") was still lingering on the line afterward —
  *  made the end_call directive immediately following it explicit and
- *  unconditional (no waiting for a reply, no silence, zero delay). */
-const TUNING_VERSION = 8;
+ *  unconditional (no waiting for a reply, no silence, zero delay).
+ *  v9 (July 2026): interruption_sensitivity 0.2 → 0.3 — quiet talkers
+ *  weren't registering as speaking (see retell.ts). */
+const TUNING_VERSION = 9;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
