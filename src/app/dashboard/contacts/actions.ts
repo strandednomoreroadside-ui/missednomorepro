@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireActiveOrg } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { createPaymentCheckout } from "@/lib/billing/payments";
+import { parseTags } from "@/lib/contacts";
 import { normalizeUsPhone } from "@/lib/phone";
 import { getOrigin } from "@/lib/request";
 import { sendCustomerSms } from "@/lib/sms/outbound";
@@ -14,18 +15,6 @@ import { emitWebhookEvent } from "@/lib/webhooks";
 
 const text = (formData: FormData, key: string) =>
   String(formData.get(key) ?? "").trim();
-
-/** Parses "vip, repeat customer" → ['vip', 'repeat customer'] (≤ 10). */
-function parseTags(raw: string): string[] {
-  return [
-    ...new Set(
-      raw
-        .split(",")
-        .map((t) => t.trim().toLowerCase())
-        .filter((t) => t.length > 0 && t.length <= 40)
-    ),
-  ].slice(0, 10);
-}
 
 function failTo(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);

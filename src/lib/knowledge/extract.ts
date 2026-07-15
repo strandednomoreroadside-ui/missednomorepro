@@ -1,5 +1,7 @@
 import "server-only";
 
+import ExcelJS from "exceljs";
+
 import { env } from "@/lib/env";
 
 /**
@@ -56,6 +58,7 @@ Return TWO things, only from what is EXPLICITLY written in the document:
 Rules:
 - NEVER invent or estimate a price. If a price is not clearly stated, do not include that service.
 - Use plain numbers for money (45, not "$45.00").
+- The document may be a sales/job/income log (many rows, one per past transaction) rather than a price list. In that case extract each DISTINCT service ONCE — use its typical or most common charged price — instead of one entry per transaction row.
 - Return at most 20 items TOTAL (FAQs + services combined). If the document has more, return only the 20 most important — prioritize priced services, then the most useful FAQs.
 - If the document has no FAQs, return an empty faqs array. If it has no priced services, return an empty services array.`;
 
@@ -107,16 +110,51 @@ const RESPONSE_SCHEMA = {
 const TEXT_MIME_PREFIXES = ["text/"];
 const TEXT_MIME_EXACT = ["application/csv", "application/json"];
 
+/** .xlsx — the only spreadsheet format ExcelJS (and we) support. Owners with
+ *  the legacy binary .xls should re-save as .xlsx or export CSV instead. */
+const SPREADSHEET_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
 function isTextMime(mime: string): boolean {
   return TEXT_MIME_PREFIXES.some((p) => mime.startsWith(p)) || TEXT_MIME_EXACT.includes(mime);
 }
 
+/** A cell can be a plain value, a rich-text run, or a formula result object. */
+function cellToText(v: unknown): string {
+  if (v == null) return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "object") {
+    const o = v as { richText?: { text: string }[]; text?: unknown; result?: unknown };
+    if (Array.isArray(o.richText)) return o.richText.map((r) => r.text).join("");
+    if (o.text != null) return String(o.text);
+    if (o.result != null) return String(o.result);
+    return "";
+  }
+  return String(v);
+}
+
+/** Flatten every sheet of a workbook into a plain-text, CSV-ish dump so the
+ *  same text-extraction prompt path used for CSV/text files can read it. */
+async function spreadsheetToText(buffer: Buffer): Promise<string> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+  const parts: string[] = [];
+  for (const sheet of workbook.worksheets) {
+    parts.push(`--- Sheet: ${sheet.name} ---`);
+    sheet.eachRow({ includeEmpty: false }, (row) => {
+      const values = Array.isArray(row.values) ? row.values.slice(1) : [];
+      parts.push(values.map(cellToText).join(","));
+    });
+  }
+  return parts.join("\n");
+}
+
 /** Build the user content part appropriate to the file type. */
-function buildUserContent(
+async function buildUserContent(
   buffer: Buffer,
   mimeType: string,
   fileName: string
-): unknown[] {
+): Promise<unknown[]> {
   const instruction = {
     type: "text",
     text: `Extract FAQs and priced services from this document ("${fileName}").`,
@@ -133,6 +171,11 @@ function buildUserContent(
       instruction,
       { type: "file", file: { filename: fileName, file_data: dataUrl } },
     ];
+  }
+
+  if (mimeType === SPREADSHEET_MIME) {
+    const text = (await spreadsheetToText(buffer)).slice(0, 100_000);
+    return [{ type: "text", text: `${instruction.text}\n\n---\n${text}` }];
   }
 
   if (isTextMime(mimeType)) {
@@ -155,6 +198,7 @@ export const ACCEPTED_MIME_TYPES = [
   "text/csv",
   "text/markdown",
   "application/csv",
+  SPREADSHEET_MIME,
 ];
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -180,7 +224,7 @@ export async function extractFromDocument(params: {
     throw new Error("OPENAI_API_KEY is not configured.");
   }
 
-  const userContent = buildUserContent(
+  const userContent = await buildUserContent(
     params.buffer,
     params.mimeType || "application/octet-stream",
     params.fileName
