@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 
-/** TODO(M1): point this at the real support inbox once the domain is purchased. */
+/** High-touch "founding customer" contact CTA — the deliberate manual-outreach
+ *  path kept alongside self-serve signup. Verify hello@ is a real, checked
+ *  inbox (see chat) before relying on it for leads. */
 export const EARLY_ACCESS_MAILTO =
   "mailto:hello@missednomorepro.com?subject=Early%20access%20request%20%E2%80%94%20Missed%20No%20More%20Pro";
 

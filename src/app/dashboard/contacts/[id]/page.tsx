@@ -344,7 +344,7 @@ export default async function ContactDetailPage({
             <CardHeader className="pb-3">
               <CardTitle className="font-display text-base">Leads</CardTitle>
               <CardDescription>
-                Work requests from this contact. At M7 the AI opens these from calls.
+                Work requests from this contact — the AI opens these automatically from calls.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -656,7 +656,7 @@ export default async function ContactDetailPage({
             <CardHeader className="pb-3">
               <CardTitle className="font-display text-base">Timeline</CardTitle>
               <CardDescription>
-                Notes now; calls, texts, and jobs join automatically as milestones land.
+                Every call, text, note, and job update lands here automatically.
               </CardDescription>
             </CardHeader>
             <CardContent>

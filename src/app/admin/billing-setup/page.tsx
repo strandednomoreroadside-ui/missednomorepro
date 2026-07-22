@@ -39,7 +39,7 @@ async function migrationCheck(): Promise<Check> {
     const { data, error } = await admin.from("plan_limits").select("plan");
     if (error) {
       return {
-        label: "Database migration (M3 billing tables)",
+        label: "Database migration (billing tables)",
         state: "todo",
         detail:
           "plan_limits not found — paste supabase/migrations/20260612090000_billing.sql into the Supabase SQL editor.",
@@ -48,18 +48,18 @@ async function migrationCheck(): Promise<Check> {
     const count = data?.length ?? 0;
     return count >= 6
       ? {
-          label: "Database migration (M3 billing tables)",
+          label: "Database migration (billing tables)",
           state: "ok",
           detail: `Applied — ${count} plan rows seeded.`,
         }
       : {
-          label: "Database migration (M3 billing tables)",
+          label: "Database migration (billing tables)",
           state: "todo",
           detail: `Tables exist but only ${count} plan rows — re-run the migration's seed section.`,
         };
   } catch (err) {
     return {
-      label: "Database migration (M3 billing tables)",
+      label: "Database migration (billing tables)",
       state: "error",
       detail: err instanceof Error ? err.message : "Database check failed.",
     };

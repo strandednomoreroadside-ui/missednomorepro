@@ -56,7 +56,7 @@ export const STEP_META: Record<StepId, StepMeta> = {
   },
   hours: {
     title: "Business hours",
-    blurb: "When you operate. Booking (at M9) only happens inside these windows.",
+    blurb: "When you operate. Booking only happens inside these windows.",
     required: true,
   },
   notifications: {

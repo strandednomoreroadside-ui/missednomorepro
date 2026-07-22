@@ -119,7 +119,7 @@ export default async function ContactsPage({
             <p className="py-8 text-center text-sm text-muted-foreground">
               {q || tag
                 ? "No contacts match — try a different search."
-                : "No contacts yet. Add your first one below — at M7 the AI starts creating them from calls automatically."}
+                : "No contacts yet. Add your first one below — the AI creates them automatically from calls too."}
             </p>
           ) : (
             <div className="overflow-x-auto">

@@ -119,7 +119,7 @@ export default async function AdminPage({
         <CardHeader>
           <CardTitle className="font-display text-lg">Organizations</CardTitle>
           <CardDescription>
-            Plans activate at M3; setup status arrives with the wizard at M4.
+            Plan, live status, and setup progress for every business on the platform.
           </CardDescription>
         </CardHeader>
         <CardContent>
