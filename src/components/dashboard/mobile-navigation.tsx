@@ -19,6 +19,7 @@ import {
   Menu,
   MessageSquare,
   Phone,
+  PhoneCall,
   Send,
   Settings,
   ShieldCheck,
@@ -49,26 +50,34 @@ const PRIMARY: { href: string; label: string; icon: LucideIcon; exact?: boolean 
   { href: "/dashboard/contacts", label: "Contacts", icon: Users },
 ];
 
-const MORE = [
-  { href: "/dashboard/setup", label: "Setup", icon: Wand2 },
+// The full nav drawer opened by the hamburger button — every dashboard page,
+// same order as the desktop sidebar, so mobile is never missing a page the
+// desktop sidebar can reach. Includes the 4 PRIMARY shortcuts too (a user
+// opening the menu shouldn't find some pages "only" on the bottom bar).
+const ALL_PAGES: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
+  { href: "/dashboard", label: "Home", icon: Home, exact: true },
+  { href: "/dashboard/setup", label: "Setup wizard", icon: Wand2 },
+  { href: "/dashboard/contacts", label: "Contacts", icon: Users },
   { href: "/dashboard/leads", label: "Pipeline", icon: KanbanSquare },
-  { href: "/dashboard/calls", label: "Calls", icon: Phone },
+  { href: "/dashboard/phone", label: "Business Line", icon: Phone },
+  { href: "/dashboard/calls", label: "Calls", icon: PhoneCall },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+  { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
   { href: "/dashboard/automations", label: "Follow-ups", icon: Send },
   { href: "/dashboard/jobs", label: "Jobs", icon: CalendarCheck },
   { href: "/dashboard/dispatch", label: "Dispatch", icon: CalendarRange },
   { href: "/dashboard/assistant", label: "Assistant", icon: Bot },
-  { href: "/dashboard/knowledge", label: "Knowledge", icon: BookOpen },
+  { href: "/dashboard/knowledge", label: "Knowledge Hub", icon: BookOpen },
   { href: "/dashboard/reputation", label: "Reputation", icon: Star },
   { href: "/dashboard/insights", label: "Insights", icon: LineChart },
-  { href: "/dashboard/membership", label: "Memberships", icon: BadgeCheck },
+  { href: "/dashboard/membership", label: "Membership", icon: BadgeCheck },
   { href: "/dashboard/team", label: "Team", icon: UserPlus },
   { href: "/dashboard/staff", label: "Staff", icon: Contact },
   { href: "/dashboard/numbers", label: "Numbers", icon: Hash },
   { href: "/dashboard/integrations", label: "Integrations", icon: Webhook },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
-] as const;
+];
 
 function matches(pathname: string, href: string, exact = false): boolean {
   return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -123,7 +132,7 @@ export function MobileNavigation({
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
             aria-controls="mobile-more-sheet"
-            aria-label="Open more navigation"
+            aria-label="Open full navigation menu"
             onClick={() => {
               dialogRef.current?.showModal();
               setMoreOpen(true);
@@ -134,7 +143,7 @@ export function MobileNavigation({
             )}
           >
             <Menu className="size-5" aria-hidden />
-            More
+            Menu
           </button>
         </div>
       </nav>
@@ -152,9 +161,9 @@ export function MobileNavigation({
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/70 bg-night/95 px-5 py-4 backdrop-blur-xl">
           <div>
             <h2 id="mobile-more-title" className="font-display text-lg font-semibold">
-              More
+              Menu
             </h2>
-            <p className="text-xs text-muted-foreground">Everything else, kept out of your way.</p>
+            <p className="text-xs text-muted-foreground">Every page, one tap away.</p>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Close menu">
             <X aria-hidden />
@@ -162,9 +171,9 @@ export function MobileNavigation({
         </div>
 
         <div className="space-y-5 px-4 py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          <div className="grid grid-cols-2 gap-2">
-            {MORE.map((item) => {
-              const active = matches(pathname, item.href);
+          <div className="space-y-1">
+            {ALL_PAGES.map((item) => {
+              const active = matches(pathname, item.href, item.exact);
               const Icon = item.icon;
               return (
                 <Link
@@ -173,10 +182,10 @@ export function MobileNavigation({
                   onClick={close}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-12 items-center gap-3 rounded-xl border px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan",
+                    "flex min-h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan",
                     active
-                      ? "border-cyan/40 bg-cyan/10 text-cyan"
-                      : "border-border/60 bg-card/40 text-foreground active:bg-accent/60"
+                      ? "bg-cyan/10 text-cyan"
+                      : "text-foreground active:bg-accent/60"
                   )}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden />
@@ -188,9 +197,9 @@ export function MobileNavigation({
               <Link
                 href="/admin"
                 onClick={close}
-                className="flex min-h-12 items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+                className="flex min-h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium text-foreground active:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan"
               >
-                <ShieldCheck className="size-4" aria-hidden />
+                <ShieldCheck className="size-4 shrink-0" aria-hidden />
                 Platform admin
               </Link>
             )}
