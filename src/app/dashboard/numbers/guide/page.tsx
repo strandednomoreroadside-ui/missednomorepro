@@ -102,8 +102,8 @@ export default function PhoneSetupGuidePage() {
 
           <div>
             <p className="font-medium text-foreground">2. Pick how much the AI should handle</p>
-            <div className="mt-2 overflow-hidden rounded-lg border border-border/50">
-              <table className="w-full text-left text-xs">
+            <div className="mt-2 overflow-x-auto rounded-lg border border-border/50">
+              <table className="w-full min-w-[420px] text-left text-xs">
                 <thead className="bg-night/40 text-steel">
                   <tr>
                     <th className="px-3 py-2 font-medium">Mode</th>
@@ -139,8 +139,8 @@ export default function PhoneSetupGuidePage() {
               codes needed. Or use these common dial codes (confirm with your
               carrier):
             </p>
-            <div className="mt-2 overflow-hidden rounded-lg border border-border/50">
-              <table className="w-full text-left text-xs">
+            <div className="mt-2 overflow-x-auto rounded-lg border border-border/50">
+              <table className="w-full min-w-[420px] text-left text-xs">
                 <thead className="bg-night/40 text-steel">
                   <tr>
                     <th className="px-3 py-2 font-medium">Mode</th>

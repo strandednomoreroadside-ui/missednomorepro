@@ -338,7 +338,7 @@ function Row({
         <select
           name="assigned_to"
           defaultValue={item.assignedTo ?? ""}
-          className="h-8 max-w-32 rounded-md border border-input bg-night/60 px-2 text-xs"
+          className="h-9 max-w-32 rounded-md border border-input bg-night/60 px-2 text-xs sm:h-8"
           aria-label="Assign to"
         >
           <option value="">Unassigned</option>
@@ -348,7 +348,7 @@ function Row({
             </option>
           ))}
         </select>
-        <Button type="submit" size="sm" variant="ghost" className="h-8 px-2 text-xs">
+        <Button type="submit" size="sm" variant="ghost" className="h-9 px-2 text-xs sm:h-8">
           Set
         </Button>
       </form>
@@ -360,7 +360,7 @@ function Row({
           <select
             name="status"
             defaultValue={item.status}
-            className="h-8 rounded-md border border-input bg-night/60 px-2 text-xs"
+            className="h-9 rounded-md border border-input bg-night/60 px-2 text-xs sm:h-8"
             aria-label="Job status"
           >
             {JOB_STATUSES.map((s) => (
@@ -369,7 +369,7 @@ function Row({
               </option>
             ))}
           </select>
-          <Button type="submit" size="sm" variant="ghost" className="h-8 px-2 text-xs">
+          <Button type="submit" size="sm" variant="ghost" className="h-9 px-2 text-xs sm:h-8">
             Update
           </Button>
         </form>

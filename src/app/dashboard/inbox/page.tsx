@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bot, Globe, Inbox as InboxIcon, Mail, MessageSquare, Phone, TriangleAlert, User } from "lucide-react";
+import {
+  ArrowLeft,
+  Bot,
+  Globe,
+  Inbox as InboxIcon,
+  Mail,
+  MessageSquare,
+  Phone,
+  TriangleAlert,
+  User,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +110,10 @@ export default async function InboxPage({
   const params = await searchParams;
   const selectedId = params.c ?? conversations[0]?.id ?? null;
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
+  // Only an explicit `?c=` (a tap on a thread) should switch the mobile single-pane
+  // view to the thread — the auto-selected "most recent" convo must not steal the
+  // list away on first load, or a mobile visitor would have no way to see the list.
+  const mobileThreadOpen = Boolean(params.c);
 
   // Load + mark-read the open thread (admin: reset the unread badge).
   let messages: { id: string; role: string; body: string; at: string }[] = [];
@@ -145,7 +159,7 @@ export default async function InboxPage({
       ) : (
         <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
           {/* Conversation list */}
-          <div className="space-y-1.5">
+          <div className={`space-y-1.5 ${mobileThreadOpen ? "hidden lg:block" : ""}`}>
             {conversations.map((c) => {
               const isSel = c.id === selectedId;
               return (
@@ -184,9 +198,20 @@ export default async function InboxPage({
 
           {/* Thread */}
           {selected ? (
-            <Card className="flex min-h-[60vh] flex-col bg-card/60">
+            <Card
+              className={`flex min-h-[60vh] flex-col bg-card/60 ${
+                mobileThreadOpen ? "" : "hidden lg:flex"
+              }`}
+            >
               <CardHeader className="flex-row items-center justify-between gap-3 border-b border-border/60">
                 <div className="min-w-0">
+                  <Link
+                    href="/dashboard/inbox"
+                    className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground lg:hidden"
+                  >
+                    <ArrowLeft className="size-3.5" aria-hidden />
+                    All conversations
+                  </Link>
                   <CardTitle className="flex items-center gap-2 font-display text-base">
                     <ChannelIcon channel={selected.channel} />
                     <span className="truncate">{who(selected)}</span>
@@ -272,7 +297,7 @@ export default async function InboxPage({
               </div>
             </Card>
           ) : (
-            <Card className="bg-card/60">
+            <Card className="hidden bg-card/60 lg:block">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
                 Select a conversation.
               </CardContent>
