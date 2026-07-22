@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, IBM_Plex_Mono, Instrument_Sans } from "next/font/g
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { env, reportEnvStatus } from "@/lib/env";
 
 import "./globals.css";
@@ -10,17 +11,20 @@ import "./globals.css";
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-bricolage",
+  display: "optional",
 });
 
 const sans = Instrument_Sans({
   subsets: ["latin"],
   variable: "--font-instrument",
+  display: "optional",
 });
 
 const mono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-plex-mono",
+  display: "optional",
 });
 
 reportEnvStatus();
@@ -38,6 +42,14 @@ export const metadata: Metadata = {
     template: "%s · Missed No More Pro",
   },
   description: SITE_DESCRIPTION,
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/app-icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icons/icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
   keywords: [
     "AI receptionist",
     "AI phone answering service",
@@ -84,6 +96,7 @@ export default function RootLayout({
         className={`${display.variable} ${sans.variable} ${mono.variable} min-h-dvh bg-background font-sans text-foreground`}
       >
         {children}
+        <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />
       </body>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Missed No More Pro">
+  <defs>
+    <linearGradient id="signal" x1="80" y1="72" x2="430" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#006BFF"/>
+      <stop offset="1" stop-color="#00E5FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#020817"/>
+  <rect x="42" y="42" width="428" height="428" rx="96" fill="url(#signal)"/>
+  <path fill="#fff" d="M180 130c14-8 31-3 39 11l31 55c7 13 4 29-8 38l-28 21c20 42 50 72 92 92l21-28c9-12 25-15 38-8l55 31c14 8 19 25 11 39l-20 35c-10 18-30 29-51 27-152-15-273-136-288-288-2-21 9-41 27-51l31-18z"/>
+  <circle cx="384" cy="384" r="72" fill="#020817" stroke="#00E5FF" stroke-width="12"/>
+  <path fill="none" stroke="#00E5FF" stroke-linecap="round" stroke-linejoin="round" stroke-width="22" d="m350 384 24 24 46-54"/>
+</svg>
+

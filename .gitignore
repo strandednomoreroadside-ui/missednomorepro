@@ -45,3 +45,4 @@ __pycache__/
 
 # Local scratch repo (not part of the app)
 claude-token-efficient/
+skills/
