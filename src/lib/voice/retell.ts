@@ -71,17 +71,27 @@ const END_CALL_TOOL = {
   description:
     "End the phone call. Call this the moment the conversation is finished — right after you've confirmed next steps and said a brief goodbye. Never stay on the line waiting in silence.",
 };
-/** Auto-hang-up after this much dead air (caller stopped responding). */
-const END_CALL_AFTER_SILENCE_MS = 15000;
+/** Auto-hang-up after this much dead air (caller stopped responding).
+ *  This is the failure-mode backstop for when the model says its wrap-up
+ *  line but doesn't reliably call end_call in the same turn (tool-call
+ *  reliability isn't 100% for any model) — the call must still end on its
+ *  own rather than sit open until the caller gives up and hangs up
+ *  manually. 10s (was 15s, v10) balances that against not cutting off a
+ *  caller who's mid-conversation and just pausing to think/look something
+ *  up. */
+const END_CALL_AFTER_SILENCE_MS = 10000;
 /** Retell's platform-level "remind the agent to speak" nudge defaults to
- *  firing once after 10s of silence following agent speech — BEFORE our
- *  15s auto-hang-up gets a chance to end the call. That produced the
- *  "double goodbye": the agent says its one closing line and calls
- *  end_call, but if the line hangs up for even a few seconds longer than
- *  10s, Retell prompts the model to speak again and it generates a second
- *  sign-off. Multiple rounds of prompt-only fixes (v6-v9) couldn't touch
- *  this because it's a platform setting, not a prompt instruction — so we
- *  disable the reminder outright. */
+ *  firing once after 10s of silence following agent speech. That was the
+ *  mechanical cause of the "double goodbye" bug: the agent says its one
+ *  closing line and calls end_call, but if the line hangs up for even a
+ *  few seconds longer than 10s, Retell prompts the model to speak again and
+ *  it generates a second sign-off instead of silently retrying end_call.
+ *  Multiple rounds of prompt-only fixes (v6-v9) couldn't touch this because
+ *  it's a platform setting, not a prompt instruction — v10 disabled the
+ *  reminder outright, which fixed most of it. Left disabled here rather
+ *  than re-enabled with a shorter window: reintroducing it risks bringing
+ *  the double-goodbye back at the same rate it was firing before v10, and
+ *  END_CALL_AFTER_SILENCE_MS above is the safer backstop for a stuck call. */
 const REMINDER_MAX_COUNT = 0;
 
 /** Give a real person time to actually pick up before the warm transfer is

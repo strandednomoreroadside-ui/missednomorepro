@@ -7,6 +7,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isVoiceToolName } from "@/lib/voice/tools/registry";
 import { TOOLS, type ToolContext, type ToolResult } from "@/lib/voice/tools/handlers";
 
+// Retell waits up to 20s (timeout_ms in retell.ts) for a tool response. This
+// route had no override, so it inherited Vercel's default function timeout —
+// shorter than that in most deployments. check_calendar_availability does
+// TWO sequential external Google API calls (token refresh + freeBusy) plus
+// several DB queries, so it's the tool most likely to run long; if Vercel
+// killed the function first, Retell got a dropped connection instead of a
+// clean response — the caller heard "let me check" and then dead air/a
+// hang-up, with nothing for the model to recover with. Set higher than
+// Retell's own timeout so OUR function is never the premature killer.
+export const maxDuration = 30;
+
 /**
  * AI tool router (master plan §10, BUILD_GUIDE M7 step 4). The voice
  * provider's LLM calls this during a live call to run a §10 tool.

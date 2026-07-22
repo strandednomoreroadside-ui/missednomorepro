@@ -53,8 +53,23 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  silence" nudge can't fire a second goodbye after the agent's one closing
  *  line; opt_out_human_detection set on the warm transfer after a live call
  *  showed a transfer declared failed without the destination phone actually
- *  ringing (see retell.ts). */
-const TUNING_VERSION = 10;
+ *  ringing (see retell.ts).
+ *  v11 (July 2026): three more live-call regressions. (1) Double goodbye
+ *  was still happening occasionally even with the v10 reminder fix —
+ *  end_call_after_silence_ms cut from 15s to 10s as a faster backstop for
+ *  when the model doesn't call end_call reliably, and the wrap-up
+ *  instruction now says explicitly that end_call belongs in the SAME turn
+ *  as the closing line, not a later step. (2) A caller asking to schedule
+ *  "tomorrow morning" got "let me check" then a dead call — the tool
+ *  router (/api/voice/tools/route.ts) had no maxDuration override, so
+ *  Vercel's default function timeout could kill it mid-request on the
+ *  slowest tool (check_calendar_availability, two sequential Google API
+ *  calls) before Retell's own 20s tool timeout — dropping the connection
+ *  instead of returning an error the model could recover from. Set
+ *  maxDuration=30 so our function is never the premature killer. (3) same
+ *  root cause as (1) explains "I had to hang up manually" — the 10s
+ *  backstop now catches that case faster. */
+const TUNING_VERSION = 11;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -253,7 +268,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
       ? '(the price you quoted, then "the team will be in touch at <number>")'
       : '("The team will call you right back at <number>.")';
   const wrapUp =
-    `There is EXACTLY ONE wrap-up moment per call. The instant the caller's need is fully handled (dispatched, booked, quoted-and-logged, or handed to the team), say ONE natural closing line — confirm what happens next ${wrapUpNext}, use their name if you have it, and say goodbye, all together like a real person would (e.g. "You're all set, Sarah — we'll see you Thursday at 2! Take care.") — then END THE CALL right away by calling end_call, with no pause and no filler in between. This ONE line is also your reply to whatever tool just finished (notify_staff, book_appointment, etc.) — do NOT speak a separate "okay, got it" acknowledgement first and THEN a goodbye; merge them into the single closing line above. Do NOT add a second, separate sign-off after that (no extra "thank you for calling us," no repeated "take care," no re-confirming what you already confirmed — one warm goodbye is enough, a second one sounds robotic and cold and wastes the caller's time). Do NOT stay on the line, re-ask if there's anything else more than once, or wait in silence after the caller's need is handled — every extra second is wasted call time.`;
+    `There is EXACTLY ONE wrap-up moment per call. The instant the caller's need is fully handled (dispatched, booked, quoted-and-logged, or handed to the team), say ONE natural closing line — confirm what happens next ${wrapUpNext}, use their name if you have it, and say goodbye, all together like a real person would (e.g. "You're all set, Sarah — we'll see you Thursday at 2! Take care.") — then END THE CALL right away by calling end_call, with no pause and no filler in between. Calling end_call is not optional and is not a separate step you do later — it belongs in the SAME turn as the closing line, every single time, with zero exceptions. This ONE line is also your reply to whatever tool just finished (notify_staff, book_appointment, etc.) — do NOT speak a separate "okay, got it" acknowledgement first and THEN a goodbye; merge them into the single closing line above. Do NOT add a second, separate sign-off after that (no extra "thank you for calling us," no repeated "take care," no re-confirming what you already confirmed — one warm goodbye is enough, a second one sounds robotic and cold and wastes the caller's time). Do NOT stay on the line, re-ask if there's anything else more than once, or wait in silence after the caller's need is handled — every extra second is wasted call time.`;
 
   const systemPrompt = `# Who you are
 You are the virtual receptionist for ${name}${industry}. You answer the phone. Be warm, natural, and concise — like a sharp, friendly front-desk person. Keep replies short and ask ONE question at a time. Be efficient: gather the details you need quickly, don't pad the call with small talk, and move toward wrapping up. The moment the caller's need is handled, end the call — every extra second costs the business money.
