@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LineChart,
   MessageSquare,
+  Phone,
   PhoneCall,
   Send,
   Settings,
@@ -26,6 +27,7 @@ import {
 
 import { PaymentFailedBanner } from "@/components/billing/payment-failed-banner";
 import { Logo } from "@/components/brand/logo";
+import { MobileNavigation } from "@/components/dashboard/mobile-navigation";
 import { LegalFooter } from "@/components/legal-footer";
 import { Button } from "@/components/ui/button";
 import { isPlatformAdmin, requireActiveOrg } from "@/lib/auth";
@@ -76,6 +78,13 @@ export default async function DashboardLayout({
           >
             <KanbanSquare className="size-4" aria-hidden />
             Pipeline
+          </Link>
+          <Link
+            href="/dashboard/phone"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+          >
+            <Phone className="size-4" aria-hidden />
+            Business Line
           </Link>
           <Link
             href="/dashboard/calls"
@@ -206,8 +215,8 @@ export default async function DashboardLayout({
       </aside>
 
       {/* ── Main column ── */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between gap-4 border-b border-border/60 bg-night/75 px-5 backdrop-blur-md">
+      <div className="flex min-w-0 flex-1 flex-col pb-[calc(5.25rem+env(safe-area-inset-bottom))] md:pb-0">
+        <header className="flex h-16 items-center justify-between gap-3 border-b border-border/60 bg-night/75 px-4 backdrop-blur-md sm:px-5">
           <div className="flex items-center gap-3">
             <span className="font-display text-base font-semibold md:hidden">
               {active.organizations.name}
@@ -216,7 +225,7 @@ export default async function DashboardLayout({
               {active.organizations.name}
             </span>
             {memberships.length > 1 && (
-              <form action={switchOrganization} className="flex items-center gap-2">
+              <form action={switchOrganization} className="hidden items-center gap-2 md:flex">
                 <select
                   name="organizationId"
                   defaultValue={active.organization_id}
@@ -246,7 +255,7 @@ export default async function DashboardLayout({
               </Link>
             )}
             <span className="hidden text-xs text-steel sm:block">{user.email}</span>
-            <form action={signOut}>
+            <form action={signOut} className="hidden md:block">
               <Button type="submit" variant="ghost" size="sm">
                 Sign out
               </Button>
@@ -254,9 +263,14 @@ export default async function DashboardLayout({
           </div>
         </header>
         <PaymentFailedBanner tenantId={active.organization_id} />
-        <main className="flex-1 p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         <LegalFooter />
       </div>
+      <MobileNavigation
+        memberships={memberships}
+        activeOrganizationId={active.organization_id}
+        isPlatformAdmin={admin}
+      />
     </div>
   );
 }

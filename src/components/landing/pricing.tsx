@@ -42,14 +42,14 @@ const PLANS: Plan[] = [
   {
     name: "Elite",
     monthly: 599,
-    blurb: "Multi-location operations at scale",
+    blurb: "Higher-volume teams ready for advanced automation",
     minutes: "1,500 AI minutes",
-    extras: ["Multiple locations & numbers", "Membership management", "API access", "25 users"],
+    extras: ["Additional business numbers", "Membership management", "API access", "25 users"],
   },
   {
     name: "Enterprise",
     monthly: null,
-    blurb: "Large & multi-location organizations",
+    blurb: "Organizations needing custom volume and support",
     minutes: "Custom minutes",
     extras: ["Dedicated onboarding", "Custom integrations", "Priority support"],
   },
@@ -65,6 +65,26 @@ export function Pricing() {
         title="Plans that pay for themselves"
         sub="Start with a 7-day free trial. One recovered job usually covers the month — switch to annual and save 20%."
       />
+
+      <div className="mx-auto mt-8 flex max-w-2xl flex-col items-center gap-4 rounded-2xl border border-cyan/30 bg-cyan/5 px-6 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
+        <div>
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan">
+            First five businesses
+          </p>
+          <p className="mt-1 font-display text-xl font-semibold text-foreground">
+            Founding access is $50/month
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Personal setup included. Keep the founding price while continuously subscribed.
+          </p>
+        </div>
+        <a
+          href={EARLY_ACCESS_MAILTO}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
+        >
+          Claim a spot
+        </a>
+      </div>
 
       {/* Billing toggle */}
       <div className="mt-8 flex items-center justify-center gap-3">

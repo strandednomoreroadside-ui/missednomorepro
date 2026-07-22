@@ -15,20 +15,20 @@ export function LegalFooter({ className }: { className?: string }) {
         <span>
           © 2026 Missed No More Pro ·{" "}
           <a
-            className="transition-colors hover:text-foreground"
+            className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"
             href={`mailto:${SUPPORT_EMAIL}`}
           >
             {SUPPORT_EMAIL}
           </a>
         </span>
-        <span className="flex gap-4">
-          <Link className="transition-colors hover:text-foreground" href="/privacy">
+        <span className="flex gap-2 sm:gap-4">
+          <Link className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-foreground" href="/privacy">
             Privacy
           </Link>
-          <Link className="transition-colors hover:text-foreground" href="/terms">
+          <Link className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-foreground" href="/terms">
             Terms
           </Link>
-          <Link className="transition-colors hover:text-foreground" href="/sms-terms">
+          <Link className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-foreground" href="/sms-terms">
             SMS Terms
           </Link>
         </span>

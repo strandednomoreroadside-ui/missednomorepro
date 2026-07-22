@@ -36,7 +36,6 @@ const GATED_FEATURES: { flag: string; label: string; unlockedBy: string }[] = [
   { flag: "analytics", label: "Analytics dashboard", unlockedBy: "Growth" },
   { flag: "followup_campaigns", label: "AI follow-ups", unlockedBy: "Growth" },
   { flag: "dispatch_board", label: "Dispatch board", unlockedBy: "Professional" },
-  { flag: "multi_location", label: "Multi-location", unlockedBy: "Elite" },
   { flag: "api_access", label: "API access", unlockedBy: "Elite" },
 ];
 

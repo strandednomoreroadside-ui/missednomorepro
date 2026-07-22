@@ -16,7 +16,7 @@ export function Logo({ className }: { className?: string }) {
           <Check className="size-2.5 text-cyan" strokeWidth={3.5} aria-hidden />
         </span>
       </span>
-      <span className="font-display text-lg font-bold leading-none tracking-tight">
+      <span className="text-lg font-bold leading-none tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif]">
         Missed No More <span className="text-cyan">Pro</span>
       </span>
     </span>

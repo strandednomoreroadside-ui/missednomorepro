@@ -77,11 +77,11 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
     name: "Elite",
     monthly: 599,
     annualMonthly: 479.2,
-    blurb: "Multi-location operations at scale",
+    blurb: "Higher-volume teams ready for advanced automation",
     minutes: "1,500 AI minutes",
     highlights: [
       "Everything in Professional",
-      "Multiple locations & phone numbers",
+      "Additional business phone numbers",
       "Membership management",
       "API access + advanced automations",
       "25 users",
@@ -91,7 +91,7 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
     name: "Enterprise",
     monthly: 0,
     annualMonthly: 0,
-    blurb: "Large & multi-location organizations",
+    blurb: "Organizations needing custom volume and support",
     minutes: "Custom minutes",
     highlights: [
       "Custom minutes & pricing",

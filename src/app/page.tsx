@@ -149,7 +149,7 @@ function SiteHeader() {
           <ButtonLink href="/login" variant="outline" className="hidden sm:inline-flex">
             Sign in
           </ButtonLink>
-          <ButtonLink href="/signup">Start free trial</ButtonLink>
+          <ButtonLink href={EARLY_ACCESS_MAILTO}>Founding access</ButtonLink>
         </div>
       </div>
     </header>
@@ -162,10 +162,7 @@ function Hero() {
       <div className="grid-lines pointer-events-none absolute inset-0" aria-hidden />
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28 lg:pt-24">
         <div>
-          <p
-            className="animate-fade-up flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.22em] text-steel"
-            style={{ animationDelay: "0ms" }}
-          >
+          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.22em] text-steel [font-family:ui-sans-serif,system-ui,sans-serif]">
             <span className="font-semibold text-cyan">AI Receptionist</span>
             <span className="text-border" aria-hidden>
               /
@@ -176,10 +173,7 @@ function Hero() {
             </span>
             <span>AI Business Assistant</span>
           </p>
-          <h1
-            className="animate-fade-up mt-6 font-display text-5xl font-bold leading-[1.04] tracking-tight sm:text-6xl"
-            style={{ animationDelay: "120ms" }}
-          >
+          <h1 className="mt-6 text-5xl font-bold leading-[1.04] tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif] sm:text-6xl">
             Never miss
             <br />
             another call.
@@ -189,34 +183,22 @@ function Hero() {
               Every lead captured.
             </span>
           </h1>
-          <p
-            className="animate-fade-up mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
-            style={{ animationDelay: "240ms" }}
-          >
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground [font-family:ui-sans-serif,system-ui,sans-serif]">
             Missed No More Pro answers your phones 24/7, qualifies the caller, quotes the exact
             price, books the job, and follows up by text — then shows you the revenue it saved.
           </p>
-          <div
-            className="animate-fade-up mt-8 flex flex-wrap items-center gap-4"
-            style={{ animationDelay: "360ms" }}
-          >
-            <ButtonLink href="/signup" large>
-              Start free trial <ArrowRight className="size-4" aria-hidden />
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <ButtonLink href={EARLY_ACCESS_MAILTO} large>
+              Claim founding access <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
             <ButtonLink href="#product" variant="outline" large>
               See it in action
             </ButtonLink>
           </div>
-          <p
-            className="animate-fade-up mt-5 font-mono text-xs uppercase tracking-wider text-steel"
-            style={{ animationDelay: "440ms" }}
-          >
+          <p className="mt-5 font-mono text-xs uppercase tracking-wider text-steel">
             A2P 10DLC-compliant · STOP/HELP built in · for 1–15 person teams
           </p>
-          <div
-            className="animate-fade-up mt-8 flex flex-wrap gap-2"
-            style={{ animationDelay: "520ms" }}
-          >
+          <div className="mt-8 flex flex-wrap gap-2">
             {NICHES.slice(0, 8).map((niche) => (
               <span
                 key={niche}
@@ -235,10 +217,7 @@ function Hero() {
 
 function LiveCallCard() {
   return (
-    <div
-      className="animate-fade-up border-glow rounded-2xl p-6 shadow-[0_24px_80px_-24px_rgba(0,107,255,0.35)]"
-      style={{ animationDelay: "200ms" }}
-    >
+    <div className="border-glow rounded-2xl p-6 shadow-[0_24px_80px_-24px_rgba(0,107,255,0.35)]">
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-2.5">
           <span className="relative flex size-2.5">
@@ -777,8 +756,8 @@ function FinalCta() {
           — and never wonder what that voicemail cost you.
         </p>
         <div className="mt-8 flex justify-center">
-          <ButtonLink href="/signup" large>
-            Start free trial <ArrowRight className="size-4" aria-hidden />
+          <ButtonLink href={EARLY_ACCESS_MAILTO} large>
+            Claim founding access <ArrowRight className="size-4" aria-hidden />
           </ButtonLink>
         </div>
       </div>
