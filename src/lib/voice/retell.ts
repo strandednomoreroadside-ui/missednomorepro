@@ -66,13 +66,21 @@ const SIP_HOST = "sip.retellai.com";
 // end_call. reminder_max_count:0 keeps the double goodbye from coming back.
 const SPEAK_AFTER_EXECUTION = true;
 //
-// No tool speaks a "one moment…" filler DURING execution. The filler used
-// to run on notify_staff/escalate_to_human, but it competes with (and can
-// pre-empt) the single wrap-up line, and the prompt explicitly tells the
-// agent NOT to say "let me get that set up" before dispatch. A ~1s pause
-// while an SMS sends is fine and cleaner than a filler that risks sounding
-// like a premature sign-off.
-const SPEAK_DURING_EXECUTION = false;
+// EVERY tool also speaks a brief "one moment…" filler DURING execution
+// (v13). Retell's own guidance: turn this on for any function taking over
+// ~1s — and every one of our tools does network I/O; the calendar check
+// and quote tools make 1-2 external Google API calls each and can run
+// 5-20s on a cold serverless boot. v12 briefly turned fillers off
+// globally, which created a lethal race: agent says "let me check", the
+// tool runs silently, and END_CALL_AFTER_SILENCE_MS (the dead-air
+// backstop) fires MID-LOOKUP — Retell hangs up on the caller while the
+// availability check is still in flight (operator-reported: "she said
+// she'd check availability and then hung up"). The filler keeps the line
+// audibly alive during execution so the silence backstop only ever
+// measures true dead air. Fillers contain no goodbye, so this cannot
+// reintroduce the double-goodbye (that was the reminder mechanism, still
+// disabled).
+const SPEAK_DURING_EXECUTION = true;
 
 /** Retell built-in end-call tool so the agent can hang up when finished —
  *  otherwise it lingers on the line and burns minutes. */
@@ -87,10 +95,14 @@ const END_CALL_TOOL = {
  *  line but doesn't reliably call end_call in the same turn (tool-call
  *  reliability isn't 100% for any model) — the call must still end on its
  *  own rather than sit open until the caller gives up and hangs up
- *  manually. 10s (was 15s, v10) balances that against not cutting off a
- *  caller who's mid-conversation and just pausing to think/look something
- *  up. */
-const END_CALL_AFTER_SILENCE_MS = 10000;
+ *  manually. 15s: v11 briefly cut this to 10s, which (combined with v12
+ *  turning off during-execution fillers) let it fire MID-TOOL-CALL on a
+ *  slow calendar check and hang up on the caller. With fillers back on
+ *  (SPEAK_DURING_EXECUTION above) this timer only measures true dead air,
+ *  and 15s won't cut off a caller pausing to find their address. The
+ *  primary clean-hangup path is the model calling end_call in its wrap-up
+ *  turn (speak_after_execution guarantees it gets that turn). */
+const END_CALL_AFTER_SILENCE_MS = 15000;
 /** Retell's platform-level "remind the agent to speak" nudge defaults to
  *  firing once after 10s of silence following agent speech. That was the
  *  mechanical cause of the "double goodbye" bug: the agent says its one

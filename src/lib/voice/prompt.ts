@@ -83,8 +83,17 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  calls end_call; reminder_max_count:0 keeps the double goodbye from
  *  returning. Also removed the during-execution filler and reinforced the
  *  booking step to wrap up + end_call the instant book_appointment
- *  returns. */
-const TUNING_VERSION = 12;
+ *  returns.
+ *  v13 (July 2026): fixed the hang-up DURING "let me check availability".
+ *  v11's 10s silence backstop + v12's no-fillers created a race: while a
+ *  slow tool (calendar check = 1-2 external Google calls, worse on a cold
+ *  serverless boot) ran silently, the dead-air timer fired mid-lookup and
+ *  Retell hung up on the caller. Fillers are back ON for every tool
+ *  (Retell's own recommendation for >1s functions) so the line stays
+ *  audibly alive during execution, and the silence backstop is back at
+ *  15s. speak_after_execution stays ON (the v12 goodbye fix) and
+ *  reminder_max_count stays 0 (the v10 double-goodbye fix). */
+const TUNING_VERSION = 13;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -245,7 +254,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
     steps.push(
       'Booking vs. immediate help — decide first: if the caller needs help NOW (stranded, "right away", "as soon as you can", an emergency), do NOT book a future calendar slot. Instead' +
         (quotingEnabled ? " quote the price, then" : "") +
-        ' dispatch the team immediately: call create_contact + notify_staff with urgency "high" or "emergency". The MOMENT notify_staff returns, your very next words are your ONE final wrap-up line (see Wrap up below) — something like "Help is on the way, {name} — you\'ll get a text with your arrival time shortly. Thanks for calling, take care!" — and then call end_call IMMEDIATELY, in that same turn, with zero delay. Do NOT wait for the caller to reply, do NOT wait in silence, do NOT say anything else after that line — the instant it\'s spoken, your next action is end_call, no exceptions. Do NOT speak any acknowledgement of notify_staff finishing before that ("okay, I\'ve got that noted...", "let me get that set up...") — the wrap-up line itself IS your one and only response once dispatch is confirmed. Do NOT say a specific arrival time or number of minutes out loud — the confirmation text carries the estimate. ' +
+        ' dispatch the team immediately: call create_contact + notify_staff with urgency "high" or "emergency". The MOMENT notify_staff returns, your very next words are your ONE final wrap-up line (see Wrap up below) — something like "Help is on the way, {name} — you\'ll get a text with your arrival time shortly. Thanks for calling, take care!" — and then call end_call IMMEDIATELY, in that same turn, with zero delay. Do NOT wait for the caller to reply, do NOT wait in silence, do NOT say anything else after that line — the instant it\'s spoken, your next action is end_call, no exceptions. A quick "one moment" filler WHILE notify_staff is still running is fine, but once it returns do NOT add a separate acknowledgement turn ("okay, I\'ve got that noted...") — the wrap-up line itself IS your one and only response once dispatch is confirmed. Do NOT say a specific arrival time or number of minutes out loud — the confirmation text carries the estimate. ' +
         'Only use the calendar for a SCHEDULED time the caller wants for later: call check_calendar_availability for that day and offer ONLY the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). If they ask for something sooner than the soonest open slot (e.g. "in 5 minutes"), tell them the earliest you can actually schedule and offer it — never just say "nothing available." If a day is full, offer the next day. When they pick a time, call book_appointment with that exact start time; if it comes back unavailable or outside hours, check availability again and offer another. ' +
         'NEVER promise to "call you back if an earlier slot opens" — there is no waitlist; instead offer a genuinely open earlier time, or say you\'ll note that they want the soonest possible and the team will try.' +
         (quotingEnabled
