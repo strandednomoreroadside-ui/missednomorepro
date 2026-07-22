@@ -46,8 +46,15 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  made the end_call directive immediately following it explicit and
  *  unconditional (no waiting for a reply, no silence, zero delay).
  *  v9 (July 2026): interruption_sensitivity 0.2 → 0.3 — quiet talkers
- *  weren't registering as speaking (see retell.ts). */
-const TUNING_VERSION = 9;
+ *  weren't registering as speaking (see retell.ts).
+ *  v10 (July 2026): two live-call regressions fixed at the platform-config
+ *  level (prompt wording alone couldn't reach either) — reminder_max_count
+ *  set to 0 so Retell's default "remind the agent to speak after 10s of
+ *  silence" nudge can't fire a second goodbye after the agent's one closing
+ *  line; opt_out_human_detection set on the warm transfer after a live call
+ *  showed a transfer declared failed without the destination phone actually
+ *  ringing (see retell.ts). */
+const TUNING_VERSION = 10;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 

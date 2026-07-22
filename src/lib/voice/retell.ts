@@ -73,6 +73,16 @@ const END_CALL_TOOL = {
 };
 /** Auto-hang-up after this much dead air (caller stopped responding). */
 const END_CALL_AFTER_SILENCE_MS = 15000;
+/** Retell's platform-level "remind the agent to speak" nudge defaults to
+ *  firing once after 10s of silence following agent speech — BEFORE our
+ *  15s auto-hang-up gets a chance to end the call. That produced the
+ *  "double goodbye": the agent says its one closing line and calls
+ *  end_call, but if the line hangs up for even a few seconds longer than
+ *  10s, Retell prompts the model to speak again and it generates a second
+ *  sign-off. Multiple rounds of prompt-only fixes (v6-v9) couldn't touch
+ *  this because it's a platform setting, not a prompt instruction — so we
+ *  disable the reminder outright. */
+const REMINDER_MAX_COUNT = 0;
 
 /** Give a real person time to actually pick up before the warm transfer is
  *  declared failed. A solo roadside owner is often driving and needs several
@@ -131,6 +141,14 @@ function transferTool(number: string): Record<string, unknown> {
       // Wait long enough for a human to answer before declaring failure.
       agent_detection_timeout_ms: TRANSFER_DETECTION_TIMEOUT_MS,
       transfer_ring_duration_ms: TRANSFER_RING_DURATION_MS,
+      // Skip Retell's answering-machine detection entirely. A live call
+      // confirmed the transfer was declared a failure while the line was
+      // never actually seen ringing on the receiving end — the most likely
+      // explanation is AMD misclassifying the pickup (or ring/SIP signaling)
+      // and aborting the leg early. A single-owner business would rather
+      // get bridged into their own voicemail on a bad guess than have a
+      // real caller silently bounced to a text-only fallback.
+      opt_out_human_detection: true,
       private_handoff_option: {
         type: "prompt",
         prompt:
@@ -223,6 +241,7 @@ export class RetellVoiceProvider implements VoiceProvider {
         webhook_url: webhookUrl(),
         max_call_duration_ms: config.maxCallSeconds * 1000,
         end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
+        reminder_max_count: REMINDER_MAX_COUNT,
         boosted_keywords: config.boostedKeywords.length ? config.boostedKeywords : null,
         stt_mode: STT_MODE,
         denoising_mode: DENOISING_MODE,
