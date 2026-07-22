@@ -505,43 +505,25 @@ function Pillars() {
 
 function AddOns() {
   // Mirrors the real catalog in src/lib/billing/addons.ts.
-  const addons = [
-    {
-      icon: Repeat2,
-      name: "AI Outbound Assistant",
-      price: "+$49/mo",
-      blurb: "Proactive texts that bring work back in — quote follow-ups, win-backs, reminders.",
-    },
+  const included = [
     {
       icon: MessageSquareText,
       name: "Omnichannel AI Chat",
-      price: "+$29/mo",
       blurb: "One AI brain across website chat, two-way SMS, and a unified inbox.",
-      badge: "New",
     },
     {
       icon: Bot,
       name: "AI Business Assistant",
-      price: "+$39/mo",
       blurb: "Natural-language answers about your CRM — “who needs follow-up?”",
-    },
-    {
-      icon: Sparkles,
-      name: "AI Growth Suite",
-      price: "+$100/mo",
-      blurb: "All three growth add-ons bundled — save $17/mo.",
-      badge: "Bundle",
     },
     {
       icon: Star,
       name: "AI Reputation Manager",
-      price: "+$29/mo",
       blurb: "More 5-star reviews, fewer public 1-stars, AI-drafted responses.",
     },
     {
       icon: TrendingUp,
       name: "AI Call Intelligence",
-      price: "+$19/mo",
       blurb: "A weekly read on what your calls are telling you, with recommendations.",
     },
   ];
@@ -549,32 +531,47 @@ function AddOns() {
     <section id="add-ons" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
       <Reveal>
         <SectionHeading
-          eyebrow="Add-ons"
-          title="Bolt on more growth, only when you need it"
-          sub="Optional modules that layer on any plan. Turn them on or off anytime."
+          eyebrow="What's included"
+          title="Almost everything is already included"
+          sub="Most competitors charge extra for this. We build it into every plan — one paid add-on left, for the one thing that costs us real money to run."
         />
       </Reveal>
-      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {addons.map((addon, i) => (
-          <Reveal key={addon.name} delay={(i % 3) * 80}>
-            <div className="flex h-full flex-col rounded-xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40">
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {included.map((addon, i) => (
+          <Reveal key={addon.name} delay={(i % 4) * 80}>
+            <div className="flex h-full flex-col rounded-xl border border-success/30 bg-success/5 p-6">
               <div className="flex items-center justify-between">
-                <span className="inline-flex size-10 items-center justify-center rounded-lg border border-cyan/25 bg-cyan/10">
-                  <addon.icon className="size-5 text-cyan" aria-hidden />
+                <span className="inline-flex size-10 items-center justify-center rounded-lg border border-success/30 bg-success/10">
+                  <addon.icon className="size-5 text-success" aria-hidden />
                 </span>
-                {addon.badge && (
-                  <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
-                    {addon.badge}
-                  </span>
-                )}
+                <span className="rounded-full border border-success/40 bg-success/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-success">
+                  Free
+                </span>
               </div>
               <h3 className="mt-4 font-display text-base font-semibold">{addon.name}</h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{addon.blurb}</p>
-              <p className="mt-4 font-mono text-sm font-semibold text-cyan">{addon.price}</p>
             </div>
           </Reveal>
         ))}
       </div>
+
+      <Reveal delay={320}>
+        <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-card/60 p-6 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4">
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-cyan/25 bg-cyan/10">
+              <Repeat2 className="size-5 text-cyan" aria-hidden />
+            </span>
+            <div>
+              <h3 className="font-display text-base font-semibold">AI Outbound Assistant</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                Proactive texts that bring work back in — quote follow-ups, win-backs,
+                reminders. The one optional add-on.
+              </p>
+            </div>
+          </div>
+          <p className="shrink-0 font-mono text-sm font-semibold text-cyan">+$49/mo</p>
+        </div>
+      </Reveal>
     </section>
   );
 }

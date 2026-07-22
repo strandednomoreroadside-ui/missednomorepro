@@ -2,14 +2,16 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { getEntitlementsWith } from "@/lib/billing/entitlements";
 import { env } from "@/lib/env";
 
 /**
- * AI Call Intelligence (+$19 add-on, `call_intelligence`). A weekly read on
- * what the week's calls are telling the business — computed from existing
- * call/lead/job/tool data (no new infra) plus one cheap LLM digest for the
- * plain-English recommendations. Stored in insight_reports; surfaced in-app
- * on /dashboard/insights. Margin: one gpt-4.1-mini call per tenant per week.
+ * AI Call Intelligence (`call_intelligence`, included free on every plan as
+ * of July 2026). A weekly read on what the week's calls are telling the
+ * business — computed from existing call/lead/job/tool data (no new infra)
+ * plus one cheap LLM digest for the plain-English recommendations. Stored in
+ * insight_reports; surfaced in-app on /dashboard/insights. Margin: one
+ * gpt-4.1-mini call per tenant per week.
  */
 
 const MODEL = "gpt-4.1-mini";
@@ -146,17 +148,17 @@ export async function generateCallIntelligence(
   });
 }
 
-/** Cron entry: generate weekly reports for every tenant with the add-on. */
+/** Cron entry: generate weekly reports for every tenant entitled to
+ *  call_intelligence — included free on every real plan now, so in practice
+ *  this is every active/trialing/past_due tenant. */
 export async function generateWeeklyInsights(admin: SupabaseClient): Promise<number> {
-  const { data } = await admin
-    .from("tenant_addons")
-    .select("tenant_id")
-    .eq("addon_key", "call_intelligence")
-    .eq("status", "active");
+  const { data } = await admin.from("subscriptions").select("tenant_id");
   const tenantIds = [...new Set(((data ?? []) as { tenant_id: string }[]).map((r) => r.tenant_id))];
   let made = 0;
   for (const tid of tenantIds) {
     try {
+      const ent = await getEntitlementsWith(admin, tid);
+      if (!ent.has("call_intelligence")) continue;
       await generateCallIntelligence(admin, tid);
       made++;
     } catch (err) {

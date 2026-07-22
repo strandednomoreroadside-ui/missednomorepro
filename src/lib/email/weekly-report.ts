@@ -5,6 +5,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { logAudit } from "@/lib/audit";
+import { getEntitlementsWith } from "@/lib/billing/entitlements";
 import { env } from "@/lib/env";
 import { computeMetrics, type CallIntelMetrics } from "@/lib/insights/call-intelligence";
 
@@ -14,14 +15,14 @@ import { emailLayout, isEmailConfigured, sendEmail } from "./resend";
 /**
  * Weekly value email (Later backlog — retention). Every Monday the daily
  * cron calls sendWeeklyReports: each active/trialing tenant gets a plain
- * recap of what their AI did this week, and Call Intelligence add-on
- * holders also get the AI-written digest (reusing the report the same cron
- * already generated — no extra LLM cost). Skips quiet weeks (zero activity)
- * so we never nag with an all-zeros email.
+ * recap of what their AI did this week, plus the AI-written Call
+ * Intelligence digest (included free on every plan — reusing the report the
+ * same cron already generated, no extra LLM cost). Skips quiet weeks (zero
+ * activity) so we never nag with an all-zeros email.
  *
- * Margin: one email per active tenant per week + (add-on only) the LLM call
- * that already happens. Idempotent via an audit-log marker so a re-run or
- * retry on the same Monday can't double-send.
+ * Margin: one email per active tenant per week + the LLM call that already
+ * happens. Idempotent via an audit-log marker so a re-run or retry on the
+ * same Monday can't double-send.
  */
 
 /** Subscriptions that mean a live customer worth a weekly recap. */
@@ -149,14 +150,15 @@ export async function sendWeeklyReports(admin: SupabaseClient): Promise<number> 
   const tenantIds = [...new Set(((subs ?? []) as { tenant_id: string }[]).map((s) => s.tenant_id))];
   if (tenantIds.length === 0) return 0;
 
-  // Which of these have the Call Intelligence add-on (for the digest section)?
-  const { data: addonRows } = await admin
-    .from("tenant_addons")
-    .select("tenant_id")
-    .eq("addon_key", "call_intelligence")
-    .eq("status", "active")
-    .in("tenant_id", tenantIds);
-  const withDigest = new Set(((addonRows ?? []) as { tenant_id: string }[]).map((r) => r.tenant_id));
+  // Which of these are entitled to the Call Intelligence digest section?
+  // (Included free on every real plan now — this excludes only the rare
+  // stale/unrecognized-plan edge case that effectivePlan() falls back to
+  // 'none' for.)
+  const withDigest = new Set<string>();
+  for (const tid of tenantIds) {
+    const ent = await getEntitlementsWith(admin, tid);
+    if (ent.has("call_intelligence")) withDigest.add(tid);
+  }
 
   const sinceIso = new Date(Date.now() - 7 * 86_400_000).toISOString();
   const dedupeIso = new Date(Date.now() - DEDUPE_DAYS * 86_400_000).toISOString();

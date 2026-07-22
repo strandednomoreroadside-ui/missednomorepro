@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Check } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -365,15 +365,48 @@ export default async function BillingPage({
         you hit the cap, calls forward to your phone so nothing is missed.
       </p>
 
-      {/* ── Add-ons ── */}
+      {/* ── Included free (used to be paid add-ons) ── */}
+      <h2 className="mt-10 font-display text-lg font-semibold">Included on every plan</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        No extra charge, no toggle needed — every plan already includes these.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {ADDON_ORDER.filter((key) => ADDON_META[key].retired && key !== "growth_suite_bundle").map(
+          (key) => {
+            const meta = ADDON_META[key];
+            return (
+              <div
+                key={key}
+                className="flex items-start gap-2.5 rounded-xl border border-success/30 bg-success/5 p-4"
+              >
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                <div>
+                  <p className="text-sm font-medium text-foreground">{meta.name}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    {meta.blurb.replace(/\s*—\s*now included free on every plan\.?$/, "")}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+        )}
+      </div>
+
+      {/* ── Add-ons still sold (+ any retired one this tenant hasn't removed yet) ── */}
       <h2 className="mt-10 font-display text-lg font-semibold">Add-ons</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Bolt on extra automation. Billed monthly on top of your plan, prorated
-        from the day you add them.
+        Optional extra automation, billed monthly on top of your plan, prorated
+        from the day you add it.
         {plan === "none" && " Choose a plan first to enable add-ons."}
       </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ADDON_ORDER.map((key) => {
+        {ADDON_ORDER.filter((key) => {
+          const isPurchased = purchased.has(key);
+          const includedViaBundle = !isPurchased && effectiveAddons.has(key);
+          // Retired add-ons only show up here if this tenant still has the
+          // old Stripe subscription item — otherwise they're not offered.
+          return !ADDON_META[key].retired || isPurchased || includedViaBundle;
+        }).map((key) => {
           const meta = ADDON_META[key];
           const isPurchased = purchased.has(key);
           const includedViaBundle = !isPurchased && effectiveAddons.has(key);
@@ -391,6 +424,12 @@ export default async function BillingPage({
                 <span className="font-mono text-sm text-cyan">+${meta.monthly}/mo</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{meta.blurb}</p>
+              {meta.retired && isPurchased && key !== "growth_suite_bundle" && (
+                <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-2 text-[11px] leading-relaxed text-amber-500">
+                  This is now included free in every plan — you can remove this paid add-on
+                  below and keep the feature.
+                </p>
+              )}
               <ul className="mt-3 flex-1 space-y-1.5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
                 {meta.highlights.map((h) => (
                   <li key={h} className="flex items-center gap-1.5">
@@ -416,14 +455,14 @@ export default async function BillingPage({
                       Remove
                     </Button>
                   </form>
-                ) : (
+                ) : !meta.retired ? (
                   <form action={addAddon}>
                     <input type="hidden" name="addon_key" value={key} />
                     <Button type="submit" size="sm" className="w-full">
                       Add — ${meta.monthly}/mo
                     </Button>
                   </form>
-                )}
+                ) : null}
               </div>
             </div>
           );
