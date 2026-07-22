@@ -35,12 +35,12 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  v6 (July 2026): pronunciation entry for "Sunoco" (common gas-station
  *  landmark callers use to describe their location) after a live call
  *  mangled it.
- *  v7 (July 2026): fixed the "multiple goodbyes" regression — terminal
- *  action tools (notify_staff, book_appointment, cancel/reschedule,
- *  escalate_to_human, create_follow_up_task) no longer force a spoken
- *  "acknowledged" turn before the wrap-up (see NO_AUTO_SPEECH_TOOLS in
- *  retell.ts); the single wrap-up line is now explicitly the agent's one
- *  and only reply to that tool finishing.
+ *  v7 (July 2026): attempted a "multiple goodbyes" fix by turning off
+ *  after-tool speech for the terminal action tools (notify_staff,
+ *  book_appointment, cancel/reschedule, escalate_to_human,
+ *  create_follow_up_task). This was the WRONG root cause (v10 found the
+ *  real one) and was reverted in v12 — see the v12 note below and the
+ *  speak-after policy comment in retell.ts.
  *  v8 (July 2026): the immediate-dispatch wrap-up line ("help is on the
  *  way... thanks for calling") was still lingering on the line afterward —
  *  made the end_call directive immediately following it explicit and
@@ -68,8 +68,23 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  instead of returning an error the model could recover from. Set
  *  maxDuration=30 so our function is never the premature killer. (3) same
  *  root cause as (1) explains "I had to hang up manually" — the 10s
- *  backstop now catches that case faster. */
-const TUNING_VERSION = 11;
+ *  backstop now catches that case faster.
+ *  v12 (July 2026): THE goodbye fix. After v11, a booking succeeded but the
+ *  agent went completely silent afterward — no goodbye at all. Root cause:
+ *  the six terminal wrap-up tools (book_appointment, notify_staff,
+ *  escalate_to_human, cancel/reschedule, create_follow_up_task) had
+ *  speak_after_execution turned OFF (a v7 attempt at the double-goodbye,
+ *  which v10 later fixed at its real source — Retell's reminder). With
+ *  speech off, Retell never re-invoked the model after the tool, so the
+ *  agent only said a goodbye if it happened to speak in the same turn as
+ *  the tool call — inconsistently, and in this case not at all. Turned
+ *  speak_after_execution back ON for every tool (see retell.ts), so the
+ *  model reliably gets the turn where it delivers its ONE wrap-up line and
+ *  calls end_call; reminder_max_count:0 keeps the double goodbye from
+ *  returning. Also removed the during-execution filler and reinforced the
+ *  booking step to wrap up + end_call the instant book_appointment
+ *  returns. */
+const TUNING_VERSION = 12;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -234,8 +249,8 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
         'Only use the calendar for a SCHEDULED time the caller wants for later: call check_calendar_availability for that day and offer ONLY the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). If they ask for something sooner than the soonest open slot (e.g. "in 5 minutes"), tell them the earliest you can actually schedule and offer it — never just say "nothing available." If a day is full, offer the next day. When they pick a time, call book_appointment with that exact start time; if it comes back unavailable or outside hours, check availability again and offer another. ' +
         'NEVER promise to "call you back if an earlier slot opens" — there is no waitlist; instead offer a genuinely open earlier time, or say you\'ll note that they want the soonest possible and the team will try.' +
         (quotingEnabled
-          ? " Before you confirm a booking, make sure you've quoted the price (calculate_quote with the service + location). Always confirm BOTH the time AND the exact price."
-          : " Always confirm the booked time back to them.")
+          ? " Before you confirm a booking, make sure you've quoted the price (calculate_quote with the service + location). Always confirm BOTH the time AND the exact price. The moment book_appointment comes back booked, that confirmation IS your ONE wrap-up line — speak it (time + price + a warm goodbye) and call end_call in that SAME turn. Never go silent or wait for the caller after a successful booking."
+          : " Always confirm the booked time back to them. The moment book_appointment comes back booked, that confirmation IS your ONE wrap-up line — speak it (the booked time + a warm goodbye) and call end_call in that SAME turn. Never go silent or wait for the caller after a successful booking.")
     );
     steps.push(
       'Cancel / reschedule: if a caller wants to change or cancel an existing appointment, confirm which one (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first call check_calendar_availability for the new day and offer only open times. If the tool reports it can\'t find their appointment, take their details and call notify_staff. A confirmation text is sent automatically (if they\'re opted in).'

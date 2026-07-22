@@ -43,25 +43,36 @@ const MODEL_HIGH_PRIORITY = true;
  *  (docs.retellai.com/deploy/custom-telephony). Twilio must connect within
  *  5 minutes of register or Retell ends it with registered_call_timeout. */
 const SIP_HOST = "sip.retellai.com";
-/** Tools that do slow work (place outbound calls) — let the agent speak a
- *  filler line so the caller isn't met with silence. */
-const SLOW_TOOLS = new Set(["notify_staff", "escalate_to_human"]);
-
-/** Terminal action tools — the caller's need is fully handled once these
- *  return, and the prompt's Wrap up section is the agent's ONE scripted
- *  reply to them finishing. Without this, Retell's default
- *  speak_after_execution forced a SECOND mandatory spoken turn right before
- *  the wrap-up ("okay, I've got that noted..." + the actual goodbye) — the
- *  "multiple goodbyes" bug. Turning it off here lets the model go straight
- *  to the single wrap-up line the prompt already instructs it to say. */
-const NO_AUTO_SPEECH_TOOLS = new Set([
-  "notify_staff",
-  "escalate_to_human",
-  "book_appointment",
-  "cancel_appointment",
-  "reschedule_appointment",
-  "create_follow_up_task",
-]);
+// ── Speech-after-tool policy (v12 — the definitive fix for the goodbye
+//    quirks) ─────────────────────────────────────────────────────────
+//
+// HISTORY: v7 turned speak_after_execution OFF for the six "terminal"
+// wrap-up tools (book_appointment, notify_staff, escalate_to_human,
+// cancel/reschedule, create_follow_up_task) to kill a "double goodbye" —
+// on the theory that Retell's after-tool speech was forcing an extra
+// "okay, I've got that noted" line before the real goodbye. v10 found the
+// ACTUAL cause of the double goodbye was Retell's reminder mechanism
+// (reminder_max_count now 0), NOT after-tool speech. That left the v7
+// switch doing real harm: with speech OFF, after a tool like
+// book_appointment returns, Retell never invokes the model again, so the
+// agent only says a goodbye IF it happened to generate speech in the very
+// same turn as the tool call — which models do inconsistently. Result
+// (operator-reported): booking succeeds, then dead silence, no goodbye,
+// and no turn in which the model could call end_call either (so the caller
+// has to hang up manually).
+//
+// FIX: EVERY tool speaks after it runs. The terminal tools now reliably
+// get the turn in which the model delivers its ONE wrap-up line and calls
+// end_call. reminder_max_count:0 keeps the double goodbye from coming back.
+const SPEAK_AFTER_EXECUTION = true;
+//
+// No tool speaks a "one moment…" filler DURING execution. The filler used
+// to run on notify_staff/escalate_to_human, but it competes with (and can
+// pre-empt) the single wrap-up line, and the prompt explicitly tells the
+// agent NOT to say "let me get that set up" before dispatch. A ~1s pause
+// while an SMS sends is fine and cleaner than a filler that risks sounding
+// like a premature sign-off.
+const SPEAK_DURING_EXECUTION = false;
 
 /** Retell built-in end-call tool so the agent can hang up when finished —
  *  otherwise it lingers on the line and burns minutes. */
@@ -206,8 +217,8 @@ function mapTools(tools: VoiceToolDef[]): unknown[] {
     description: t.description,
     parameters: t.parameters,
     query_params: { tool: t.name, key: secret },
-    speak_after_execution: !NO_AUTO_SPEECH_TOOLS.has(t.name),
-    speak_during_execution: SLOW_TOOLS.has(t.name),
+    speak_after_execution: SPEAK_AFTER_EXECUTION,
+    speak_during_execution: SPEAK_DURING_EXECUTION,
     timeout_ms: 20000,
   }));
 }
