@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { isTrustedTwilioRecordingUrl } from "@/lib/security/provider-url";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -31,8 +32,11 @@ export async function GET(
 
   // Twilio recordings need our account auth; provider (Retell) recordings
   // are signed URLs fetched as-is.
-  const isTwilio =
-    call.provider === "twilio" || call.recording_url.includes("twilio.com");
+  const isTwilio = isTrustedTwilioRecordingUrl(call.recording_url);
+  if (call.provider === "twilio" && !isTwilio) {
+    console.error("[recordings] blocked an untrusted Twilio recording host");
+    return new Response("Recording unavailable", { status: 502 });
+  }
   const headers: Record<string, string> = {};
   if (isTwilio) {
     if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {

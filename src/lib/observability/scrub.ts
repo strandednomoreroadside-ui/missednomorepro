@@ -18,8 +18,27 @@ const NUMBER_RE = /\b\d[\d ().+-]{8,}\d\b/g;
 const SENSITIVE_KEY_RE =
   /cookie|authorization|x-twilio|x-retell|password|secret|token|api[_-]?key|raw_text|redacted_text|transcript|message_body/i;
 
+function redactUrlQuery(s: string): string {
+  if (!s.includes("?") && !s.startsWith("/")) return s;
+  try {
+    const absolute = /^[a-z][a-z\d+.-]*:\/\//i.test(s);
+    const url = new URL(s, "https://redaction.invalid");
+    let changed = false;
+    for (const key of [...url.searchParams.keys()]) {
+      url.searchParams.set(key, "[redacted]");
+      changed = true;
+    }
+    if (!changed) return s;
+    return absolute ? url.toString() : `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return s;
+  }
+}
+
 function redactString(s: string): string {
-  return s.replace(EMAIL_RE, "[email]").replace(NUMBER_RE, "[number]");
+  return redactUrlQuery(s)
+    .replace(EMAIL_RE, "[email]")
+    .replace(NUMBER_RE, "[number]");
 }
 
 function scrub(value: unknown, depth: number): unknown {

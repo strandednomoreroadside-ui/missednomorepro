@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     .eq("email_inbound_token", token)
     .maybeSingle();
   if (!settings) {
-    console.warn(`[email] inbound to unknown token ${token}`);
+    console.warn("[email] inbound to an unknown routing token");
     return ok({ skipped: "unknown_token" });
   }
   const tenantId = settings.tenant_id as string;
