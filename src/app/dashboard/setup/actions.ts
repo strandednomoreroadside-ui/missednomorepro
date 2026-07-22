@@ -123,42 +123,7 @@ export async function finishServices() {
   await advance(business.id, "services");
 }
 
-// ── Step 4: pricing rules ────────────────────────────────────────
-
-export async function savePricingRule(formData: FormData) {
-  const { business, supabase } = await requireBusiness();
-
-  const serviceId = text(formData, "service_id");
-  const ruleType = text(formData, "rule_type");
-  if (ruleType !== "flat" && ruleType !== "base_fee") {
-    fail("pricing", "Pick a price type.");
-  }
-  const amount = Number.parseFloat(text(formData, "amount"));
-  if (!Number.isFinite(amount) || amount < 0 || amount > 100000) {
-    fail("pricing", "Enter a dollar amount, like 75 or 129.50.");
-  }
-  // Checkbox: present when checked. Default (unchecked) stays TRUE —
-  // a human approves every quote unless the owner opts out (§5.1).
-  const requiresApproval = formData.get("auto_quote") !== "on";
-
-  // One rule per service in the MVP: replace any existing rule.
-  const { error: delErr } = await supabase
-    .from("pricing_rules")
-    .delete()
-    .eq("service_id", serviceId);
-  if (delErr) fail("pricing", delErr.message);
-
-  const { error } = await supabase.from("pricing_rules").insert({
-    tenant_id: business.tenant_id,
-    service_id: serviceId,
-    rule_type: ruleType,
-    config_json: { amount: Math.round(amount * 100) / 100 },
-    requires_human_approval: requiresApproval,
-  });
-  if (error) fail("pricing", error.message);
-
-  done("pricing");
-}
+// ── Step 4: pricing & quoting (informational — see /dashboard/pricing) ──
 
 export async function finishPricing() {
   const { business } = await requireBusiness();
@@ -449,7 +414,7 @@ export async function finishFaqs() {
 export async function approveSection(formData: FormData) {
   const { business, supabase } = await requireBusiness();
   const section = text(formData, "section");
-  if (!["pricing", "hours", "area"].includes(section)) {
+  if (!["hours", "area"].includes(section)) {
     fail("launch", "Unknown approval section.");
   }
   const { error } = await supabase.rpc("approve_setup_section", {

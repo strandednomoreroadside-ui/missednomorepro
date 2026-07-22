@@ -21,14 +21,6 @@ import { approveSection, launchBusiness } from "../actions";
 
 const APPROVAL_SECTIONS = [
   {
-    key: "pricing" as const,
-    section: "pricing",
-    step: "pricing" as StepId,
-    title: "Pricing rules",
-    detail: "I reviewed every price and the AI may rely on this list.",
-    stamp: (d: SetupData) => d.state.pricing_approved_at,
-  },
-  {
     key: "hours" as const,
     section: "hours",
     step: "hours" as StepId,
@@ -78,8 +70,8 @@ export function LaunchStep({
               {data.state.launched_at
                 ? new Date(data.state.launched_at).toLocaleDateString()
                 : "—"}
-              . Your AI receptionist starts answering at milestone M7 — everything it
-              needs is configured here.
+              . Your AI receptionist is answering calls using what&rsquo;s configured
+              here — come back anytime to update it.
             </p>
           </div>
         </CardContent>

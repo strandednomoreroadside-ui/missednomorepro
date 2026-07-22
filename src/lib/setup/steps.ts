@@ -43,10 +43,10 @@ export const STEP_META: Record<StepId, StepMeta> = {
     required: true,
   },
   pricing: {
-    title: "Pricing rules",
+    title: "Pricing & quoting",
     blurb:
-      "Simple flat or starting prices. The AI never invents a number — anything not listed here gets “the owner will text you an exact quote.”",
-    required: true,
+      "How your AI talks about price. The AI never invents a number — real prices and live quoting are set up on the Prices & Services page.",
+    required: false,
   },
   "service-area": {
     title: "Service area",

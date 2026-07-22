@@ -23,15 +23,6 @@ export type Service = {
   active: boolean;
 };
 
-export type PricingRule = {
-  id: string;
-  service_id: string;
-  rule_type: "flat" | "base_fee";
-  config_json: { amount?: number; note?: string };
-  requires_human_approval: boolean;
-  active: boolean;
-};
-
 export type ServiceArea = {
   id: string;
   type: "zip" | "city";
@@ -75,6 +66,7 @@ export type PricingSettings = {
   base_lat: number | null;
   base_lng: number | null;
   max_service_miles: number | null;
+  approved_at: string | null;
 };
 
 export type SetupState = {
@@ -95,7 +87,6 @@ export type SetupData = {
    *  not the wizard `services` table — shown read-only so the owner sees the
    *  full list the AI actually speaks. Managed on /dashboard/pricing. */
   pricedServiceNames: string[];
-  pricingRules: PricingRule[];
   areas: ServiceArea[];
   hours: BusinessHour[];
   staff: StaffContact[];
@@ -140,7 +131,7 @@ export async function getSetupData(
   const business = await getOrCreateBusiness(tenantId, orgName);
   const supabase = await createClient();
 
-  const [state, services, priced, pricingRules, areas, hours, staff, sms, faqs, pricingSettings] =
+  const [state, services, priced, areas, hours, staff, sms, faqs, pricingSettings] =
     await Promise.all([
       supabase
         .from("setup_states")
@@ -157,11 +148,6 @@ export async function getSetupData(
         .select("name")
         .eq("business_id", business.id)
         .eq("active", true)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("pricing_rules")
-        .select("id, service_id, rule_type, config_json, requires_human_approval, active")
-        .eq("tenant_id", tenantId)
         .order("created_at", { ascending: true }),
       supabase
         .from("service_areas")
@@ -190,13 +176,13 @@ export async function getSetupData(
         .order("created_at", { ascending: true }),
       supabase
         .from("pricing_settings")
-        .select("base_address, base_lat, base_lng, max_service_miles")
+        .select("base_address, base_lat, base_lng, max_service_miles, approved_at")
         .eq("business_id", business.id)
         .maybeSingle(),
     ]);
 
   const firstError =
-    state.error ?? services.error ?? priced.error ?? pricingRules.error ?? areas.error ??
+    state.error ?? services.error ?? priced.error ?? areas.error ??
     hours.error ?? staff.error ?? sms.error ?? faqs.error ?? pricingSettings.error;
   if (firstError) throw new Error(`Failed to load setup data: ${firstError.message}`);
 
@@ -216,7 +202,6 @@ export async function getSetupData(
     state: state.data as SetupState,
     services: serviceData,
     pricedServiceNames,
-    pricingRules: (pricingRules.data ?? []) as PricingRule[],
     areas: (areas.data ?? []) as ServiceArea[],
     hours: (hours.data ?? []) as BusinessHour[],
     staff: (staff.data ?? []) as StaffContact[],
@@ -232,16 +217,13 @@ export async function getSetupData(
  */
 export function stepCompletion(data: SetupData): Record<StepId, boolean> {
   const activeServices = data.services.filter((s) => s.active);
-  const ruledServiceIds = new Set(
-    data.pricingRules.filter((r) => r.active).map((r) => r.service_id)
-  );
   return {
     profile: Boolean(data.business.name && data.business.phone && data.business.timezone),
     industry: Boolean(data.business.industry),
     services: activeServices.length > 0,
-    pricing:
-      activeServices.length > 0 &&
-      activeServices.every((s) => ruledServiceIds.has(s.id)),
+    // Informational step — real pricing/quoting setup + approval lives on
+    // /dashboard/pricing, independent of the wizard and launch.
+    pricing: true,
     // Plug-and-play: a geocoded home base + radius is the real coverage
     // mechanism (powers radius check_service_area + the spoken answer). We
     // also keep the DB launch gate's requirement of ≥1 active area row —
@@ -258,14 +240,12 @@ export function stepCompletion(data: SetupData): Record<StepId, boolean> {
 }
 
 export type Approvals = {
-  pricing: boolean;
   hours: boolean;
   area: boolean;
 };
 
 export function approvals(state: SetupState): Approvals {
   return {
-    pricing: state.pricing_approved_at !== null,
     hours: state.hours_approved_at !== null,
     area: state.area_approved_at !== null,
   };
@@ -279,12 +259,10 @@ export function readyToLaunch(data: SetupData): boolean {
     steps.profile &&
     steps.industry &&
     steps.services &&
-    steps.pricing &&
     steps["service-area"] &&
     steps.hours &&
     steps.notifications &&
     steps.sms &&
-    ok.pricing &&
     ok.hours &&
     ok.area
   );

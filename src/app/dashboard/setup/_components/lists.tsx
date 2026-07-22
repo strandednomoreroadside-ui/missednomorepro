@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Check, FileUp, MapPin, Trash2 } from "lucide-react";
+import { Check, DollarSign, FileUp, MapPin, Trash2 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { SetupData } from "@/lib/setup/queries";
 
@@ -23,7 +22,6 @@ import {
   removeService,
   removeServiceArea,
   removeStaffContact,
-  savePricingRule,
   saveHomeBase,
 } from "../actions";
 
@@ -192,89 +190,51 @@ export function ServicesStep({ data }: { data: SetupData }) {
   );
 }
 
-// ── Pricing rules ────────────────────────────────────────────────
+// ── Pricing & quoting (informational — real setup is on /dashboard/pricing) ─
 
 export function PricingStep({ data }: { data: SetupData }) {
-  const activeServices = data.services.filter((s) => s.active);
-  const ruleFor = (serviceId: string) =>
-    data.pricingRules.find((r) => r.service_id === serviceId && r.active);
+  const approved = Boolean(data.pricingSettings?.approved_at);
+  const activePricedCount = data.pricedServiceNames.length;
 
   return (
     <div>
       <p className="rounded-lg border border-cyan/20 bg-cyan/5 px-3.5 py-3 text-xs leading-relaxed text-steel">
         Safety rule: the AI <span className="font-semibold text-foreground">never invents a price</span>.
-        Until quoting unlocks at a later milestone, callers asking about price hear
-        &ldquo;the owner will text you an exact quote&rdquo; — these numbers prepare for that day.
+        Every number it ever says is computed from rates you set and approve — never guessed.
       </p>
 
-      {activeServices.length === 0 ? (
-        <Card className="mt-4 bg-card/60">
-          <CardContent className="pt-6 text-sm text-muted-foreground">
-            Add at least one service first — pricing rules attach to services.
-          </CardContent>
-        </Card>
-      ) : (
-        activeServices.map((s) => {
-          const rule = ruleFor(s.id);
-          const amount = rule?.config_json?.amount;
-          return (
-            <Card key={s.id} className="mt-4 bg-card/60">
-              <CardHeader className="pb-3">
-                <CardTitle className="font-display text-base">
-                  {s.name}
-                  {rule && (
-                    <span className="ml-2 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 font-sans text-xs font-normal text-success">
-                      {rule.rule_type === "flat" ? "Flat" : "Starts at"} ${amount}
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form action={savePricingRule} className="flex flex-wrap items-end gap-4">
-                  <input type="hidden" name="service_id" value={s.id} />
-                  <div className="space-y-2">
-                    <Label htmlFor={`type-${s.id}`}>Price type</Label>
-                    <Select
-                      id={`type-${s.id}`}
-                      name="rule_type"
-                      defaultValue={rule?.rule_type ?? "flat"}
-                      className="w-40"
-                    >
-                      <option value="flat">Flat price</option>
-                      <option value="base_fee">Starting at (base fee)</option>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`amount-${s.id}`}>Amount ($)</Label>
-                    <Input
-                      id={`amount-${s.id}`}
-                      name="amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue={amount ?? ""}
-                      className="w-32"
-                      required
-                    />
-                  </div>
-                  <label className="flex items-center gap-2 pb-2.5 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      name="auto_quote"
-                      defaultChecked={rule ? !rule.requires_human_approval : false}
-                      className="accent-cyan"
-                    />
-                    Let the AI share this price without my approval (later milestone)
-                  </label>
-                  <Button type="submit" variant="outline">
-                    Save price
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          );
-        })
-      )}
+      <Card className="mt-4 bg-card/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <DollarSign className="size-4 text-cyan" aria-hidden />
+            Prices &amp; Services
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {approved ? (
+            <div className="flex items-start gap-2.5 rounded-lg border border-success/30 bg-success/5 px-3.5 py-2.5">
+              <Check className="mt-0.5 size-4 shrink-0 text-success" strokeWidth={3} aria-hidden />
+              <p className="text-xs text-foreground">
+                Live quoting is on — your AI reads back exact, computed prices on calls and
+                texts. Add, change, or approve rates anytime on Prices &amp; Services.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Not set up yet. Until you approve pricing there, callers who ask about cost hear
+              &ldquo;the owner will text you an exact quote&rdquo; — a safe default, not a
+              broken one. Head to Prices &amp; Services whenever you&rsquo;re ready to turn on
+              live quoting{activePricedCount > 0 ? ` (${activePricedCount} service${activePricedCount === 1 ? "" : "s"} already priced there)` : ""}.
+            </p>
+          )}
+          <Link
+            href="/dashboard/pricing"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "mt-4" })}
+          >
+            {approved ? "Manage prices" : "Set up Prices & Services"}
+          </Link>
+        </CardContent>
+      </Card>
 
       <ContinueBar action={finishPricing} />
     </div>
@@ -496,8 +456,7 @@ export function NotificationsStep({ data }: { data: SetupData }) {
             </Button>
           </form>
           <p className="mt-3 text-xs text-steel">
-            New-lead alerts go to these numbers. Until texting unlocks at a later
-            milestone, alerts may arrive by other means — the list is ready either way.
+            New-lead alerts text these numbers the moment a call comes in.
           </p>
         </CardContent>
       </Card>
