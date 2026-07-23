@@ -1,6 +1,6 @@
 # Product Marketing Context
 
-*Last updated: 2026-07-21*
+*Last updated: 2026-07-22*
 
 ## Product Overview
 
@@ -12,7 +12,7 @@
 
 **Product type:** Multi-tenant B2B SaaS with usage-sensitive voice and messaging costs.
 
-**Business model:** The approved launch offer is $50/month for each of the first five paying customers; after five customers, the entry price becomes approximately $100/month. The full product catalog supports higher tiers and add-ons, but the first-five offer should be sold manually until billing and public copy use the same terms.
+**Business model:** Standard self-serve plan pricing (Starter $99 → Elite $599) for everyone, no special launch price. The first five businesses to become paying customers (trial converted to a real charge, tracked automatically) get every current and future paid add-on included free for as long as they stay continuously subscribed — a full cancellation ends the benefit even if they resubscribe later.
 
 ## Target Audience
 
@@ -89,7 +89,7 @@
 |---|---|
 | "My customers want a real person." | Use the AI for immediate coverage and qualification, then transfer or alert staff for the moments that require a person. |
 | "AI will quote the wrong price." | Pricing comes from owner-approved rates and rules; the product should never improvise a price. |
-| "I do not have time to set this up." | Founding customers receive concierge setup. Start with the business line, hours, core services, and transfer rules; add advanced workflows later. |
+| "I do not have time to set this up." | Start with the business line, hours, core services, and transfer rules; add advanced workflows later. |
 | "I already use my cell phone." | Keep the convenience while displaying the business number and preserving a shared customer history. |
 
 **Anti-persona:** Businesses with almost no inbound phone demand, teams requiring complex enterprise contact-center controls on day one, international/non-US telephony needs, or owners unwilling to document basic services, hours, and pricing rules.
@@ -132,7 +132,7 @@ The following phrases are hypotheses from the operating problem and must be repl
 | Business Line | The company number used for inbound and outbound calls/texts |
 | AI receptionist | The voice workflow that answers, qualifies, and takes approved actions |
 | Recovered job | A lead or booking that would likely have been lost without immediate coverage; only claim when supported by data |
-| Founding customer | One of the first five paying businesses receiving the $50/month launch offer and concierge setup |
+| Founding customer | One of the first ten businesses to become a paying customer; gets every current and future paid add-on free for as long as their subscription stays continuously active |
 
 ## Brand Voice
 
@@ -161,8 +161,8 @@ The following phrases are hypotheses from the operating problem and must be repl
 
 ## Goals
 
-**Business goal:** Acquire five paying founding customers at $50/month, learn why they buy and stay, then move the entry offer to approximately $100/month with evidence-based messaging.
+**Business goal:** Acquire ten paying founding customers at standard plan pricing (won over by the free-add-ons-for-life perk, not a discount), learn why they buy and stay, then use evidence-based messaging beyond the founder cohort.
 
-**Conversion action:** Book a 20-minute fit/setup call or request founding access; self-serve signup is secondary until the first five customers validate onboarding.
+**Conversion action:** Self-serve signup at standard plan pricing is now the primary path — the founder perk is automatic on first payment, no manual approval needed. The high-touch "request founding access" email path stays available alongside it for prospects who want a conversation first.
 
-**Current metrics:** Paying customers, qualified-demo rate, activation, churn, CAC, and retention are not yet confirmed. Treat them as zero/unknown for planning and instrument them from the first prospect. The immediate target is five paying customers, not broad traffic.
+**Current metrics:** Paying customers, qualified-demo rate, activation, churn, CAC, and retention are not yet confirmed. Treat them as zero/unknown for planning and instrument them from the first prospect. The immediate target is ten paying customers, not broad traffic.

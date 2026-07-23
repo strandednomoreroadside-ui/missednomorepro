@@ -18,6 +18,14 @@ export type SubscriptionRow = {
   /** Start of the current dunning cycle — set on the first failed renewal
    *  charge, cleared when a charge succeeds. Drives the in-app banner. */
   payment_failed_at: string | null;
+  /** Founder offer v2 — set once, on this tenant's first-ever successful
+   *  charge (see src/lib/billing/founder.ts). 1-10, or null if not a founder. */
+  founder_slot: number | null;
+  founder_granted_at: string | null;
+  /** True once a founder's subscription has fully canceled — the benefit
+   *  ends for good, even if they resubscribe later. */
+  founder_lapsed: boolean;
+  first_payment_at: string | null;
 };
 
 export type PlanLimits = {

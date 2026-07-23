@@ -50,6 +50,7 @@ export default async function AdminPage({
     { data: members, error: memErr },
     { data: businesses, error: bizErr },
     { data: numbers, error: numErr },
+    { data: subs, error: subErr },
   ] = await Promise.all([
     admin
       .from("organizations")
@@ -60,12 +61,13 @@ export default async function AdminPage({
       .from("businesses")
       .select("tenant_id, status, ai_enabled, setup_states ( current_step, launched_at )"),
     admin.from("phone_numbers").select("tenant_id, phone_number"),
+    admin.from("subscriptions").select("tenant_id, founder_slot, founder_lapsed"),
   ]);
 
-  if (orgErr || memErr || bizErr || numErr) {
+  if (orgErr || memErr || bizErr || numErr || subErr) {
     throw new Error(
       orgErr?.message ?? memErr?.message ?? bizErr?.message ?? numErr?.message ??
-        "Admin query failed"
+        subErr?.message ?? "Admin query failed"
     );
   }
 
@@ -87,6 +89,14 @@ export default async function AdminPage({
           : "started"
     );
     aiByOrg.set(b.tenant_id, (b as { ai_enabled?: boolean }).ai_enabled !== false);
+  }
+
+  const founderByOrg = new Map<string, { slot: number; lapsed: boolean }>();
+  for (const s of subs ?? []) {
+    const row = s as { tenant_id: string; founder_slot: number | null; founder_lapsed: boolean };
+    if (row.founder_slot != null) {
+      founderByOrg.set(row.tenant_id, { slot: row.founder_slot, lapsed: row.founder_lapsed });
+    }
   }
 
   const memberCounts = new Map<string, number>();
@@ -138,6 +148,7 @@ export default async function AdminPage({
                     <th className="pb-2 pr-4">Setup</th>
                     <th className="pb-2 pr-4">Phone</th>
                     <th className="pb-2 pr-4">AI</th>
+                    <th className="pb-2 pr-4">Founder</th>
                     <th className="pb-2 pr-4">Members</th>
                     <th className="pb-2">Created</th>
                   </tr>
@@ -198,6 +209,22 @@ export default async function AdminPage({
                             </button>
                           )}
                         </form>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {founderByOrg.has(org.id) ? (
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-xs ${
+                              founderByOrg.get(org.id)?.lapsed
+                                ? "border-border text-steel"
+                                : "border-amber-400/40 bg-amber-400/10 text-amber-400"
+                            }`}
+                          >
+                            #{founderByOrg.get(org.id)?.slot}
+                            {founderByOrg.get(org.id)?.lapsed ? " lapsed" : ""}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-steel">—</span>
+                        )}
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-muted-foreground">
                         {memberCounts.get(org.id) ?? 0}

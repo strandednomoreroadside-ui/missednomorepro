@@ -69,20 +69,22 @@ export function Pricing() {
       <div className="mx-auto mt-8 flex max-w-2xl flex-col items-center gap-4 rounded-2xl border border-cyan/30 bg-cyan/5 px-6 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
         <div>
           <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan">
-            First five businesses
+            First ten businesses
           </p>
           <p className="mt-1 font-display text-xl font-semibold text-foreground">
-            Founding access is $50/month
+            Founding customers get every add-on free
           </p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Personal setup included. Keep the founding price while continuously subscribed.
+            No discount code, no special price — pick any plan below. The first 10 businesses
+            to become paying customers get every current and future add-on included free,
+            for as long as they stay continuously subscribed.
           </p>
         </div>
         <a
-          href={EARLY_ACCESS_MAILTO}
+          href="#plans"
           className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
         >
-          Claim a spot
+          See plans
         </a>
       </div>
 
@@ -117,7 +119,7 @@ export function Pricing() {
         card required, cancel anytime before it ends and you&rsquo;re not charged.
       </p>
 
-      <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+      <div id="plans" className="mt-10 scroll-mt-24 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
         {PLANS.map((plan) => {
           const price =
             plan.monthly == null ? "Custom" : `$${annual ? Math.round(plan.monthly * 0.8) : plan.monthly}`;

@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { requireActiveOrg } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { ALL_LOOKUP_KEYS } from "@/lib/billing/plans";
-import { addonLookupKey, isAddonKey, parseAddonLookupKey } from "@/lib/billing/addons";
+import {
+  addonLookupKey,
+  isAddonKey,
+  PURCHASABLE_ADDON_ORDER,
+  parseAddonLookupKey,
+} from "@/lib/billing/addons";
+import { isFounderActive } from "@/lib/billing/founder";
 import { getStripe } from "@/lib/billing/stripe";
 import { getSubscription } from "@/lib/billing/subscription";
 import { syncSubscription } from "@/lib/billing/sync";
@@ -135,6 +141,9 @@ export async function addAddon(formData: FormData) {
   const sub = await getSubscription(tenantId);
   if (!sub?.stripe_subscription_id) {
     billingError("Choose a plan before adding add-ons.");
+  }
+  if (isFounderActive(sub) && PURCHASABLE_ADDON_ORDER.includes(key)) {
+    billingError("Already included free as a founding customer — no need to add it.");
   }
 
   try {

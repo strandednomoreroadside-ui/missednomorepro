@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { parseLookupKey, PLAN_ORDER, type PlanId } from "@/lib/billing/plans";
 import { parseAddonLookupKey, type AddonKey } from "@/lib/billing/addons";
+import { maybeLapseFounder } from "@/lib/billing/founder";
 import { logAudit } from "@/lib/audit";
 
 /** Statuses that entitle the org to its plan (mirrors subscription.ts). */
@@ -66,6 +67,14 @@ export async function syncSubscription(
 
   const effective = ENTITLED.has(sub.status) ? plan : "none";
 
+  // Read the pre-upsert founder state so a cancellation can be detected as a
+  // transition (needs the OLD status, not the incoming one).
+  const { data: priorRow } = await admin
+    .from("subscriptions")
+    .select("founder_slot, founder_lapsed")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
   const { error: upsertErr } = await admin.from("subscriptions").upsert(
     {
       tenant_id: tenantId,
@@ -93,6 +102,14 @@ export async function syncSubscription(
   if (orgErr) throw new Error(`organizations plan update failed: ${orgErr.message}`);
 
   await syncAddons(admin, tenantId, items, ENTITLED.has(sub.status));
+
+  await maybeLapseFounder(
+    admin,
+    tenantId,
+    priorRow?.founder_slot ?? null,
+    priorRow?.founder_lapsed ?? false,
+    sub.status
+  );
 
   await logAudit({
     tenantId,

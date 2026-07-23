@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { syncSubscription } from "@/lib/billing/sync";
 import { clearPaymentFailed, handlePaymentFailed } from "@/lib/billing/dunning";
+import { maybeClaimFounderSlot } from "@/lib/billing/founder";
 import { sendPaymentReceipt, sendSubscriptionReceipt } from "@/lib/email/receipts";
 import { emitWebhookEvent } from "@/lib/webhooks";
 
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
         const invoice = event.data.object as Stripe.Invoice;
         await sendSubscriptionReceipt(admin, invoice);
         await clearPaymentFailed(admin, invoice);
+        await maybeClaimFounderSlot(admin, invoice);
         break;
       }
       case "invoice.payment_failed": {

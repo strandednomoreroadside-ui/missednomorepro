@@ -18,9 +18,11 @@ import { PLAN_META, PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
 import {
   ADDON_META,
   ADDON_ORDER,
+  PURCHASABLE_ADDON_ORDER,
   effectiveAddonKeys,
   type AddonKey,
 } from "@/lib/billing/addons";
+import { FOUNDER_SLOTS, isFounderActive } from "@/lib/billing/founder";
 import {
   effectivePlan,
   getPlanLimits,
@@ -79,6 +81,8 @@ export default async function BillingPage({
     ((addonRows ?? []) as { addon_key: AddonKey }[]).map((r) => r.addon_key)
   );
   const effectiveAddons = effectiveAddonKeys(purchased);
+  const founderActive = isFounderActive(sub);
+  const canToggleAddons = canManage && plan !== "none" && !!sub?.stripe_subscription_id;
 
   const error = typeof sp.error === "string" ? sp.error : undefined;
   const success = sp.success === "1";
@@ -167,6 +171,27 @@ export default async function BillingPage({
                 </Button>
               </form>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {sub?.founder_slot != null && (
+        <Card className={`mt-2 ${founderActive ? "border-amber-400/30 bg-amber-400/5" : "bg-card/60"}`}>
+          <CardContent className="flex items-start gap-3 pt-6">
+            <Sparkles
+              className={`mt-0.5 size-5 shrink-0 ${founderActive ? "text-amber-400" : "text-steel"}`}
+              aria-hidden
+            />
+            <div>
+              <p className="font-display text-base font-semibold text-foreground">
+                Founding customer #{sub.founder_slot} of {FOUNDER_SLOTS}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {founderActive
+                  ? "Every current and future add-on is included free for you, for as long as your subscription stays active — no discount code, nothing to redeem."
+                  : "Your founder add-ons benefit ended when your subscription lapsed. Resubscribing starts fresh at normal pricing."}
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -374,6 +399,7 @@ export default async function BillingPage({
         {ADDON_ORDER.filter((key) => ADDON_META[key].retired && key !== "growth_suite_bundle").map(
           (key) => {
             const meta = ADDON_META[key];
+            const stillBilled = purchased.has(key);
             return (
               <div
                 key={key}
@@ -385,6 +411,24 @@ export default async function BillingPage({
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                     {meta.blurb.replace(/\s*—\s*now included free on every plan\.?$/, "")}
                   </p>
+                  {stillBilled && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2 py-1.5">
+                      <span className="text-[11px] leading-snug text-amber-500">
+                        Still billing ${meta.monthly}/mo from before this was free
+                      </span>
+                      {canToggleAddons && (
+                        <form action={removeAddon}>
+                          <input type="hidden" name="addon_key" value={key} />
+                          <button
+                            type="submit"
+                            className="text-[11px] font-semibold text-amber-500 underline underline-offset-2"
+                          >
+                            Remove charge
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -392,7 +436,31 @@ export default async function BillingPage({
         )}
       </div>
 
-      {/* ── Add-ons still sold (+ any retired one this tenant hasn't removed yet) ── */}
+      {/* Legacy Growth Suite bundle — retired, no longer sold, but still
+          shown as a one-line "remove this old charge" notice if a tenant is
+          still paying for it (its members are all free above already). */}
+      {purchased.has("growth_suite_bundle") && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Old “{ADDON_META.growth_suite_bundle.name}” bundle — ${ADDON_META.growth_suite_bundle.monthly}/mo
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Everything it bundled is included free above now — safe to remove.
+            </p>
+          </div>
+          {canToggleAddons && (
+            <form action={removeAddon}>
+              <input type="hidden" name="addon_key" value="growth_suite_bundle" />
+              <Button type="submit" variant="outline" size="sm">
+                Remove charge
+              </Button>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* ── Add-ons still sold ── */}
       <h2 className="mt-10 font-display text-lg font-semibold">Add-ons</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Optional extra automation, billed monthly on top of your plan, prorated
@@ -400,18 +468,12 @@ export default async function BillingPage({
         {plan === "none" && " Choose a plan first to enable add-ons."}
       </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ADDON_ORDER.filter((key) => {
-          const isPurchased = purchased.has(key);
-          const includedViaBundle = !isPurchased && effectiveAddons.has(key);
-          // Retired add-ons only show up here if this tenant still has the
-          // old Stripe subscription item — otherwise they're not offered.
-          return !ADDON_META[key].retired || isPurchased || includedViaBundle;
-        }).map((key) => {
+        {PURCHASABLE_ADDON_ORDER.map((key) => {
           const meta = ADDON_META[key];
           const isPurchased = purchased.has(key);
-          const includedViaBundle = !isPurchased && effectiveAddons.has(key);
-          const isActive = isPurchased || includedViaBundle;
-          const canToggle = canManage && plan !== "none" && !!sub?.stripe_subscription_id;
+          const includedViaFounder = !isPurchased && founderActive;
+          const includedViaBundle = !isPurchased && !includedViaFounder && effectiveAddons.has(key);
+          const isActive = isPurchased || includedViaFounder || includedViaBundle;
           return (
             <div
               key={key}
@@ -424,12 +486,6 @@ export default async function BillingPage({
                 <span className="font-mono text-sm text-cyan">+${meta.monthly}/mo</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{meta.blurb}</p>
-              {meta.retired && isPurchased && key !== "growth_suite_bundle" && (
-                <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-2 text-[11px] leading-relaxed text-amber-500">
-                  This is now included free in every plan — you can remove this paid add-on
-                  below and keep the feature.
-                </p>
-              )}
               <ul className="mt-3 flex-1 space-y-1.5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
                 {meta.highlights.map((h) => (
                   <li key={h} className="flex items-center gap-1.5">
@@ -439,12 +495,17 @@ export default async function BillingPage({
                 ))}
               </ul>
               <div className="mt-4">
-                {includedViaBundle ? (
+                {includedViaFounder ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 px-2 py-1 text-[10px] font-medium uppercase text-amber-400">
+                    <Sparkles className="size-3" aria-hidden />
+                    Included — founding customer
+                  </span>
+                ) : includedViaBundle ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-cyan/30 px-2 py-1 text-[10px] font-medium uppercase text-cyan">
                     <Check className="size-3" strokeWidth={3} aria-hidden />
                     Included in Growth Suite
                   </span>
-                ) : !canToggle ? (
+                ) : !canToggleAddons ? (
                   <span className="text-[11px] text-steel">
                     {plan === "none" ? "Requires a plan" : isActive ? "Active" : ""}
                   </span>
@@ -455,14 +516,14 @@ export default async function BillingPage({
                       Remove
                     </Button>
                   </form>
-                ) : !meta.retired ? (
+                ) : (
                   <form action={addAddon}>
                     <input type="hidden" name="addon_key" value={key} />
                     <Button type="submit" size="sm" className="w-full">
                       Add — ${meta.monthly}/mo
                     </Button>
                   </form>
-                ) : null}
+                )}
               </div>
             </div>
           );

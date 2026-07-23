@@ -5,8 +5,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   addonGrantsFeature,
   effectiveAddonKeys,
+  PURCHASABLE_ADDON_ORDER,
   type AddonKey,
 } from "@/lib/billing/addons";
+import { isFounderActive } from "@/lib/billing/founder";
 import {
   effectivePlan,
   getPlanLimits,
@@ -54,6 +56,9 @@ export async function getEntitlementsWith(
     ((addonRows ?? []) as { addon_key: AddonKey }[]).map((r) => r.addon_key)
   );
   const addons = effectiveAddonKeys(purchased);
+  if (isFounderActive(subRow as SubscriptionRow | null)) {
+    for (const key of PURCHASABLE_ADDON_ORDER) addons.add(key);
+  }
 
   return {
     limits,
@@ -80,6 +85,9 @@ export async function getEntitlements(tenantId: string): Promise<Entitlements> {
     ((addonRows ?? []) as { addon_key: AddonKey }[]).map((r) => r.addon_key)
   );
   const addons = effectiveAddonKeys(purchased);
+  if (isFounderActive(sub)) {
+    for (const key of PURCHASABLE_ADDON_ORDER) addons.add(key);
+  }
 
   return {
     limits,
