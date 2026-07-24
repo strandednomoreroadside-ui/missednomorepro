@@ -198,6 +198,22 @@ if (!biz) {
 const businessId = biz.id;
 const scope = { tenant_id: tenantId, business_id: businessId };
 
+// Live transfer OFF: this is a public line, so a stranger asking "can I talk to
+// a person?" must not ring the owner's cell. The AI takes a detailed message
+// and the staff alert text still fires, so no lead is lost. Requires migration
+// 20260724090000_transfer_target.sql.
+{
+  const { error } = await db
+    .from("businesses")
+    .update({ transfer_enabled: false })
+    .eq("id", businessId);
+  if (error) {
+    console.log(`  ! live transfer not disabled — apply 20260724090000_transfer_target.sql (${error.message})`);
+  } else {
+    console.log("✓ live transfer OFF (lead alert texts unaffected)");
+  }
+}
+
 // ── 4. Services / hours / areas / staff / SMS ───────────────────────
 await db.from("services").delete().eq("business_id", businessId);
 {

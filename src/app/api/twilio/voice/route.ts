@@ -11,7 +11,11 @@ import {
   unconfiguredTwiml,
 } from "@/lib/twilio/twiml";
 import { getVoiceProvider } from "@/lib/voice";
-import { ensureAgentSynced, type AgentBusiness } from "@/lib/voice/agent-sync";
+import {
+  AGENT_BUSINESS_COLUMNS,
+  ensureAgentSynced,
+  type AgentBusiness,
+} from "@/lib/voice/agent-sync";
 import { maybeStartCallbackIvr } from "@/lib/voice/callback-ivr";
 
 import { forbidden, parseValidTwilioRequest } from "./shared";
@@ -23,8 +27,7 @@ type VoiceBusiness = AgentBusiness & {
   forward_number: string | null;
 };
 
-const BUSINESS_COLUMNS =
-  "id, tenant_id, name, industry, timezone, status, ai_enabled, forward_number";
+const BUSINESS_COLUMNS = `${AGENT_BUSINESS_COLUMNS}, ai_enabled, forward_number`;
 
 /** Where to ring when the AI is paused or a cost cap trips: the owner's
  *  configured forward number, else the first notify-on-lead staff phone. */

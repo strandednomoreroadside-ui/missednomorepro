@@ -74,6 +74,44 @@ export async function updateBookingConfirmation(formData: FormData) {
 /** AI receptionist kill switch (M10 / §14). When off — or when a usage/
  *  spend cap trips — inbound calls forward to forward_number instead of the
  *  AI. Members may manage their own business (RLS). */
+/**
+ * Warm transfer: whether the AI may put a caller through to a live human, and
+ * which number that rings. Deliberately separate from the notify-on-lead staff
+ * contact — turning transfer off must never stop lead alert texts.
+ */
+export async function updateTransferTarget(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  // Decides whose phone rings mid-call — owner/admin only.
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
+  const supabase = await createClient();
+
+  const enabled = formData.get("transfer_enabled") === "on";
+  const rawTransfer = String(formData.get("transfer_number") ?? "").trim();
+  // Blank clears it (falls back to the first notify-on-lead staff phone);
+  // otherwise normalize to E.164 rather than saving junk the dialer can't ring.
+  const transfer = rawTransfer ? normalizeUsPhone(rawTransfer) : null;
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  const patch: Record<string, unknown> = { transfer_enabled: enabled };
+  if (rawTransfer === "" || transfer) patch.transfer_number = transfer;
+
+  await supabase
+    .from("businesses")
+    .update(patch)
+    .eq("id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 export async function updateAiSwitch(formData: FormData) {
   const { active } = await requireActiveOrg();
   // The AI kill switch silences the whole business's receptionist — owner/admin

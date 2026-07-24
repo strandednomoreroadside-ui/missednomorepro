@@ -5,7 +5,11 @@ import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dialSipTwiml, sayHangupTwiml, twimlResponse } from "@/lib/twilio/twiml";
 import { getVoiceProvider } from "@/lib/voice";
-import { ensureAgentSynced, type AgentBusiness } from "@/lib/voice/agent-sync";
+import {
+  AGENT_BUSINESS_COLUMNS,
+  ensureAgentSynced,
+  type AgentBusiness,
+} from "@/lib/voice/agent-sync";
 
 import { forbidden, parseValidTwilioRequest } from "../shared";
 
@@ -32,7 +36,7 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-const BUSINESS_COLUMNS = "id, tenant_id, name, industry, timezone, status";
+const BUSINESS_COLUMNS = AGENT_BUSINESS_COLUMNS;
 
 const COULDNT_START =
   "Sorry, your test call could not be started right now. Please try again in a moment.";

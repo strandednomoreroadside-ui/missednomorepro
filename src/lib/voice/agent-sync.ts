@@ -16,7 +16,17 @@ export type AgentBusiness = {
   industry: string | null;
   timezone: string;
   status: string;
+  /** Warm-transfer controls, independent of lead alerts.
+   *  See supabase/migrations/20260724090000_transfer_target.sql. */
+  transfer_enabled?: boolean | null;
+  transfer_number?: string | null;
 };
+
+/** Every businesses column loadPromptInput reads. Shared so the call sites
+ *  (voice webhook, demo route, demo lib, chat) can't silently drift — a
+ *  missing column here just disables a feature, with no type error. */
+export const AGENT_BUSINESS_COLUMNS =
+  "id, tenant_id, name, industry, timezone, status, transfer_enabled, transfer_number";
 
 /** Load the wizard data the prompt builder needs, server-side (admin). */
 export async function loadPromptInput(
@@ -107,6 +117,16 @@ export async function loadPromptInput(
   const language =
     (agent.data?.language_settings as { language?: string } | null)?.language ?? null;
 
+  // Warm transfer resolves independently of lead alerts: an explicit
+  // transfer_number wins, else we fall back to the first notify_on_lead staff
+  // contact (the long-standing behavior). Switching transfer OFF leaves alert
+  // texts fully intact — the AI just takes a message via escalate_to_human
+  // rather than ringing a human live. That matters on a public demo line.
+  const staffPhone = (transfer.data as { phone?: string } | null)?.phone ?? null;
+  const explicitTransfer = (business.transfer_number ?? "").trim();
+  const transferNumber =
+    business.transfer_enabled === false ? null : explicitTransfer || staffPhone;
+
   // The AI's spoken service list must reflect what the business ACTUALLY
   // offers. The M4 wizard `services` table and the `service_pricing` sheet
   // can diverge, so union them (dedupe by name) — otherwise the AI only
@@ -138,7 +158,7 @@ export async function loadPromptInput(
     bookingEnabled: (conn.data as { status?: string } | null)?.status === "connected",
     quotingEnabled: quoting === true,
     serviceRadiusMiles,
-    transferNumber: (transfer.data as { phone?: string } | null)?.phone ?? null,
+    transferNumber,
     agent: {
       name: agent.data?.name ?? null,
       voiceId: agent.data?.voice_id ?? null,

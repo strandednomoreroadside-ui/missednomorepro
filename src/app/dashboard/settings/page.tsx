@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Phone,
   PhoneCall,
+  PhoneForwarded,
   PhoneOutgoing,
   Truck,
   TriangleAlert,
@@ -40,6 +41,7 @@ import {
   updateAiSwitch,
   updateBookingConfirmation,
   updateCallbackIvr,
+  updateTransferTarget,
   updateChatSettings,
   updateDispatchEta,
   updateEmailSettings,
@@ -96,13 +98,15 @@ export default async function SettingsPage({
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name, ai_enabled, forward_number")
+    .select("id, name, ai_enabled, forward_number, transfer_enabled, transfer_number")
     .eq("tenant_id", active.organization_id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   const aiEnabled = (business?.ai_enabled ?? true) as boolean;
   const forwardNumber = (business?.forward_number ?? "") as string;
+  const transferEnabled = (business?.transfer_enabled ?? true) as boolean;
+  const transferNumber = (business?.transfer_number ?? "") as string;
   // Business-wide config (AI kill switch, calendar booking) is owner/admin
   // only — matches the server-side gate in actions.ts. Members see status,
   // read-only.
@@ -314,6 +318,69 @@ export default async function SettingsPage({
               </span>
               <span className="mt-0.5 block text-xs text-steel">
                 Only an owner or admin can change the receptionist switch.
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card id="live-transfer" className="mt-4 scroll-mt-24 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <PhoneForwarded className="size-4 text-cyan" aria-hidden />
+            Live transfer to a person
+          </CardTitle>
+          <CardDescription>
+            When a caller asks for a human, is upset, or has a complaint, the AI
+            can put them straight through — briefing whoever picks up first, so
+            the caller never repeats themselves. This is separate from your lead
+            alert texts: turning it off here keeps every text coming.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {canManage ? (
+            <form action={updateTransferTarget} className="space-y-4">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="transfer_enabled"
+                  defaultChecked={transferEnabled}
+                  className="mt-1 accent-cyan"
+                />
+                <span>
+                  <span className="font-medium text-foreground">
+                    Let the AI transfer callers to a person
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    When off, the AI takes a detailed message and texts your
+                    staff instead — nobody&rsquo;s phone rings mid-call.
+                  </span>
+                </span>
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Ring this phone</span>
+                <Input
+                  type="tel"
+                  name="transfer_number"
+                  defaultValue={transferNumber}
+                  placeholder="+1 440 555 0199"
+                  className="mt-1 w-56 font-mono"
+                  aria-label="Live-transfer number"
+                />
+                <span className="mt-1 block text-xs text-steel">
+                  Leave blank to use your first staff-alert number. Set a
+                  dispatch line here to keep personal cells off the demo line.
+                </span>
+              </label>
+              <Button type="submit">Save</Button>
+            </form>
+          ) : (
+            <div className="rounded-lg border border-border/40 px-3.5 py-3 text-sm">
+              <span className="font-medium text-foreground">
+                Live transfer is currently {transferEnabled ? "ON" : "OFF"}.
+              </span>
+              <span className="mt-0.5 block text-xs text-steel">
+                Only an owner or admin can change where callers get transferred.
               </span>
             </div>
           )}

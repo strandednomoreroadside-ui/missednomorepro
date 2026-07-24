@@ -7,7 +7,7 @@ import { normalizeUsPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOutboundCall } from "@/lib/twilio/calls";
 
-import { ensureAgentSynced, type AgentBusiness } from "./agent-sync";
+import { AGENT_BUSINESS_COLUMNS, ensureAgentSynced, type AgentBusiness } from "./agent-sync";
 
 /**
  * "Test my AI" / Demo Now (NEEDS.md "Next"). We place an OUTBOUND call to
@@ -44,7 +44,7 @@ export type DemoError =
 
 export type DemoResult = { ok: true; to: string } | { ok: false; error: DemoError };
 
-const AGENT_COLUMNS = "id, tenant_id, name, industry, timezone, status";
+const AGENT_COLUMNS = AGENT_BUSINESS_COLUMNS;
 
 /**
  * Place a demo call for `tenantId` to `toPhone`. Caller must already have

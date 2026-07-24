@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { decryptText, encryptText } from "@/lib/crypto";
 import { redactPii } from "@/lib/redact";
-import type { AgentBusiness } from "@/lib/voice/agent-sync";
+import { AGENT_BUSINESS_COLUMNS, type AgentBusiness } from "@/lib/voice/agent-sync";
 
 export type ChatChannel = "web" | "sms" | "email";
 export type MessageRole = "customer" | "ai" | "staff" | "system";
@@ -33,7 +33,7 @@ export async function getChatBusiness(
 ): Promise<AgentBusiness | null> {
   let q = admin
     .from("businesses")
-    .select("id, tenant_id, name, industry, timezone, status")
+    .select(AGENT_BUSINESS_COLUMNS)
     .eq("tenant_id", tenantId);
   if (businessId) q = q.eq("id", businessId);
   else q = q.order("created_at", { ascending: true }).limit(1);
