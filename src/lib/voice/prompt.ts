@@ -12,6 +12,7 @@ import type {
   SmsSettings,
 } from "@/lib/setup/queries";
 
+import { capturesVehicle, travelsToCustomer } from "./industry";
 import { VOICE_TOOLS } from "./tools/registry";
 import type { VoiceAgentConfig } from "./types";
 
@@ -223,11 +224,26 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
   const bookingEnabled = input.bookingEnabled ?? false;
   const quotingEnabled = input.quotingEnabled ?? false;
   const transferEnabled = Boolean(input.transferNumber);
+  // Trade-specific intake: only roadside/towing/auto trades ask about the
+  // caller's vehicle, and only businesses that drive out to the customer
+  // check a service area. See ./industry.
+  const vehicleIntake = capturesVehicle(business.industry);
+  const mobileService = travelsToCustomer(business.industry);
 
   const rule2 = `2. ${pricingRuleBody(quotingEnabled)}`;
 
+  // Tow-specific quoting guidance only belongs in a vehicle trade's prompt;
+  // for a home trade it's confusing noise the model can act on.
+  const towDropOffHint = vehicleIntake ? " (for a tow, also the drop-off)" : "";
+  const multiServiceExample = vehicleIntake
+    ? "a jump start AND a tire change"
+    : "a drain cleaning AND a water-heater check";
+  const towDestinationStep = vehicleIntake
+    ? ' For a TOW where the caller has no drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
+    : "";
+
   const pricingStep = quotingEnabled
-    ? 'Pricing — ALWAYS quote proactively: the moment you know the service and the caller\'s location (for a tow, also the drop-off), call calculate_quote and tell them the exact total it returns. Do NOT wait for them to ask the price — give it to them as you confirm the service and address, before you book or hand off to the team. If the caller needs MORE THAN ONE service in the same visit (e.g. a jump start AND a tire change), pass ALL of them together in ONE calculate_quote call (the services list) — NEVER call it once per service, that charges the dispatch fee more than once when it should only ever apply one time per visit. Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2). For a TOW where the caller has no drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
+    ? `Pricing — ALWAYS quote proactively: the moment you know the service and the caller's location${towDropOffHint}, call calculate_quote and tell them the exact total it returns. Do NOT wait for them to ask the price — give it to them as you confirm the service and address, before you book or hand off to the team. If the caller needs MORE THAN ONE service in the same visit (e.g. ${multiServiceExample}), pass ALL of them together in ONE calculate_quote call (the services list) — NEVER call it once per service, that charges the dispatch fee more than once when it should only ever apply one time per visit. Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2).${towDestinationStep}`
     : "Pricing questions → rule 2.";
 
   const rule4 = `4. ${bookingRuleBody(bookingEnabled)}`;
@@ -245,8 +261,12 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
     "Greet with the business name (your opening line already does this).",
     "Spam check: if this is clearly a sales pitch, vendor, or robocall, call mark_spam and end politely. Do not collect info or notify staff.",
     'Identify the caller (their number is {{caller_phone}}). If this is a returning customer ({{is_returning}} is "true"), your opening line already greeted {{caller_name}} by name — do NOT ask their name again. Call lookup_contact right away to recall their history, then confirm what they need today. If this is a NEW caller, ask their name, then call lookup_contact.',
-    "Capture the need — one question at a time, as efficiently as possible: what's the problem/service, the location or address, the best callback number, AND the vehicle — year, make, and model (e.g. \"2018 Ford F-150\"). Ask for the vehicle right along with the problem (\"What's going on, and what are we coming out for — year, make, and model?\") rather than as a separate extra question; if they only give some of it, take what they have and move on rather than pressing for the rest. If lookup_contact returned a last_vehicle for a returning caller, confirm it's still the same vehicle in one quick line (\"Still the 2018 F-150?\") instead of asking from scratch — only ask fresh if they say it's different. If they can't give an exact street address (stranded on a highway, don't know the street name), ask for the nearest cross streets, a mile marker, or a recognizable landmark/business nearby (a gas station, store, or exit number) — then read back what you understood to confirm it's right before using it in any tool call. Pass the vehicle info as vehicle_year/vehicle_make/vehicle_model on create_contact.",
-    'Once you have a ZIP or city, call check_service_area. If it\'s NOT covered: be kind, say they may be just outside the area, still offer to take their details, and call create_contact + create_follow_up_task (type "callback", note out-of-area). Don\'t promise service.',
+    vehicleIntake
+      ? "Capture the need — one question at a time, as efficiently as possible: what's the problem/service, the location or address, the best callback number, AND the vehicle — year, make, and model (e.g. \"2018 Ford F-150\"). Ask for the vehicle right along with the problem (\"What's going on, and what are we coming out for — year, make, and model?\") rather than as a separate extra question; if they only give some of it, take what they have and move on rather than pressing for the rest. If lookup_contact returned a last_vehicle for a returning caller, confirm it's still the same vehicle in one quick line (\"Still the 2018 F-150?\") instead of asking from scratch — only ask fresh if they say it's different. If they can't give an exact street address (stranded on a highway, don't know the street name), ask for the nearest cross streets, a mile marker, or a recognizable landmark/business nearby (a gas station, store, or exit number) — then read back what you understood to confirm it's right before using it in any tool call. Pass the vehicle info as vehicle_year/vehicle_make/vehicle_model on create_contact."
+      : "Capture the need — one question at a time, as efficiently as possible: what's going on (the problem, or the service they're asking for), the service address, and the best callback number. Lead with the problem (\"What's going on — what can we help you with today?\"), then confirm the address and the best number to reach them; if they only give some of it, take what they have and move on rather than pressing for the rest. Do NOT ask about a vehicle — it has nothing to do with this work. If they can't give an exact street address, ask for the nearest cross streets or a recognizable landmark nearby (a school, store, or major intersection) — then read back what you understood to confirm it's right before using it in any tool call.",
+    mobileService
+      ? 'Once you have a ZIP or city, call check_service_area. If it\'s NOT covered: be kind, say they may be just outside the area, still offer to take their details, and call create_contact + create_follow_up_task (type "callback", note out-of-area). Don\'t promise service.'
+      : "Customers come to you, so there is no service address to collect and no service-area check to run. If they ask where you're located, for directions, or about parking, answer only from the Known answers below — never guess an address.",
     "Answer questions only from the Known answers / search_knowledge_base or the services list. If you can't, say the team will follow up — don't make things up.",
     pricingStep,
   ];

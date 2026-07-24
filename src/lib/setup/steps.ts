@@ -81,8 +81,14 @@ export const STEP_META: Record<StepId, StepMeta> = {
   },
 };
 
-/** Primary niches from master plan §1.3. */
+/** Primary niches from master plan §1.3, listed first — they're the core ICP
+ *  and the trades the call script is tuned hardest for. The extended list
+ *  below covers the rest of the local-service market so an owner never has to
+ *  pick a trade that isn't theirs (the industry drives real prompt behavior —
+ *  see src/lib/voice/industry.ts — so an accurate pick matters). "Other" is
+ *  the catch-all and falls back to the general home-trade call script. */
 export const NICHES = [
+  // Primary (§1.3)
   "Roadside assistance",
   "Towing",
   "HVAC",
@@ -97,6 +103,44 @@ export const NICHES = [
   "Mobile mechanic",
   "Appliance repair",
   "Handyman",
+  // Extended local-service trades
+  "Auto detailing",
+  "Auto glass",
+  "Carpet cleaning",
+  "Chimney sweep",
+  "Concrete & masonry",
+  "Deck & fence",
+  "Drywall",
+  "Duct cleaning",
+  "Excavation",
+  "Flooring",
+  "Foundation repair",
+  "Gutter services",
+  "Home inspection",
+  "Home remodeling",
+  "Insulation",
+  "Irrigation & sprinklers",
+  "Junk removal",
+  "Mobile car wash",
+  "Mold remediation",
+  "Moving services",
+  "Painting",
+  "Paving & asphalt",
+  "Pool & spa service",
+  "Pressure washing",
+  "Property maintenance",
+  "Restoration & water damage",
+  "Security & alarm",
+  "Septic services",
+  "Siding",
+  "Snow removal",
+  "Solar installation",
+  "Tree service",
+  "Water treatment & wells",
+  "Welding & fabrication",
+  "Window cleaning",
+  "Windows & doors",
+  "Other",
 ] as const;
 
 export const US_TIMEZONES = [
