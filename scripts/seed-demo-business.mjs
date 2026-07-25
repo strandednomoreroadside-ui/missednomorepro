@@ -352,7 +352,9 @@ console.log(`✓ comped ${PLAN} plan, $${(DAILY_SPEND_CAP_CENTS / 100).toFixed(2
 {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
+  const mgSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
   let twilioSid = null;
+  let a2pAttached = false;
   if (sid && token) {
     const auth = "Basic " + Buffer.from(`${sid}:${token}`).toString("base64");
     const res = await fetch(
@@ -361,6 +363,21 @@ console.log(`✓ comped ${PLAN} plan, $${(DAILY_SPEND_CAP_CENTS / 100).toFixed(2
     );
     const json = await res.json();
     twilioSid = json.incoming_phone_numbers?.[0]?.sid ?? null;
+
+    // Attach to the approved A2P 10DLC Messaging Service. Skipping this is
+    // NOT cosmetic: Twilio still accepts the message and reports "sent", but
+    // US carriers silently drop it with error 30034 (unregistered sender), so
+    // every confirmation/alert text vanishes with no error in our logs.
+    if (twilioSid && mgSid) {
+      const att = await fetch(`https://messaging.twilio.com/v1/Services/${mgSid}/PhoneNumbers`, {
+        method: "POST",
+        headers: { Authorization: auth, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ PhoneNumberSid: twilioSid }),
+      });
+      // 409 = already attached, which is success for our purposes.
+      a2pAttached = att.ok || att.status === 409;
+      console.log(`  a2p messaging service: ${a2pAttached ? "attached" : `FAILED (HTTP ${att.status}) — texts will be dropped`}`);
+    }
   }
   const { data: existing } = await db
     .from("phone_numbers")
@@ -372,7 +389,7 @@ console.log(`✓ comped ${PLAN} plan, $${(DAILY_SPEND_CAP_CENTS / 100).toFixed(2
     phone_number: DEMO_NUMBER,
     twilio_sid: twilioSid,
     type: "local",
-    a2p_status: "approved",
+    a2p_status: a2pAttached ? "approved" : "pending",
     voice_enabled: true,
     sms_enabled: true,
   };

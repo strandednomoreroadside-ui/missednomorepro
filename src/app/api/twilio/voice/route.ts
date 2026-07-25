@@ -204,7 +204,14 @@ export async function POST(request: Request) {
             if (!resolved && !scheduledButPast) lastNeed = lead.service_needed;
           }
         }
-        const firstName = (contact?.name ?? "").trim().split(" ")[0] ?? "";
+        // A generic placeholder saved as the contact's name produces the
+        // jarring "Welcome back, Caller!" opener. Treat those as no name at
+        // all and fall back to the warm, name-free greeting.
+        const rawName = (contact?.name ?? "").trim();
+        const isPlaceholderName = /^(caller|customer|unknown|guest|new caller|no name|n\/a)$/i.test(
+          rawName
+        );
+        const firstName = isPlaceholderName ? "" : (rawName.split(" ")[0] ?? "");
         const openingLine = contact
           ? `Welcome back${firstName ? ", " + firstName : ""}! Thanks for calling ${businessName}.` +
             (lastNeed

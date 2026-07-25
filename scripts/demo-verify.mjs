@@ -73,6 +73,39 @@ const { data: today } = await db
 const spent = (today ?? []).reduce((s, r) => s + Number(r.cost_estimate ?? 0), 0);
 console.log(`  spent today: $${spent.toFixed(2)} across ${(today ?? []).length} calls`);
 
+// 2b) A2P 10DLC. Twilio reports "sent" for an unregistered sender and the
+// carrier drops it (error 30034), so our own logs look perfectly healthy while
+// every confirmation text vanishes. Check the registration itself, and the
+// real delivery status of what we've actually sent.
+{
+  const tw = process.env.TWILIO_ACCOUNT_SID;
+  const tok = process.env.TWILIO_AUTH_TOKEN;
+  const mg = process.env.TWILIO_MESSAGING_SERVICE_SID;
+  if (!tw || !tok || !mg) warn("Twilio env not set locally — skipping A2P check");
+  else {
+    const auth = "Basic " + Buffer.from(`${tw}:${tok}`).toString("base64");
+    const r = await fetch(`https://messaging.twilio.com/v1/Services/${mg}/PhoneNumbers?PageSize=50`, {
+      headers: { Authorization: auth },
+    });
+    const nums = r.ok ? ((await r.json()).phone_numbers ?? []) : [];
+    nums.some((p) => p.phone_number === DEMO_NUMBER)
+      ? ok("on the approved A2P messaging service — texts can deliver")
+      : bad("NOT on the A2P messaging service — every text will be dropped (error 30034)");
+
+    const m = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${tw}/Messages.json?From=${encodeURIComponent(DEMO_NUMBER)}&PageSize=5`,
+      { headers: { Authorization: auth } }
+    );
+    const sent = m.ok ? ((await m.json()).messages ?? []) : [];
+    if (sent.length) {
+      const dropped = sent.filter((x) => x.status === "undelivered" || x.status === "failed");
+      dropped.length
+        ? bad(`${dropped.length}/${sent.length} recent texts undelivered (err ${dropped[0].error_code})`)
+        : ok(`last ${sent.length} texts delivered`);
+    }
+  }
+}
+
 // 3) Knowledge the AI speaks from.
 for (const [table, label] of [["services", "services"], ["faqs", "FAQs"], ["service_areas", "service areas"]]) {
   const { count } = await db
@@ -126,7 +159,10 @@ if (!agent?.provider_llm_id) {
       /year, make, and model/i.test(prompt)
         ? bad("prompt STILL asks for vehicle year/make/model — wrong for a home trade")
         : ok("no vehicle question (correct for a home trade)");
-      /tow/i.test(prompt) ? warn("prompt mentions towing") : ok("no towing language");
+      // Word-bounded: a bare /tow/ matches "toward" and cries wolf.
+      /\btow(s|ing|ed|truck)?\b|find_tow_destination/i.test(prompt)
+        ? warn("prompt carries towing language")
+        : ok("no towing language");
       prompt.includes(biz.name) ? ok(`introduces itself as "${biz.name}"`) : bad("business name missing");
       /calculate_quote/.test(prompt) === quoting
         ? ok(`quoting instructions match quoting=${quoting}`)

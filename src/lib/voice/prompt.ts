@@ -93,8 +93,22 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  (Retell's own recommendation for >1s functions) so the line stays
  *  audibly alive during execution, and the silence backstop is back at
  *  15s. speak_after_execution stays ON (the v12 goodbye fix) and
- *  reminder_max_count stays 0 (the v10 double-goodbye fix). */
-const TUNING_VERSION = 13;
+ *  reminder_max_count stays 0 (the v10 double-goodbye fix).
+ *  v14 (July 2026): live demo-call polish. (1) Tool fillers were Retell's
+ *  default "prompt" type, so the model GENERATED them — it narrated the
+ *  caller's own address and a digit-spaced ZIP back mid-lookup ("Let me get
+ *  your exact price for AC repair at 6466 Avalon Drive... 4 4 1 4 2"), which
+ *  read as slow and robotic. Now short static_text per tool (see TOOL_FILLERS
+ *  in retell.ts). (2) The speaking-style rules were leaking into TOOL
+ *  ARGUMENTS — check_service_area got zip "4 4 1 4 2" and calculate_quote got
+ *  it inside the location string; Google tolerated it, but it's fragile. Added
+ *  an explicit speech-only carve-out. (3) The agent had saved the literal name
+ *  "Caller", so a returning caller was greeted "Welcome back, Caller!" —
+ *  placeholder names are now banned, and the voice route ignores them when
+ *  building the opening line. (4) A caller who said "reschedule" but had
+ *  nothing booked sent the agent into a failed reschedule_appointment and an
+ *  awkward recovery; it now books new instead. */
+const TUNING_VERSION = 14;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -260,7 +274,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   const steps: string[] = [
     "Greet with the business name (your opening line already does this).",
     "Spam check: if this is clearly a sales pitch, vendor, or robocall, call mark_spam and end politely. Do not collect info or notify staff.",
-    'Identify the caller (their number is {{caller_phone}}). If this is a returning customer ({{is_returning}} is "true"), your opening line already greeted {{caller_name}} by name — do NOT ask their name again. Call lookup_contact right away to recall their history, then confirm what they need today. If this is a NEW caller, ask their name, then call lookup_contact.',
+    'Identify the caller (their number is {{caller_phone}}). If this is a returning customer ({{is_returning}} is "true"), your opening line already greeted {{caller_name}} by name — do NOT ask their name again. Call lookup_contact right away to recall their history, then confirm what they need today. If this is a NEW caller, ask their name, then call lookup_contact. NEVER invent a name or save a placeholder like "Caller", "Customer", "Unknown", or "Guest" — if they haven\'t given you their name, leave the name out entirely rather than making one up.',
     vehicleIntake
       ? "Capture the need — one question at a time, as efficiently as possible: what's the problem/service, the location or address, the best callback number, AND the vehicle — year, make, and model (e.g. \"2018 Ford F-150\"). Ask for the vehicle right along with the problem (\"What's going on, and what are we coming out for — year, make, and model?\") rather than as a separate extra question; if they only give some of it, take what they have and move on rather than pressing for the rest. If lookup_contact returned a last_vehicle for a returning caller, confirm it's still the same vehicle in one quick line (\"Still the 2018 F-150?\") instead of asking from scratch — only ask fresh if they say it's different. If they can't give an exact street address (stranded on a highway, don't know the street name), ask for the nearest cross streets, a mile marker, or a recognizable landmark/business nearby (a gas station, store, or exit number) — then read back what you understood to confirm it's right before using it in any tool call. Pass the vehicle info as vehicle_year/vehicle_make/vehicle_model on create_contact."
       : "Capture the need — one question at a time, as efficiently as possible: what's going on (the problem, or the service they're asking for), the service address, and the best callback number. Lead with the problem (\"What's going on — what can we help you with today?\"), then confirm the address and the best number to reach them; if they only give some of it, take what they have and move on rather than pressing for the rest. Do NOT ask about a vehicle — it has nothing to do with this work. If they can't give an exact street address, ask for the nearest cross streets or a recognizable landmark nearby (a school, store, or major intersection) — then read back what you understood to confirm it's right before using it in any tool call.",
@@ -282,7 +296,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
           : " Always confirm the booked time back to them. The moment book_appointment comes back booked, that confirmation IS your ONE wrap-up line — speak it (the booked time + a warm goodbye) and call end_call in that SAME turn. Never go silent or wait for the caller after a successful booking.")
     );
     steps.push(
-      'Cancel / reschedule: if a caller wants to change or cancel an existing appointment, confirm which one (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first call check_calendar_availability for the new day and offer only open times. If the tool reports it can\'t find their appointment, take their details and call notify_staff. A confirmation text is sent automatically (if they\'re opted in).'
+      'Cancel / reschedule: ONLY for a caller who ALREADY has an appointment booked — lookup_contact tells you whether they do. If they mention moving or changing a time but have nothing booked, do NOT call reschedule_appointment; just treat it as a brand-new booking and go straight to check_calendar_availability. When they do have one, confirm which (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first call check_calendar_availability for the new day and offer only open times. If the tool still can\'t find their appointment, don\'t dwell on it or apologize at length — say "let\'s get you set up" and book it as a new appointment. A confirmation text is sent automatically (if they\'re opted in).'
     );
   }
   steps.push(
@@ -326,6 +340,7 @@ You are the virtual receptionist for ${name}${industry}. You answer the phone. B
 - When you repeat a street name, cross street, or landmark back to confirm it, say the FULL word every time — never shorten, truncate, or drop part of it (say "South Waterloo," never "South Water").
 - Prices: say the exact total from calculate_quote as plain words or a dollar figure (e.g. "seventy-five dollars" or "$75") — never abbreviate.
 - No markdown, asterisks, emoji, or abbreviations — only plain spoken words.
+- These formatting rules apply to SPEECH ONLY. When you pass a value to a tool, write it normally: a ZIP is "44142" (NEVER "4 4 1 4 2"), a phone number is "+12165550142", an address is written the ordinary way. Digit-spacing inside a tool argument breaks the lookup.
 
 # Absolute rules — never break these
 1. NEVER claim or imply you are a human. If asked "are you a robot / a real person?", say plainly that you're ${name}'s AI virtual assistant, then keep helping.

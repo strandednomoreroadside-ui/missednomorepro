@@ -217,6 +217,37 @@ function webhookUrl(): string {
   return `${appUrl()}/api/voice/retell/webhook?key=${encodeURIComponent(requireSecret())}`;
 }
 
+/** What the agent says WHILE a tool runs (v14).
+ *
+ *  Retell's execution message defaults to type "prompt", meaning the model
+ *  *generates* the filler. On a live call that produced rambling, choppy
+ *  narration — a quote lookup opened with "Let me get your exact price for AC
+ *  repair at 6466 Avalon Drive, Brook Park, Ohio, 4 4 1 4 2", reading the whole
+ *  address (and a digit-spaced ZIP) back before the tool had even returned.
+ *  Slow, robotic, and the worst possible first impression on the demo line.
+ *
+ *  These are spoken verbatim instead (execution_message_type "static_text"):
+ *  short, natural, and varied per tool so the call keeps its rhythm without
+ *  narrating the caller's own details back at them. */
+const TOOL_FILLERS: Record<string, string> = {
+  lookup_contact: "One moment.",
+  create_contact: "Let me get that saved.",
+  search_knowledge_base: "Let me check on that.",
+  check_service_area: "Let me check that address.",
+  check_calendar_availability: "Let me check the calendar.",
+  book_appointment: "Booking that now.",
+  reschedule_appointment: "Let me move that for you.",
+  cancel_appointment: "One moment.",
+  calculate_quote: "Let me get your exact price.",
+  find_tow_destination: "Let me find some options nearby.",
+  notify_staff: "Getting the team on it.",
+  escalate_to_human: "One moment.",
+  create_follow_up_task: "Noting that down.",
+  send_sms: "Sending that over now.",
+  mark_spam: "One moment.",
+};
+const DEFAULT_FILLER = "One moment.";
+
 /** Map our provider-neutral tool defs to Retell custom functions. Auth +
  *  tool name ride in query_params, which our /api/voice/tools route reads. */
 function mapTools(tools: VoiceToolDef[]): unknown[] {
@@ -231,6 +262,8 @@ function mapTools(tools: VoiceToolDef[]): unknown[] {
     query_params: { tool: t.name, key: secret },
     speak_after_execution: SPEAK_AFTER_EXECUTION,
     speak_during_execution: SPEAK_DURING_EXECUTION,
+    execution_message_type: "static_text",
+    execution_message_description: TOOL_FILLERS[t.name] ?? DEFAULT_FILLER,
     timeout_ms: 20000,
   }));
 }
