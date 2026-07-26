@@ -22,7 +22,13 @@ const PLANS: Plan[] = [
     monthly: 99,
     blurb: "Solo operators who never want to miss a call",
     minutes: "250 AI minutes",
-    extras: ["Booking, cancel & reschedule", "Human transfer + Google Calendar", "Review requests", "1 user"],
+    extras: [
+      "Booking, cancel & reschedule",
+      "Human transfer + Google Calendar",
+      "Website chat + AI business insights",
+      "Review requests",
+      "1 user",
+    ],
   },
   {
     name: "Growth",
@@ -36,7 +42,7 @@ const PLANS: Plan[] = [
     monthly: 349,
     blurb: "Growing teams that dispatch and need insight",
     minutes: "900 AI minutes",
-    extras: ["Dispatch board + team calendar", "AI business insights", "Make/Zapier + website chat", "10 users"],
+    extras: ["Dispatch board + team calendar", "Make & Zapier integrations", "10 users"],
     popular: true,
   },
   {

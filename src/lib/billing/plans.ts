@@ -40,6 +40,7 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
       "AI receptionist + basic CRM",
       "Booking, cancel & reschedule",
       "Human transfer + Google Calendar",
+      "Website chat + AI business insights",
       "Review requests + missed-call recovery",
       "1 user",
     ],
@@ -67,8 +68,7 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
     highlights: [
       "Everything in Growth",
       "Dispatch board + team calendar",
-      "AI business insights + workflows",
-      "Make/Zapier + website chat",
+      "Make & Zapier integrations",
       "10 users",
     ],
     popular: true,
