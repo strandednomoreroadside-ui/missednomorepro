@@ -82,8 +82,9 @@ export function Pricing() {
           </p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             No discount code, no special price — pick any plan below. The first 10 businesses
-            to become paying customers get every current and future add-on included free,
-            for as long as they stay continuously subscribed.
+            to become paying customers get every paid add-on — right now, that&rsquo;s AI Outbound
+            Assistant, plus anything we add later — free for the lifetime of their subscription,
+            as long as it stays continuously active.
           </p>
         </div>
         <a

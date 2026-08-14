@@ -188,7 +188,7 @@ export default async function BillingPage({
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {founderActive
-                  ? "Every current and future add-on is included free for you, for as long as your subscription stays active — no discount code, nothing to redeem."
+                  ? "Every paid add-on — right now, that's AI Outbound Assistant, plus anything we add later — is included free for you, for the lifetime of your subscription as long as it stays continuously active. No discount code, nothing to redeem."
                   : "Your founder add-ons benefit ended when your subscription lapsed. Resubscribing starts fresh at normal pricing."}
               </p>
             </div>
