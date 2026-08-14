@@ -20,7 +20,13 @@ export function ProductShowcase() {
     <div className="mt-12 grid auto-rows-[minmax(0,1fr)] gap-5 lg:grid-cols-6">
       {/* Analytics — wide */}
       <Reveal className="lg:col-span-4">
-        <Tile title="Live revenue dashboard" icon={DollarSign} sub="Every call scored. Every dollar tracked.">
+        <Tile
+          title="Revenue dashboard"
+          icon={DollarSign}
+          sub="Every call scored. Every dollar tracked."
+          badge="Sample data"
+          badgeTone="muted"
+        >
           <AnalyticsMock />
         </Tile>
       </Reveal>
@@ -54,12 +60,14 @@ function Tile({
   sub,
   icon: Icon,
   badge,
+  badgeTone = "cyan",
   children,
 }: {
   title: string;
   sub: string;
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   badge?: string;
+  badgeTone?: "cyan" | "muted";
   children: React.ReactNode;
 }) {
   return (
@@ -75,7 +83,13 @@ function Tile({
           </div>
         </div>
         {badge && (
-          <span className="shrink-0 rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
+          <span
+            className={
+              badgeTone === "muted"
+                ? "shrink-0 rounded-full border border-border bg-secondary/50 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-steel"
+                : "shrink-0 rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan"
+            }
+          >
             {badge}
           </span>
         )}

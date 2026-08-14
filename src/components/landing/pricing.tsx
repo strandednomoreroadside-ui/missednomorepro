@@ -124,6 +124,11 @@ export function Pricing() {
         <span className="font-medium text-foreground">7-day free trial</span> on every plan —
         card required, cancel anytime before it ends and you&rsquo;re not charged.
       </p>
+      <p className="mx-auto mt-3 max-w-lg text-center text-xs leading-relaxed text-steel">
+        <span className="font-medium text-foreground">What&rsquo;s an &ldquo;AI minute&rdquo;?</span>{" "}
+        One minute your AI receptionist is actually on the phone talking to a caller — not hold
+        time, not texts.
+      </p>
 
       <div id="plans" className="mt-10 scroll-mt-24 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
         {PLANS.map((plan) => {

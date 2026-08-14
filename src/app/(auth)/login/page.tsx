@@ -7,7 +7,11 @@ import { Label } from "@/components/ui/label";
 import { FormBanner } from "@/components/form-banner";
 import { signIn } from "../actions";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = {
+  title: "Sign in",
+  description: "Sign in to your Missed No More Pro dashboard.",
+  alternates: { canonical: "/login" },
+};
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

@@ -12,6 +12,10 @@ const FAQS: { q: string; a: string }[] = [
     a: "No. It only books inside the hours and rules you approve, and it never makes up a price — every quote is computed by our pricing engine from your approved rates plus real driving distance. If it's unsure, it captures the lead and flags your team.",
   },
   {
+    q: "What if a call gets complicated — will the AI fumble it?",
+    a: "If a caller is upset, the situation is unusual, or it's outside what the AI is trained on, it warm-transfers to a real person on your team instead of struggling through it — briefed on who's calling and why, so the caller never has to repeat themselves. And it never invents details or prices to fill a gap; if it's not sure, it captures the lead and flags your team instead of guessing.",
+  },
+  {
     q: "Is it compliant with texting rules?",
     a: "Yes. We're A2P 10DLC registered, and STOP / START / HELP are handled automatically. We keep a tenant-wide opt-out list, so a customer who opts out never gets another text — even a transactional one.",
   },
@@ -30,8 +34,21 @@ const FAQS: { q: string; a: string }[] = [
 ];
 
 export function Faq() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  };
   return (
     <section id="faq" className="mx-auto max-w-3xl scroll-mt-24 px-6 py-20 lg:py-28">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <SectionHeading eyebrow="FAQ" title="Questions, answered" />
       <div className="mt-10 divide-y divide-border/60 rounded-2xl border border-border bg-card/40">
         {FAQS.map((item) => (

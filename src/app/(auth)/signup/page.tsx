@@ -8,7 +8,12 @@ import { FormBanner } from "@/components/form-banner";
 import { PLAN_META, PLAN_ORDER } from "@/lib/billing/plans";
 import { signUp } from "../actions";
 
-export const metadata: Metadata = { title: "Create your account" };
+export const metadata: Metadata = {
+  title: "Create your account",
+  description:
+    "Start your 7-day free trial of Missed No More Pro — the AI receptionist that answers calls, quotes exact prices, and books jobs for local service businesses.",
+  alternates: { canonical: "/signup" },
+};
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

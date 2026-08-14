@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "How Missed No More Pro collects, uses, and protects information across calls, texts, and the dashboard.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

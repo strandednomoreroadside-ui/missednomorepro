@@ -22,7 +22,7 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { Faq } from "@/components/landing/faq";
 import { Pricing } from "@/components/landing/pricing";
-import { ButtonLink, EARLY_ACCESS_MAILTO, SectionHeading } from "@/components/landing/primitives";
+import { ButtonLink, SectionHeading } from "@/components/landing/primitives";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { Reveal } from "@/components/landing/reveal";
 import { CheckRow, ProductShowcase } from "@/components/landing/showcase";
@@ -149,7 +149,7 @@ function SiteHeader() {
           <ButtonLink href="/login" variant="outline" className="hidden sm:inline-flex">
             Sign in
           </ButtonLink>
-          <ButtonLink href={EARLY_ACCESS_MAILTO}>Founding access</ButtonLink>
+          <ButtonLink href="/signup">Start free trial</ButtonLink>
         </div>
       </div>
     </header>
@@ -180,16 +180,17 @@ function Hero() {
             <span className="text-gradient mt-3 block text-3xl font-semibold leading-tight sm:text-4xl">
               Every call answered.
               <br />
-              Every lead captured.
+              Every price computed exact.
             </span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground [font-family:ui-sans-serif,system-ui,sans-serif]">
-            Missed No More Pro answers your phones 24/7, qualifies the caller, quotes the exact
-            price, books the job, and follows up by text — then shows you the revenue it saved.
+            Missed No More Pro answers your phones 24/7, quotes the exact price on the spot,
+            qualifies the caller, books the job, and follows up by text — then shows you the
+            revenue it saved.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <ButtonLink href={EARLY_ACCESS_MAILTO} large>
-              Claim founding access <ArrowRight className="size-4" aria-hidden />
+            <ButtonLink href="/signup" large>
+              Start free trial <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
             <ButtonLink href="#product" variant="outline" large>
               See it in action
@@ -350,7 +351,16 @@ function MissedCallMath() {
           </Reveal>
         ))}
       </div>
-      <Reveal delay={120}>
+      <Reveal delay={150}>
+        <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-steel">
+          Running Google or LSA ads to get the phone ringing?{" "}
+          <span className="text-foreground">
+            A missed call doesn&rsquo;t just cost the job — it burns the ad spend that got the
+            phone to ring in the first place.
+          </span>
+        </p>
+      </Reveal>
+      <Reveal delay={180}>
         <div className="mt-8">
           <p className="mb-4 text-center text-sm text-muted-foreground">
             Run your own numbers:
@@ -696,8 +706,8 @@ function ProofBand() {
             with them.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <ButtonLink href={EARLY_ACCESS_MAILTO} large>
-              Become a founding customer <ArrowRight className="size-4" aria-hidden />
+            <ButtonLink href="/signup" large>
+              Start free trial <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
           </div>
         </Reveal>
@@ -753,8 +763,8 @@ function FinalCta() {
           — and never wonder what that voicemail cost you.
         </p>
         <div className="mt-8 flex justify-center">
-          <ButtonLink href={EARLY_ACCESS_MAILTO} large>
-            Claim founding access <ArrowRight className="size-4" aria-hidden />
+          <ButtonLink href="/signup" large>
+            Start free trial <ArrowRight className="size-4" aria-hidden />
           </ButtonLink>
         </div>
       </div>
@@ -788,6 +798,9 @@ function SiteFooter() {
               </a>
               <a className="block text-muted-foreground transition-colors hover:text-foreground" href="#pricing">
                 Pricing
+              </a>
+              <a className="block text-muted-foreground transition-colors hover:text-foreground" href="/about">
+                About
               </a>
             </div>
             <div className="space-y-2">

@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "SMS Terms & Conditions",
   description:
     "SMS messaging terms for Missed No More Pro — program description, opt-in, opt-out (STOP), help (HELP), frequency, and carrier disclosures.",
+  alternates: { canonical: "/sms-terms" },
 };
 
 export default function SmsTermsPage() {

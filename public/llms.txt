@@ -1,0 +1,17 @@
+# Missed No More Pro
+
+> AI receptionist and smart CRM for local service businesses (1–15 employees) — towing, roadside assistance, locksmiths, HVAC, plumbing, electrical, roofing, garage doors, pest control, landscaping, cleaning, mobile mechanics, appliance repair, and handyman trades.
+
+Missed No More Pro answers a service business's phone 24/7, qualifies the caller, computes an exact price from the owner's own rates and real driving distance (never an invented price), books the job on the calendar inside owner-approved hours, and follows up by text. It warm-transfers complicated or upset callers to a real person on the team instead of guessing. Every call becomes a tracked lead in a built-in CRM with a transcript, summary, and dollar value attributed to the revenue it saved.
+
+Pricing is usage-capped (AI minutes) with hard caps and no surprise overage — plans run from $99/mo (Starter, 250 AI minutes, 1 user) to $599/mo (Elite, 1,500 AI minutes, 25 users), plus a custom Enterprise tier. Every plan includes a 7-day free trial (card required).
+
+## Pages
+
+- [Home](/): Product overview, live-call demo, ROI calculator, comparison table, pricing, FAQ.
+- [Pricing](/pricing): Full plan breakdown and what's included at each tier.
+- [About](/about): The founder story and why the product exists.
+- [Sign up](/signup): Start a free trial.
+- [Privacy Policy](/privacy)
+- [Terms of Service](/terms)
+- [SMS Terms](/sms-terms)
