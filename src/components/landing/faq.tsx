@@ -2,7 +2,9 @@ import { Plus } from "lucide-react";
 
 import { SectionHeading } from "./primitives";
 
-const FAQS: { q: string; a: string }[] = [
+export type FaqItem = { q: string; a: string };
+
+const FAQS: FaqItem[] = [
   {
     q: "Is it really AI — and will it sound robotic?",
     a: "Yes, it's a real AI receptionist with a natural voice. It answers in your business name, asks one question at a time, and always discloses it's an AI assistant if asked. Most callers just think they reached a friendly front desk.",
@@ -33,25 +35,40 @@ const FAQS: { q: string; a: string }[] = [
   },
 ];
 
-export function Faq() {
+/**
+ * FAQ accordion + FAQPage JSON-LD. Defaults to the homepage FAQ set;
+ * /vs and category pages pass their own `items` (and usually a distinct
+ * `id`, since a page only needs one #faq anchor).
+ */
+export function Faq({
+  items = FAQS,
+  id = "faq",
+  eyebrow = "FAQ",
+  title = "Questions, answered",
+}: {
+  items?: FaqItem[];
+  id?: string;
+  eyebrow?: string;
+  title?: string;
+}) {
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: FAQS.map((item) => ({
+    mainEntity: items.map((item) => ({
       "@type": "Question",
       name: item.q,
       acceptedAnswer: { "@type": "Answer", text: item.a },
     })),
   };
   return (
-    <section id="faq" className="mx-auto max-w-3xl scroll-mt-24 px-6 py-20 lg:py-28">
+    <section id={id} className="mx-auto max-w-3xl scroll-mt-24 px-6 py-20 lg:py-28">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <SectionHeading eyebrow="FAQ" title="Questions, answered" />
+      <SectionHeading eyebrow={eyebrow} title={title} />
       <div className="mt-10 divide-y divide-border/60 rounded-2xl border border-border bg-card/40">
-        {FAQS.map((item) => (
+        {items.map((item) => (
           <details key={item.q} className="group px-5">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-left font-medium text-foreground transition-colors hover:text-cyan [&::-webkit-details-marker]:hidden">
               {item.q}

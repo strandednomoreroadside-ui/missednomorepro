@@ -16,16 +16,17 @@ import {
   TrendingUp,
   Users,
   Workflow,
-  X,
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { ComparisonTable, type ComparisonRow } from "@/components/landing/comparison-table";
 import { Faq } from "@/components/landing/faq";
 import { Pricing } from "@/components/landing/pricing";
 import { ButtonLink, SectionHeading } from "@/components/landing/primitives";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { Reveal } from "@/components/landing/reveal";
 import { CheckRow, ProductShowcase } from "@/components/landing/showcase";
+import { getFounderSlotsTakenSafe } from "@/lib/billing/founder";
 import { env } from "@/lib/env";
 
 const NICHES = [
@@ -45,7 +46,8 @@ const NICHES = [
   "Handyman",
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const founderSlotsTaken = await getFounderSlotsTakenSafe();
   const base = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const jsonLd = {
     "@context": "https://schema.org",
@@ -83,7 +85,7 @@ export default function LandingPage() {
       />
       <SiteHeader />
       <main>
-        <Hero />
+        <Hero founderSlotsTaken={founderSlotsTaken} />
         <NicheMarquee />
         <MissedCallMath />
         <Showcase />
@@ -93,7 +95,7 @@ export default function LandingPage() {
         <Integrations />
         <Comparison />
         <ProofBand />
-        <Pricing />
+        <Pricing founderSlotsTaken={founderSlotsTaken} />
         <Faq />
         <FinalCta />
       </main>
@@ -156,7 +158,7 @@ function SiteHeader() {
   );
 }
 
-function Hero() {
+function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
   return (
     <section id="top" className="glow-field relative">
       <div className="grid-lines pointer-events-none absolute inset-0" aria-hidden />
@@ -173,20 +175,23 @@ function Hero() {
             </span>
             <span>AI Business Assistant</span>
           </p>
+          {typeof founderSlotsTaken === "number" && (
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan/25 bg-cyan/5 px-3 py-1 text-xs font-medium text-cyan">
+              {founderSlotsTaken} of 10 founding spots taken
+            </p>
+          )}
           <h1 className="mt-6 text-5xl font-bold leading-[1.04] tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif] sm:text-6xl">
             Never miss
             <br />
             another call.
             <span className="text-gradient mt-3 block text-3xl font-semibold leading-tight sm:text-4xl">
-              Every call answered.
-              <br />
-              Every price computed exact.
+              Every call answered — and quoted at the exact price, never guessed.
             </span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground [font-family:ui-sans-serif,system-ui,sans-serif]">
-            Missed No More Pro answers your phones 24/7, quotes the exact price on the spot,
-            qualifies the caller, books the job, and follows up by text — then shows you the
-            revenue it saved.
+            The only AI front desk that computes your price from your own rates, not a made-up
+            number. Missed No More Pro answers your phones 24/7, qualifies the caller, books the
+            job, and follows up by text — then shows you the revenue it saved.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <ButtonLink href="/signup" large>
@@ -218,8 +223,12 @@ function Hero() {
 
 function LiveCallCard() {
   return (
-    <div className="border-glow rounded-2xl p-6 shadow-[0_24px_80px_-24px_rgba(0,107,255,0.35)]">
-      <div className="flex items-center justify-between">
+    <div
+      className="border-glow rounded-2xl p-6 shadow-[0_24px_80px_-24px_rgba(0,107,255,0.35)]"
+      role="img"
+      aria-label="Example live call: a caller reports their AC died in 95-degree heat; the AI asks their ZIP code, confirms they're in the service area, and offers a same-day 2:30 PM appointment. It captures the lead, books the appointment, notifies the technician by text, and logs an estimated $385 in saved revenue."
+    >
+      <div className="flex items-center justify-between" aria-hidden>
         <span className="inline-flex items-center gap-2.5">
           <span className="relative flex size-2.5">
             <span className="animate-ring-wave absolute inline-flex size-full rounded-full bg-cyan" />
@@ -232,7 +241,7 @@ function LiveCallCard() {
         <span className="font-mono text-xs text-steel">(555) 014-2287</span>
       </div>
 
-      <div className="mt-5 space-y-3 border-t border-border/70 pt-5">
+      <div className="mt-5 space-y-3 border-t border-border/70 pt-5" aria-hidden>
         <Bubble side="left" label="Caller">
           My AC just died and it&rsquo;s 95 degrees. Can anyone come out today?
         </Bubble>
@@ -247,13 +256,13 @@ function LiveCallCard() {
         </Bubble>
       </div>
 
-      <div className="mt-5 space-y-2 border-t border-border/70 pt-5">
+      <div className="mt-5 space-y-2 border-t border-border/70 pt-5" aria-hidden>
         <ProgressRow>Lead captured — name, number, address</ProgressRow>
         <ProgressRow>Appointment booked · Today 2:30 PM</ProgressRow>
         <ProgressRow>Technician notified by text</ProgressRow>
       </div>
 
-      <div className="mt-5 flex items-center justify-between rounded-xl bg-night/60 px-4 py-3">
+      <div className="mt-5 flex items-center justify-between rounded-xl bg-night/60 px-4 py-3" aria-hidden>
         <span className="text-sm text-muted-foreground">Job saved while you worked</span>
         <span className="font-mono text-lg font-semibold text-success">+$385</span>
       </div>
@@ -339,6 +348,7 @@ function MissedCallMath() {
         <SectionHeading
           eyebrow="The math of a missed call"
           title="A missed call isn't a missed call. It's a booked job — for someone else."
+          sub="Running Google or LSA ads? Every missed call burns the ad dollar that made the phone ring."
         />
       </Reveal>
       <div className="mt-12 grid gap-6 sm:grid-cols-3">
@@ -351,15 +361,6 @@ function MissedCallMath() {
           </Reveal>
         ))}
       </div>
-      <Reveal delay={150}>
-        <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-steel">
-          Running Google or LSA ads to get the phone ringing?{" "}
-          <span className="text-foreground">
-            A missed call doesn&rsquo;t just cost the job — it burns the ad spend that got the
-            phone to ring in the first place.
-          </span>
-        </p>
-      </Reveal>
       <Reveal delay={180}>
         <div className="mt-8">
           <p className="mb-4 text-center text-sm text-muted-foreground">
@@ -618,7 +619,7 @@ function Integrations() {
 
 function Comparison() {
   const cols = ["Missed No More Pro", "Voicemail", "Answering service", "In-house hire"];
-  const rows: { label: string; values: (boolean | string)[] }[] = [
+  const rows: ComparisonRow[] = [
     { label: "Answers 24/7", values: [true, false, true, false] },
     { label: "Books jobs on your calendar", values: [true, false, false, true] },
     { label: "Quotes the exact price", values: [true, false, false, true] },
@@ -636,52 +637,7 @@ function Comparison() {
         />
       </Reveal>
       <Reveal className="mt-12">
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card/40">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b border-border/60">
-                <th className="px-5 py-4 text-left font-medium text-muted-foreground">Capability</th>
-                {cols.map((c, i) => (
-                  <th
-                    key={c}
-                    className={`px-4 py-4 text-center font-display font-semibold ${
-                      i === 0 ? "text-cyan" : "text-muted-foreground"
-                    }`}
-                  >
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.label} className="border-b border-border/40 last:border-0">
-                  <td className="px-5 py-3.5 text-left font-medium text-foreground">{row.label}</td>
-                  {row.values.map((v, i) => (
-                    <td
-                      key={i}
-                      className={`px-4 py-3.5 text-center ${i === 0 ? "bg-cyan/5" : ""}`}
-                    >
-                      {typeof v === "boolean" ? (
-                        v ? (
-                          <Check className="mx-auto size-4 text-success" strokeWidth={3} aria-label="Yes" />
-                        ) : (
-                          <X className="mx-auto size-4 text-steel/50" aria-label="No" />
-                        )
-                      ) : (
-                        <span
-                          className={`font-mono text-xs ${i === 0 ? "font-semibold text-cyan" : "text-muted-foreground"}`}
-                        >
-                          {v}
-                        </span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ComparisonTable cols={cols} rows={rows} />
       </Reveal>
     </section>
   );
@@ -784,7 +740,7 @@ function SiteFooter() {
               captured.
             </p>
           </div>
-          <nav className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
+          <nav className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm sm:grid-cols-3">
             <div className="space-y-2">
               <p className="font-mono text-[10px] uppercase tracking-widest text-steel">Product</p>
               <a className="block text-muted-foreground transition-colors hover:text-foreground" href="#product">
@@ -801,6 +757,24 @@ function SiteFooter() {
               </a>
               <a className="block text-muted-foreground transition-colors hover:text-foreground" href="/about">
                 About
+              </a>
+            </div>
+            <div className="space-y-2">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-steel">Compare</p>
+              <a className="block text-muted-foreground transition-colors hover:text-foreground" href="/vs/hexnut">
+                vs. Hexnut
+              </a>
+              <a
+                className="block text-muted-foreground transition-colors hover:text-foreground"
+                href="/vs/answering-service"
+              >
+                vs. Answering Service
+              </a>
+              <a
+                className="block text-muted-foreground transition-colors hover:text-foreground"
+                href="/ai-receptionist-for-towing"
+              >
+                AI for Towing
               </a>
             </div>
             <div className="space-y-2">

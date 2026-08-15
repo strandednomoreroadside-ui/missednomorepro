@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Faq } from "@/components/landing/faq";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import { Pricing } from "@/components/landing/pricing";
+import { getFounderSlotsTakenSafe } from "@/lib/billing/founder";
 
 const TITLE = "Pricing";
 const DESCRIPTION =
@@ -24,10 +25,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const founderSlotsTaken = await getFounderSlotsTakenSafe();
   return (
     <MarketingShell>
-      <Pricing />
+      <Pricing founderSlotsTaken={founderSlotsTaken} />
       <Faq />
     </MarketingShell>
   );

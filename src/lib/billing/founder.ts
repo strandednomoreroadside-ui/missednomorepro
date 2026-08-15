@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { logAudit } from "@/lib/audit";
 import type { SubscriptionRow } from "@/lib/billing/subscription";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Founder offer v2 (July 2026): the first FOUNDER_SLOTS businesses to make a
@@ -20,6 +21,36 @@ export const FOUNDER_SLOTS = 10;
 
 export function isFounderActive(sub: SubscriptionRow | null): boolean {
   return !!sub && sub.founder_slot != null && !sub.founder_lapsed;
+}
+
+/**
+ * Public-safe count of claimed founder slots (0-FOUNDER_SLOTS) — used on the
+ * marketing site for an honest "N of 10 taken" counter. Once claimed, a slot
+ * counts here even if it later lapses (a lapsed slot is never reissued, so
+ * the count only ever moves toward FOUNDER_SLOTS). Exposes a number only —
+ * no tenant identity — safe to call from a public, unauthenticated page.
+ */
+export async function getFounderSlotsTaken(admin: SupabaseClient): Promise<number> {
+  const { count } = await admin
+    .from("subscriptions")
+    .select("id", { count: "exact", head: true })
+    .not("founder_slot", "is", null);
+  return count ?? 0;
+}
+
+/**
+ * Same as getFounderSlotsTaken, but never throws — for the public marketing
+ * pages, which must render even if the DB or its own admin client is
+ * briefly unavailable (dev without env vars, a Supabase hiccup, etc.).
+ * Returns undefined on any failure so callers can just omit the counter.
+ */
+export async function getFounderSlotsTakenSafe(): Promise<number | undefined> {
+  try {
+    return await getFounderSlotsTaken(createAdminClient());
+  } catch (err) {
+    console.error("[billing] getFounderSlotsTakenSafe failed:", err);
+    return undefined;
+  }
 }
 
 function customerId(invoice: Stripe.Invoice): string | null {
