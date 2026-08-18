@@ -37,6 +37,8 @@ import { calculateQuote, type QuoteResult, type ServicePrice } from "@/lib/prici
 import { bundleQuotingEnabled, loadPricing } from "@/lib/pricing/loader";
 import { sendCustomerSms, sendStaffSms } from "@/lib/sms/outbound";
 
+import { recordHumanEscalation } from "../escalation";
+import { startVoiceHandoff } from "../handoff";
 import type { VoiceToolName } from "./registry";
 
 /**
@@ -525,54 +527,66 @@ const escalateToHuman = defineTool(
   z.object({
     reason: z.string().min(1).max(300),
     summary: z.string().max(500).optional(),
+    urgency: z.enum(["normal", "emergency"]).optional(),
   }),
   async (ctx, args) => {
     const summary = args.summary ?? args.reason;
+    const handoff = await startVoiceHandoff({
+      admin: ctx.admin,
+      tenantId: ctx.tenantId,
+      businessId: ctx.businessId,
+      callId: ctx.callId ?? null,
+      businessName: ctx.businessName,
+      callerNumber: ctx.fromNumber,
+      reason: args.reason,
+      summary,
+      mode: args.urgency === "emergency" ? "emergency" : "normal",
+    });
 
-    const { data: task } = await ctx.admin
-      .from("follow_up_tasks")
-      .insert({
-        tenant_id: ctx.tenantId,
-        business_id: ctx.businessId,
-        contact_id: ctx.contactId,
-        call_id: ctx.callId ?? null,
-        type: "escalation",
-        title: `Escalation: ${args.reason}`.slice(0, 200),
-        details: summary,
-        priority: "urgent",
-        source: "ai",
-      })
-      .select("id")
-      .single();
-
-    await setDisposition(ctx, "escalated");
-
-    const staff = await notifyOnLeadStaff(ctx);
-    const body =
-      `URGENT - ${ctx.businessName}: a caller needs a person. ${summary} ` +
-      `Call: ${formatUsPhone(ctx.fromNumber)}`;
-    let sent = 0;
-    for (const s of staff) {
-      const r = await sendStaffSms(ctx.admin, {
+    if (handoff.kind === "started" || handoff.kind === "already_started") {
+      await setDisposition(ctx, "escalated");
+      await logAudit({
         tenantId: ctx.tenantId,
-        businessId: ctx.businessId,
-        toPhone: s.phone,
-        body,
+        action: "voice.tool.escalate_to_human.live_handoff",
+        entityType: "call",
+        entityId: ctx.callId ?? undefined,
+        metadata: { reason: args.reason, mode: args.urgency ?? "normal", handoffId: handoff.handoffId },
       });
-      if (r.sent) sent += 1;
+      return { status: "ok", data: { live_handoff: true, handoff_id: handoff.handoffId } };
     }
+
+    // The caller has already left the AI SIP leg for a Twilio fallback and
+    // the system-side task/SMS was recorded only after the recipient attempt.
+    if (handoff.kind === "fallback_started") {
+      return {
+        status: "ok",
+        data: { live_handoff: false, fallback_started: true, handoff_id: handoff.handoffId },
+      };
+    }
+
+    const fallback = await recordHumanEscalation({
+      admin: ctx.admin,
+      tenantId: ctx.tenantId,
+      businessId: ctx.businessId,
+      contactId: ctx.contactId,
+      callId: ctx.callId ?? null,
+      businessName: ctx.businessName,
+      fromNumber: ctx.fromNumber,
+      reason: args.reason,
+      summary,
+    });
 
     await logAudit({
       tenantId: ctx.tenantId,
       action: "voice.tool.escalate_to_human",
       entityType: "call",
       entityId: ctx.callId ?? undefined,
-      metadata: { reason: args.reason, staffCount: staff.length },
+      metadata: { reason: args.reason, handoffFallback: handoff.kind, handoffReason: handoff.reason },
     });
 
     return {
       status: "ok",
-      data: { escalated: true, task_id: task?.id ?? null, sent },
+      data: { escalated: true, task_id: fallback.taskId, sent: fallback.sent, live_handoff: false },
     };
   }
 );

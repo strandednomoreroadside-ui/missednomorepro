@@ -37,10 +37,11 @@ export async function computeMetrics(
   tenantId: string,
   sinceIso: string
 ): Promise<CallIntelMetrics> {
-  const [{ data: calls }, { data: tools }, { count: leadCount }, { data: leads }, { count: jobsDone }, { data: paid }] =
+  const [{ data: calls }, { data: tools }, { data: handoffs }, { count: leadCount }, { data: leads }, { count: jobsDone }, { data: paid }] =
     await Promise.all([
       admin.from("calls").select("ai_handled, disposition").eq("tenant_id", tenantId).gte("created_at", sinceIso),
       admin.from("tool_calls").select("tool_name").eq("tenant_id", tenantId).gte("created_at", sinceIso),
+      admin.from("voice_handoffs").select("outcome").eq("tenant_id", tenantId).gte("created_at", sinceIso),
       admin.from("leads").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("created_at", sinceIso),
       admin.from("leads").select("status, estimated_value").eq("tenant_id", tenantId),
       admin.from("jobs").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "completed").gte("created_at", sinceIso),
@@ -53,7 +54,9 @@ export async function computeMetrics(
   const booked = c.filter((x) => x.disposition === "booked").length;
 
   const t = (tools ?? []) as { tool_name: string }[];
-  const transfers = t.filter((x) => x.tool_name === "transfer_to_human").length;
+  const transfers = ((handoffs ?? []) as { outcome: string }[]).filter(
+    (handoff) => handoff.outcome === "bridged"
+  ).length;
   const escalations = t.filter((x) => x.tool_name === "escalate_to_human").length;
   const quotes = t.filter((x) => x.tool_name === "calculate_quote").length;
 

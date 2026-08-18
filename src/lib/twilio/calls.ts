@@ -21,6 +21,11 @@ export interface OutboundCallResult {
   error?: string;
 }
 
+export interface UpdateCallResult {
+  ok: boolean;
+  error?: string;
+}
+
 function authHeader(): string | null {
   const sid = env.TWILIO_ACCOUNT_SID;
   const token = env.TWILIO_AUTH_TOKEN;
@@ -40,6 +45,8 @@ export async function createOutboundCall(opts: {
   twimlUrl: string;
   /** Ring timeout in seconds (default 25). */
   timeoutSeconds?: number;
+  /** Receives lifecycle updates for this outbound leg. */
+  statusCallbackUrl?: string;
 }): Promise<OutboundCallResult> {
   const auth = authHeader();
   if (!auth) return { ok: false, error: "twilio_not_configured" };
@@ -51,6 +58,11 @@ export async function createOutboundCall(opts: {
     Method: "POST",
     Timeout: String(opts.timeoutSeconds ?? 25),
   });
+  if (opts.statusCallbackUrl) {
+    body.set("StatusCallback", opts.statusCallbackUrl);
+    body.set("StatusCallbackMethod", "POST");
+    body.set("StatusCallbackEvent", "initiated ringing answered completed");
+  }
 
   const res = await fetch(`${API}/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls.json`, {
     method: "POST",
@@ -67,4 +79,31 @@ export async function createOutboundCall(opts: {
     return { ok: false, error: json?.message ?? `http_${res.status}` };
   }
   return { ok: true, sid: json.sid };
+}
+
+/** Replace an active call's instructions. This is the handoff control point:
+ * the caller leaves the AI SIP leg and waits in our Twilio conference before
+ * we ever ring a staff member. */
+export async function updateActiveCall(opts: {
+  callSid: string;
+  twiml: string;
+}): Promise<UpdateCallResult> {
+  const auth = authHeader();
+  if (!auth) return { ok: false, error: "twilio_not_configured" };
+
+  const body = new URLSearchParams({ Twiml: opts.twiml });
+  const res = await fetch(
+    `${API}/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls/${encodeURIComponent(opts.callSid)}.json`,
+    {
+      method: "POST",
+      headers: { Authorization: auth, "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    }
+  );
+  const json = (await res.json().catch(() => ({}))) as { message?: string };
+  if (!res.ok) {
+    console.error(`[twilio] active call update failed (${res.status}): ${json.message ?? ""}`);
+    return { ok: false, error: json.message ?? `http_${res.status}` };
+  }
+  return { ok: true };
 }

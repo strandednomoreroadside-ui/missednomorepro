@@ -136,15 +136,21 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
   {
     name: "escalate_to_human",
     description:
-      "FALLBACK ONLY — use this to take a message + raise an urgent staff alert when a live transfer " +
-      "is NOT possible (no transfer set up, after-hours, or transfer_to_human already failed to " +
-      "connect). Do NOT use this as your first move when the caller wants a person — call " +
-      "transfer_to_human first. Tell the caller a team member will reach out right away.",
+      "Use this immediately when a caller asks for a person, is upset or distressed, has a complaint, " +
+      "or needs help beyond the AI. When live transfer is configured, this starts a server-owned warm " +
+      "handoff: the caller waits, the recipient privately hears your summary, and must accept before " +
+      "joining. Otherwise it creates an urgent callback task and staff alert. Never claim a person is " +
+      "connected until this tool returns live_handoff=true.",
     parameters: {
       type: "object",
       properties: {
         reason: { type: "string", description: "Why you're escalating (e.g. 'caller demands a human')." },
         summary: { type: "string", description: "Short summary of the situation for the human." },
+        urgency: {
+          type: "string",
+          enum: ["normal", "emergency"],
+          description: "Use emergency only for an immediate safety/stranded situation; otherwise normal.",
+        },
       },
       required: ["reason"],
     },

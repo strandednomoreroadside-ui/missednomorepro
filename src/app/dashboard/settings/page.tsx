@@ -42,12 +42,14 @@ import {
   updateBookingConfirmation,
   updateCallbackIvr,
   updateTransferTarget,
+  deletePronunciationOverride,
   updateChatSettings,
   updateDispatchEta,
   updateEmailSettings,
   updateReminders,
   updateTextBack,
   updateWeeklyReport,
+  savePronunciationOverride,
 } from "./actions";
 
 const DEFAULT_REMINDER_TEMPLATE =
@@ -112,7 +114,7 @@ export default async function SettingsPage({
   // read-only.
   const canManage = isOrgManager(active.role);
 
-  const [{ data: numbers }, { data: sms }, { data: calendar }] = await Promise.all([
+  const [{ data: numbers }, { data: sms }, { data: pronunciationOverrides }, { data: calendar }] = await Promise.all([
     supabase
       .from("phone_numbers")
       .select("id, phone_number, type, voice_enabled, sms_enabled, a2p_status")
@@ -127,6 +129,14 @@ export default async function SettingsPage({
           .eq("business_id", business.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    business
+      ? supabase
+          .from("voice_pronunciation_overrides")
+          .select("id, written_form, replacement, kind")
+          .eq("business_id", business.id)
+          .eq("active", true)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
     business
       ? supabase
           .from("calendar_connections")
@@ -158,6 +168,12 @@ export default async function SettingsPage({
     | null;
   const calConnected = cal?.status === "connected";
   const googleConfigured = isGoogleConfigured();
+  const voiceOverrides = (pronunciationOverrides ?? []) as {
+    id: string;
+    written_form: string;
+    replacement: string;
+    kind: "alias" | "ipa";
+  }[];
 
   // ── Omnichannel chat (Phase 10) ──
   const chatEntitled = (await getEntitlements(active.organization_id)).has("omnichannel_chat");
@@ -383,6 +399,64 @@ export default async function SettingsPage({
                 Only an owner or admin can change where callers get transferred.
               </span>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card id="voice-pronunciation" className="mt-4 scroll-mt-24 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Bot className="size-4 text-cyan" aria-hidden />
+            Voice pronunciation
+          </CardTitle>
+          <CardDescription>
+            Add a word the voice says incorrectly. Changes re-sync the live agent
+            immediately, so they apply to the next call.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {canManage ? (
+            <form action={savePronunciationOverride} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_auto] sm:items-end">
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Word as written</span>
+                <Input name="written_form" maxLength={80} placeholder="Cuyahoga" className="mt-1" required />
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">How it should sound</span>
+                <Input name="replacement" maxLength={160} placeholder="kai-uh-HOH-guh" className="mt-1" required />
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Format</span>
+                <select name="kind" defaultValue="alias" className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="alias">Natural spelling</option>
+                  <option value="ipa">Verified IPA</option>
+                </select>
+              </label>
+              <Button type="submit">Add</Button>
+            </form>
+          ) : null}
+          <p className="text-xs text-steel">
+            Use natural spelling for most fixes. Choose IPA only when you have a
+            verified IPA pronunciation; it goes directly to the speech engine.
+          </p>
+          {voiceOverrides.length ? (
+            <ul className="divide-y divide-border/50 rounded-lg border border-border/50">
+              {voiceOverrides.map((override) => (
+                <li key={override.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate font-medium">{override.written_form}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">{override.replacement}</span>
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{override.kind}</span>
+                  {canManage ? (
+                    <form action={deletePronunciationOverride}>
+                      <input type="hidden" name="id" value={override.id} />
+                      <Button type="submit" size="sm" variant="ghost">Remove</Button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No custom pronunciation fixes yet.</p>
           )}
         </CardContent>
       </Card>

@@ -14,6 +14,25 @@ import { buildConsentUrl } from "@/lib/google/oauth";
 import { normalizeUsPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { AGENT_BUSINESS_COLUMNS, ensureAgentSynced, type AgentBusiness } from "@/lib/voice/agent-sync";
+
+/** A change that affects the live voice agent must not wait for its next
+ * inbound call to be lazily synced. Failure is logged but never rolls back a
+ * valid settings save; the next inbound sync remains a safety net. */
+async function resyncVoiceAgent(tenantId: string, businessId: string) {
+  try {
+    const admin = createAdminClient();
+    const { data: business } = await admin
+      .from("businesses")
+      .select(AGENT_BUSINESS_COLUMNS)
+      .eq("tenant_id", tenantId)
+      .eq("id", businessId)
+      .maybeSingle();
+    if (business) await ensureAgentSynced(admin, business as AgentBusiness);
+  } catch (error) {
+    console.error("[settings] immediate voice-agent resync failed:", error);
+  }
+}
 
 /** Update the missed-call text-back settings (M8). Members may manage their
  *  own sms_settings (RLS), so this runs on the user-scoped client. */
@@ -109,6 +128,60 @@ export async function updateTransferTarget(formData: FormData) {
     .eq("id", business.id)
     .eq("tenant_id", active.organization_id);
 
+  await resyncVoiceAgent(active.organization_id, business.id);
+
+  revalidatePath("/dashboard/settings");
+}
+
+/** Add or replace a business pronunciation correction. Alias accepts a
+ * natural respelling; IPA is for a verified pronunciation dictionary entry. */
+export async function savePronunciationOverride(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
+  const supabase = await createClient();
+  const written = String(formData.get("written_form") ?? "").trim();
+  const replacement = String(formData.get("replacement") ?? "").trim();
+  const kind = formData.get("kind") === "ipa" ? "ipa" : "alias";
+  if (!written || !replacement || written.length > 80 || replacement.length > 160) return;
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  await supabase.from("voice_pronunciation_overrides").upsert(
+    {
+      tenant_id: active.organization_id,
+      business_id: business.id,
+      written_form: written,
+      replacement,
+      kind,
+      active: true,
+    },
+    { onConflict: "business_id,written_form,kind" }
+  );
+  await resyncVoiceAgent(active.organization_id, business.id);
+  revalidatePath("/dashboard/settings");
+}
+
+export async function deletePronunciationOverride(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("voice_pronunciation_overrides")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", active.organization_id)
+    .select("business_id")
+    .maybeSingle();
+  if (row?.business_id) await resyncVoiceAgent(active.organization_id, row.business_id);
   revalidatePath("/dashboard/settings");
 }
 

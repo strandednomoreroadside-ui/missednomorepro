@@ -108,7 +108,7 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  building the opening line. (4) A caller who said "reschedule" but had
  *  nothing booked sent the agent into a failed reschedule_appointment and an
  *  awkward recovery; it now books new instead. */
-const TUNING_VERSION = 14;
+const TUNING_VERSION = 15;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
@@ -129,6 +129,13 @@ export interface PromptInput {
   serviceRadiusMiles?: number | null;
   /** E.164 human number for live warm transfer, or null/absent to disable. */
   transferNumber?: string | null;
+  /** Business-specific pronunciation corrections. Alias is a natural
+   * respelling for the LLM; IPA is passed directly to the voice provider. */
+  pronunciationOverrides?: {
+    writtenForm: string;
+    replacement: string;
+    kind: "alias" | "ipa";
+  }[];
   agent?: {
     name?: string | null;
     voiceId?: string | null;
@@ -306,7 +313,7 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   );
   steps.push(
     transferEnabled
-      ? 'If the caller asks for a person, is upset or distressed, or has a complaint: tell them warmly "let me get someone on the line for you — one moment" and IMMEDIATELY call transfer_to_human. This is how you reach a human; connecting can take a few rings, so stay calm and let it try — do NOT announce a failure early. Do NOT call escalate_to_human first. ONLY if transfer_to_human comes back without connecting (nobody was available) do you then reassure them — "I couldn\'t reach someone live this second, but I\'ll have them call you right back" — and call escalate_to_human to take a message and alert the team. Never imply the system is broken; never argue.'
+      ? 'If the caller asks for a person, is upset or distressed, or has a complaint: tell them warmly "let me get someone on the line for you — one moment" and IMMEDIATELY call escalate_to_human ONCE with a concise summary. The server owns the warm handoff: it holds the caller, privately briefs the recipient, and only joins them after the recipient accepts. Use urgency "emergency" only for an immediate safety or stranded situation; otherwise use "normal". Do NOT announce a failure early and do NOT invent a transfer result. If the tool returns live_handoff=true, do not say anything else: the caller is already being connected. If it returns live_handoff=false, reassure them that the team will call back and take any missing details. Never imply the system is broken; never argue.'
       : "If the caller demands a human, is angry, or it's beyond you: call escalate_to_human. Stay calm and never argue."
   );
   steps.push(
@@ -328,6 +335,11 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   const wrapUp =
     `There is EXACTLY ONE wrap-up moment per call. The instant the caller's need is fully handled (dispatched, booked, quoted-and-logged, or handed to the team), say ONE natural closing line — confirm what happens next ${wrapUpNext}, use their name if you have it, and say goodbye, all together like a real person would (e.g. "You're all set, Sarah — we'll see you Thursday at 2! Take care.") — then END THE CALL right away by calling end_call, with no pause and no filler in between. Calling end_call is not optional and is not a separate step you do later — it belongs in the SAME turn as the closing line, every single time, with zero exceptions. This ONE line is also your reply to whatever tool just finished (notify_staff, book_appointment, etc.) — do NOT speak a separate "okay, got it" acknowledgement first and THEN a goodbye; merge them into the single closing line above. Do NOT add a second, separate sign-off after that (no extra "thank you for calling us," no repeated "take care," no re-confirming what you already confirmed — one warm goodbye is enough, a second one sounds robotic and cold and wastes the caller's time). Do NOT stay on the line, re-ask if there's anything else more than once, or wait in silence after the caller's need is handled — every extra second is wasted call time.`;
 
+  const pronunciationAliases = (input.pronunciationOverrides ?? [])
+    .filter((entry) => entry.kind === "alias")
+    .map((entry) => `- When speaking "${entry.writtenForm}", write "${entry.replacement}" so it is pronounced naturally.`)
+    .join("\n");
+
   const systemPrompt = `# Who you are
 You are the virtual receptionist for ${name}${industry}. You answer the phone. Be warm, natural, and concise — like a sharp, friendly front-desk person. Keep replies short and ask ONE question at a time. Be efficient: gather the details you need quickly, don't pad the call with small talk, and move toward wrapping up. The moment the caller's need is handled, end the call — every extra second costs the business money.
 
@@ -341,6 +353,7 @@ You are the virtual receptionist for ${name}${industry}. You answer the phone. B
 - Prices: say the exact total from calculate_quote as plain words or a dollar figure (e.g. "seventy-five dollars" or "$75") — never abbreviate.
 - No markdown, asterisks, emoji, or abbreviations — only plain spoken words.
 - These formatting rules apply to SPEECH ONLY. When you pass a value to a tool, write it normally: a ZIP is "44142" (NEVER "4 4 1 4 2"), a phone number is "+12165550142", an address is written the ordinary way. Digit-spacing inside a tool argument breaks the lookup.
+${pronunciationAliases ? `- Business pronunciation notes (SPEECH ONLY; never substitute these words inside tool arguments):\n${pronunciationAliases}` : ""}
 
 # Absolute rules — never break these
 1. NEVER claim or imply you are a human. If asked "are you a robot / a real person?", say plainly that you're ${name}'s AI virtual assistant, then keep helping.
@@ -376,6 +389,9 @@ ${wrapUp}`;
   const language = input.agent?.language || DEFAULT_LANGUAGE;
   const maxCallSeconds = input.agent?.maxCallSeconds || DEFAULT_MAX_CALL_SECONDS;
   const boostedKeywords = buildBoostedKeywords(input);
+  const pronunciationDictionary = (input.pronunciationOverrides ?? [])
+    .filter((entry) => entry.kind === "ipa")
+    .map((entry) => ({ word: entry.writtenForm, alphabet: "ipa" as const, phoneme: entry.replacement }));
 
   const promptHash = createHash("sha256")
     .update(
@@ -388,6 +404,7 @@ ${wrapUp}`;
         tools: VOICE_TOOLS.map((t) => t.name),
         transferNumber: input.transferNumber ?? null,
         boostedKeywords,
+        pronunciationDictionary,
         tuningVersion: TUNING_VERSION,
       })
     )
@@ -403,6 +420,7 @@ ${wrapUp}`;
     tools: VOICE_TOOLS,
     transferNumber: input.transferNumber ?? null,
     boostedKeywords,
+    pronunciationDictionary,
     promptHash,
   };
 }
@@ -419,5 +437,6 @@ function buildBoostedKeywords(input: PromptInput): string[] {
   add(input.business.name);
   for (const s of input.services) add(s.name);
   for (const a of input.areas) if (a.type === "city") add(a.city);
+  for (const override of input.pronunciationOverrides ?? []) add(override.writtenForm);
   return [...out].slice(0, 50);
 }

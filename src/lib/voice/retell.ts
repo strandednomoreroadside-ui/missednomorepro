@@ -117,16 +117,9 @@ const END_CALL_AFTER_SILENCE_MS = 15000;
  *  END_CALL_AFTER_SILENCE_MS above is the safer backstop for a stuck call. */
 const REMINDER_MAX_COUNT = 0;
 
-/** Give a real person time to actually pick up before the warm transfer is
- *  declared failed. A solo roadside owner is often driving and needs several
- *  rings; with no timeout set the transfer bailed the instant the line didn't
- *  answer, so the agent jumped straight to "that didn't go through". */
-const TRANSFER_DETECTION_TIMEOUT_MS = 30000;
-const TRANSFER_RING_DURATION_MS = 30000;
-
 /** Speech-to-text + audio tuning for noisy roadside callers (wind, highway,
- *  bystanders). `accurate` STT trades a little latency for far better
- *  transcription of mumbled service names and addresses; the strongest
+ *  bystanders). `fast` STT keeps turn latency low; boosted keywords and the
+ *  strongest
  *  denoise strips background noise *and* other voices. Retell's
  *  interruption_sensitivity is "how easy is it to interrupt the agent" —
  *  HIGHER = easier to cut off, but also the general knob for how readily a
@@ -137,12 +130,20 @@ const TRANSFER_RING_DURATION_MS = 30000;
  *  still caught some barge-in; nudged back up to 0.3 — quiet talkers weren't
  *  registering at 0.2. If background noise starts barging in again at 0.3,
  *  the fix is denoising strength, not pushing this back down.) */
-const STT_MODE = "accurate" as const;
+const STT_MODE = "fast" as const;
 const DENOISING_MODE = "noise-and-background-speech-cancellation" as const;
 const INTERRUPTION_SENSITIVITY = 0.3;
-/** TTS playback rate (1.0 = natural). Wired as a one-number tune for the
- *  live-call test. */
-const VOICE_SPEED = 1.0;
+/** Pin the Retell-hosted ElevenLabs model rather than accepting a provider
+ * default that can change under us. Turbo v2.5 keeps the low-latency path. */
+const VOICE_MODEL = "eleven_turbo_v2_5" as const;
+const VOICE_SPEED = 1.04;
+const VOICE_TEMPERATURE = 0.85;
+const DYNAMIC_VOICE_SPEED = true;
+const DYNAMIC_RESPONSIVENESS = true;
+const RESPONSIVENESS = 1;
+// Backchannels stay off until they pass a representative call corpus; false
+// is intentional, not an omitted provider default.
+const ENABLE_BACKCHANNEL = false;
 /** Curated pronunciation fixes applied to every agent. Backstops the prompt's
  *  "never write a.m./p.m." rule — a stray abbreviation still reads as
  *  "AM"/"PM" rather than the spurious trailing "k" we were hearing — and
@@ -157,39 +158,6 @@ const PRONUNCIATION_DICTIONARY: { word: string; alphabet: "ipa"; phoneme: string
   { word: "Lakewood", alphabet: "ipa", phoneme: "ˈleɪkwʊd" },
   { word: "Sunoco", alphabet: "ipa", phoneme: "səˈnoʊkoʊ" },
 ];
-
-/** Warm-transfer tool: the agent privately briefs the teammate (who's
- *  calling + why), THEN bridges the caller — so the human doesn't make the
- *  caller re-explain. Only added when the business has a transfer number. */
-function transferTool(number: string): Record<string, unknown> {
-  return {
-    type: "transfer_call",
-    name: "transfer_to_human",
-    description:
-      "THE way to get a caller to a human — call this IMMEDIATELY (not escalate_to_human) the moment the caller asks for a person, is upset or distressed, or has a complaint. It bridges them to a teammate live, briefing the teammate first so the caller never repeats themselves. Only if this fails to connect should you fall back to escalate_to_human.",
-    transfer_destination: { type: "predefined", number },
-    transfer_option: {
-      type: "warm_transfer",
-      on_hold_music: "ringtone",
-      // Wait long enough for a human to answer before declaring failure.
-      agent_detection_timeout_ms: TRANSFER_DETECTION_TIMEOUT_MS,
-      transfer_ring_duration_ms: TRANSFER_RING_DURATION_MS,
-      // Skip Retell's answering-machine detection entirely. A live call
-      // confirmed the transfer was declared a failure while the line was
-      // never actually seen ringing on the receiving end — the most likely
-      // explanation is AMD misclassifying the pickup (or ring/SIP signaling)
-      // and aborting the leg early. A single-owner business would rather
-      // get bridged into their own voicemail on a bad guess than have a
-      // real caller silently bounced to a text-only fallback.
-      opt_out_human_detection: true,
-      private_handoff_option: {
-        type: "prompt",
-        prompt:
-          "In one sentence, tell the teammate who is calling and why — the caller's name, their location, and what they need or why they're upset. Then the caller is connected.",
-      },
-    },
-  };
-}
 
 let client: Retell | null = null;
 function getClient(): Retell {
@@ -241,7 +209,7 @@ const TOOL_FILLERS: Record<string, string> = {
   calculate_quote: "Let me get your exact price.",
   find_tow_destination: "Let me find some options nearby.",
   notify_staff: "Getting the team on it.",
-  escalate_to_human: "One moment.",
+  escalate_to_human: "Let me reach the team.",
   create_follow_up_task: "Noting that down.",
   send_sms: "Sending that over now.",
   mark_spam: "One moment.",
@@ -276,8 +244,10 @@ export class RetellVoiceProvider implements VoiceProvider {
     existing: ProviderAgentRef | null
   ): Promise<SyncAgentResult> {
     const c = getClient();
+    // Human handoff is a custom server tool, never a Retell-native transfer.
+    // This prevents an LLM/provider tool-selection mismatch from turning a
+    // requested person into an immediate text-only escalation.
     const tools = [...mapTools(config.tools), END_CALL_TOOL];
-    if (config.transferNumber) tools.push(transferTool(config.transferNumber));
 
     // Up to date already — skip the network round-trips.
     if (
@@ -312,8 +282,15 @@ export class RetellVoiceProvider implements VoiceProvider {
         stt_mode: STT_MODE,
         denoising_mode: DENOISING_MODE,
         interruption_sensitivity: INTERRUPTION_SENSITIVITY,
+        responsiveness: RESPONSIVENESS,
+        enable_dynamic_responsiveness: DYNAMIC_RESPONSIVENESS,
+        enable_dynamic_voice_speed: DYNAMIC_VOICE_SPEED,
+        enable_backchannel: ENABLE_BACKCHANNEL,
+        handbook_config: { speech_normalization: true, smart_matching: true },
+        voice_model: VOICE_MODEL,
         voice_speed: VOICE_SPEED,
-        pronunciation_dictionary: PRONUNCIATION_DICTIONARY,
+        voice_temperature: VOICE_TEMPERATURE,
+        pronunciation_dictionary: [...PRONUNCIATION_DICTIONARY, ...config.pronunciationDictionary],
       });
       return {
         providerAgentId: existing.providerAgentId,
@@ -341,8 +318,15 @@ export class RetellVoiceProvider implements VoiceProvider {
       stt_mode: STT_MODE,
       denoising_mode: DENOISING_MODE,
       interruption_sensitivity: INTERRUPTION_SENSITIVITY,
+      responsiveness: RESPONSIVENESS,
+      enable_dynamic_responsiveness: DYNAMIC_RESPONSIVENESS,
+      enable_dynamic_voice_speed: DYNAMIC_VOICE_SPEED,
+      enable_backchannel: ENABLE_BACKCHANNEL,
+      handbook_config: { speech_normalization: true, smart_matching: true },
+      voice_model: VOICE_MODEL,
       voice_speed: VOICE_SPEED,
-      pronunciation_dictionary: PRONUNCIATION_DICTIONARY,
+      voice_temperature: VOICE_TEMPERATURE,
+      pronunciation_dictionary: [...PRONUNCIATION_DICTIONARY, ...config.pronunciationDictionary],
       agent_name: config.name,
     });
 

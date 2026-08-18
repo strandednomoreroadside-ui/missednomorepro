@@ -38,6 +38,9 @@ export interface VoiceAgentConfig {
   /** Proper nouns the STT should bias toward — the business name, its service
    *  names, and the towns it serves — so callers' words aren't misheard. */
   boostedKeywords: string[];
+  /** Verified IPA/CMU entries sent directly to the provider. Natural
+   * respellings stay in the speaking prompt, where they are safer. */
+  pronunciationDictionary: { word: string; alphabet: "ipa" | "cmu"; phoneme: string }[];
   /** Stable hash of the above — used to skip no-op re-syncs. */
   promptHash: string;
 }

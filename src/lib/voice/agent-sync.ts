@@ -45,6 +45,7 @@ export async function loadPromptInput(
     pricing,
     transfer,
     settings,
+    pronunciation,
   ] = await Promise.all([
     admin
       .from("services")
@@ -103,6 +104,13 @@ export async function loadPromptInput(
       .select("base_lat, base_lng, max_service_miles")
       .eq("business_id", business.id)
       .maybeSingle(),
+    admin
+      .from("voice_pronunciation_overrides")
+      .select("written_form, replacement, kind")
+      .eq("tenant_id", business.tenant_id)
+      .eq("business_id", business.id)
+      .eq("active", true)
+      .order("created_at", { ascending: true }),
   ]);
 
   // The service radius is authoritative for coverage ONLY when the home base is
@@ -126,6 +134,15 @@ export async function loadPromptInput(
   const explicitTransfer = (business.transfer_number ?? "").trim();
   const transferNumber =
     business.transfer_enabled === false ? null : explicitTransfer || staffPhone;
+  const pronunciationOverrides = ((pronunciation.data ?? []) as {
+    written_form: string;
+    replacement: string;
+    kind: "alias" | "ipa";
+  }[]).map((entry) => ({
+    writtenForm: entry.written_form,
+    replacement: entry.replacement,
+    kind: entry.kind,
+  }));
 
   // The AI's spoken service list must reflect what the business ACTUALLY
   // offers. The M4 wizard `services` table and the `service_pricing` sheet
@@ -159,6 +176,7 @@ export async function loadPromptInput(
     quotingEnabled: quoting === true,
     serviceRadiusMiles,
     transferNumber,
+    pronunciationOverrides,
     agent: {
       name: agent.data?.name ?? null,
       voiceId: agent.data?.voice_id ?? null,

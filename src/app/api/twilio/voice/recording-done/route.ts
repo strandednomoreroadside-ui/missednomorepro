@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const { error } = await admin
       .from("calls")
       .update({ status: "voicemail" })
-      .eq("provider_call_id", callSid);
+      .or(`provider_call_id.eq.${callSid},twilio_call_sid.eq.${callSid}`);
     if (error) console.error("[twilio] voicemail status update failed:", error.message);
   }
 

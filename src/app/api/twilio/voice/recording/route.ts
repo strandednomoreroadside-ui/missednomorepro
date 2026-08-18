@@ -21,7 +21,7 @@ export async function POST(request: Request) {
         recording_url: `${recordingUrl}.mp3`,
         status: "voicemail",
       })
-      .eq("provider_call_id", callSid);
+      .or(`provider_call_id.eq.${callSid},twilio_call_sid.eq.${callSid}`);
     if (error) console.error("[twilio] recording url save failed:", error.message);
   }
 

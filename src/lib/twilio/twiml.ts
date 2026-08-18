@@ -1,5 +1,13 @@
 import "server-only";
 
+export {
+  handoffCallerTwiml,
+  handoffFallbackTwiml,
+  handoffHoldTwiml,
+  handoffRecipientBridgeTwiml,
+  handoffRecipientTwiml,
+} from "./handoff-twiml";
+
 /** Escapes text for safe embedding in TwiML XML. */
 export function xmlEscape(text: string): string {
   return text

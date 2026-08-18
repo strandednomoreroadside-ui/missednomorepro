@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { maybeSendTextBack } from "@/lib/sms/textback";
+import { cancelVoiceHandoffForCaller } from "@/lib/voice/handoff";
 
 import { forbidden, parseValidTwilioRequest } from "../shared";
 
@@ -57,6 +58,13 @@ export async function POST(request: Request) {
   const engaged =
     Boolean(call.contact_id) ||
     ENGAGED_DISPOSITIONS.includes(call.disposition ?? "");
+
+  // An AI caller who disconnects while a recipient is still ringing must not
+  // leave an orphaned private brief running. This intentionally creates no
+  // text fallback: the caller chose to leave.
+  if (isAiCall) {
+    await cancelVoiceHandoffForCaller(admin, call.tenant_id, call.id);
+  }
 
   // M6 fallback calls: close out status + timeline here (no Retell webhook).
   if (!isAiCall) {
