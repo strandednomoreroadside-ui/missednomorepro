@@ -21,7 +21,7 @@ export function handoffCallerTwiml(opts: { conferenceName: string; holdUrl: stri
 
 export function handoffHoldTwiml(holdUrl: string): string {
   return (
-    `<Say ${VOICE}>Thanks for holding. I&apos;m connecting you with the team now.</Say>` +
+    `<Say ${VOICE}>Please hold while I connect you with the team.</Say>` +
     `<Pause length="10"/><Redirect method="POST">${escapeXml(holdUrl)}</Redirect>`
   );
 }
@@ -60,4 +60,11 @@ export function handoffFallbackTwiml(opts: {
     `recordingStatusCallbackEvent="completed"/>` +
     `<Say ${VOICE}>We didn't catch a message. Goodbye.</Say><Hangup/>`
   );
+}
+
+/** Wrap TwiML verbs into a complete document. Webhook responses and the REST
+ * call-modification API both require the `<Response>` root — a bare fragment
+ * is invalid TwiML, and Twilio's reaction to invalid TwiML is to hang up. */
+export function twimlDocument(body: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<Response>${body}</Response>`;
 }

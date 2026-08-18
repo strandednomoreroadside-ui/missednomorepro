@@ -6,6 +6,7 @@ import {
   handoffFallbackTwiml,
   handoffRecipientBridgeTwiml,
   handoffRecipientTwiml,
+  twimlDocument,
 } from "./handoff-twiml.ts";
 
 test("normal handoff holds the caller and requires recipient acceptance", () => {
@@ -51,4 +52,33 @@ test("handoff TwiML XML-escapes untrusted text and provides a voicemail fallback
   });
   assert.match(fallback, /<Record maxLength="120"/);
   assert.match(fallback, /couldn't reach someone live/i);
+});
+
+test("call-modification payloads are complete documents, not bare fragments", () => {
+  // Twilio's REST call-modification API rejects a rootless fragment as invalid
+  // TwiML and hangs up. Every builder handed to updateActiveCall must survive
+  // twimlDocument() as a single-rooted document.
+  const fragments = [
+    handoffCallerTwiml({ conferenceName: "c", holdUrl: "https://app.test/hold?id=a" }),
+    handoffFallbackTwiml({
+      recordDoneUrl: "https://app.test/recording-done",
+      recordingStatusUrl: "https://app.test/recording",
+    }),
+    "<Hangup/>",
+  ];
+  for (const fragment of fragments) {
+    assert.doesNotMatch(fragment, /<Response>/, "builders must stay fragments");
+    const doc = twimlDocument(fragment);
+    assert.match(doc, /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<Response>/);
+    assert.match(doc, /<\/Response>$/);
+    assert.equal(doc.match(/<Response>/g)?.length, 1);
+  }
+});
+
+test("the caller is moved into the conference, never hung up", () => {
+  const doc = twimlDocument(
+    handoffCallerTwiml({ conferenceName: "handoff-x", holdUrl: "https://app.test/hold?id=a" })
+  );
+  assert.match(doc, /<Conference[^>]*>handoff-x<\/Conference>/);
+  assert.doesNotMatch(doc, /<Hangup/);
 });

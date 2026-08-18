@@ -1,6 +1,9 @@
 import "server-only";
 
+import { twimlDocument } from "./handoff-twiml";
+
 export {
+  twimlDocument,
   handoffCallerTwiml,
   handoffFallbackTwiml,
   handoffHoldTwiml,
@@ -19,10 +22,9 @@ export function xmlEscape(text: string): string {
 }
 
 export function twimlResponse(body: string): Response {
-  return new Response(
-    `<?xml version="1.0" encoding="UTF-8"?>\n<Response>${body}</Response>`,
-    { headers: { "Content-Type": "text/xml" } }
-  );
+  return new Response(twimlDocument(body), {
+    headers: { "Content-Type": "text/xml" },
+  });
 }
 
 const VOICE = `voice="Polly.Matthew-Neural"`;

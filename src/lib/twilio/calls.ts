@@ -2,6 +2,8 @@ import "server-only";
 
 import { env } from "@/lib/env";
 
+import { twimlDocument } from "./handoff-twiml";
+
 /**
  * Outbound voice calls over the Twilio REST API (thin raw-fetch wrapper,
  * same style as numbers.ts / sms.ts). Used by the "Test my AI" demo: we
@@ -83,7 +85,13 @@ export async function createOutboundCall(opts: {
 
 /** Replace an active call's instructions. This is the handoff control point:
  * the caller leaves the AI SIP leg and waits in our Twilio conference before
- * we ever ring a staff member. */
+ * we ever ring a staff member.
+ *
+ * `twiml` is a fragment of verbs, exactly like the webhook builders produce.
+ * It MUST be wrapped in `<Response>` before it reaches Twilio: the REST
+ * call-modification API rejects a rootless fragment as invalid TwiML and
+ * responds by hanging up the call — which silently killed the caller the
+ * instant we tried to move them into the handoff conference. */
 export async function updateActiveCall(opts: {
   callSid: string;
   twiml: string;
@@ -91,7 +99,7 @@ export async function updateActiveCall(opts: {
   const auth = authHeader();
   if (!auth) return { ok: false, error: "twilio_not_configured" };
 
-  const body = new URLSearchParams({ Twiml: opts.twiml });
+  const body = new URLSearchParams({ Twiml: twimlDocument(opts.twiml) });
   const res = await fetch(
     `${API}/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls/${encodeURIComponent(opts.callSid)}.json`,
     {
