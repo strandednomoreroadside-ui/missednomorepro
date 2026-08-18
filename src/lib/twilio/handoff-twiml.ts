@@ -19,7 +19,7 @@ const VOICE = `voice="Polly.Matthew-Neural"`;
  * This is the same Twilio-hosted service Twilio itself uses as the default
  * conference hold music. Change the vibe by swapping the bucket:
  * ambient | classical | electronica | guitars | rock | soft-rock */
-const HOLD_MUSIC_URL = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient";
+const HOLD_MUSIC_URL = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.soft-rock";
 
 export function handoffCallerTwiml(opts: { conferenceName: string }): string {
   return (

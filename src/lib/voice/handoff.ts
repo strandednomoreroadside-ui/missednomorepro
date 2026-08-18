@@ -42,10 +42,11 @@ type HandoffRow = {
 };
 
 /** How long the agent's closing sentence gets to finish before the caller is
- * moved to hold music. Long enough for "let me get someone on the line for
- * you — one moment" at the tuned voice speed, short enough that the caller
- * isn't left hanging. Raise it if the agent still gets clipped. */
-const AGENT_SPEECH_TAIL_MS = 3000;
+ * moved to hold music. Tuned by ear on live calls: 3s felt draggy, 2s lands
+ * the handoff line without a dead gap. It also delays the recipient's ring by
+ * the same amount, since the caller goes on hold first. Raise it if a longer
+ * closing line starts getting clipped. */
+const AGENT_SPEECH_TAIL_MS = 2000;
 
 const ACTIVE_OUTCOMES: HandoffOutcome[] = [
   "starting",
