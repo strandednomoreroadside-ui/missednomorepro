@@ -18,7 +18,16 @@ export async function parseValidTwilioRequest(
     return null;
   }
 
-  const form = await request.formData();
+  // A body Twilio could never have sent (missing or non-form Content-Type) is
+  // not a Twilio request. formData() throws on those, and an unhandled throw
+  // here turns every stray bot probe of a public webhook URL into a 500 + alert.
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    console.warn("[twilio] webhook body was not form-encoded — rejecting");
+    return null;
+  }
   const params: Record<string, string> = {};
   for (const [key, value] of form.entries()) {
     if (typeof value === "string") params[key] = value;
