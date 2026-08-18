@@ -20,28 +20,51 @@ export function ProductShowcase() {
     <div className="mt-12 grid auto-rows-[minmax(0,1fr)] gap-5 lg:grid-cols-6">
       {/* Analytics — wide */}
       <Reveal className="lg:col-span-4">
-        <Tile title="Live revenue dashboard" icon={DollarSign} sub="Every call scored. Every dollar tracked.">
+        <Tile
+          title="Revenue dashboard"
+          icon={DollarSign}
+          sub="Every call scored. Every dollar tracked."
+          badge="Sample data"
+          badgeTone="muted"
+          visualLabel="Sample revenue dashboard showing 128 calls, 100% answer rate, 41 booked, $18.4k recovered — illustrative, not a real customer's numbers."
+        >
           <AnalyticsMock />
         </Tile>
       </Reveal>
 
       {/* Smart quote — tall-ish */}
       <Reveal className="lg:col-span-2" delay={80}>
-        <Tile title="Deterministic quotes" icon={DollarSign} sub="Real prices, computed — never guessed.">
+        <Tile
+          title="Deterministic quotes"
+          icon={DollarSign}
+          sub="Real prices, computed — never guessed."
+          visualLabel="Example quote breakdown: Zone 2 dispatch $65, battery jump $50, late-night window $20, total $135 — computed server-side from owner-approved rates and driving distance."
+        >
           <QuoteMock />
         </Tile>
       </Reveal>
 
       {/* Unified inbox — teases Phase 10 */}
       <Reveal className="lg:col-span-3" delay={40}>
-        <Tile title="Unified inbox" icon={Inbox} sub="Calls, texts & web chat — one AI brain." badge="New">
+        <Tile
+          title="Unified inbox"
+          icon={Inbox}
+          sub="Calls, texts & web chat — one AI brain."
+          badge="New"
+          visualLabel="Example text conversation: a returning customer asks about a lockout downtown, and the AI replies with the exact price and offers to dispatch."
+        >
           <InboxMock />
         </Tile>
       </Reveal>
 
       {/* Pipeline kanban */}
       <Reveal className="lg:col-span-3" delay={120}>
-        <Tile title="Lead pipeline" icon={ArrowUpRight} sub="Auto-advanced as the AI quotes & books.">
+        <Tile
+          title="Lead pipeline"
+          icon={ArrowUpRight}
+          sub="Auto-advanced as the AI quotes & books."
+          visualLabel="Example lead pipeline board showing 6 new leads, 4 quoted, 3 scheduled, and 9 done."
+        >
           <PipelineMock />
         </Tile>
       </Reveal>
@@ -54,12 +77,18 @@ function Tile({
   sub,
   icon: Icon,
   badge,
+  badgeTone = "cyan",
+  visualLabel,
   children,
 }: {
   title: string;
   sub: string;
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   badge?: string;
+  badgeTone?: "cyan" | "muted";
+  /** Descriptive label for the mock visual below, exposed via role="img" so
+   *  screen readers and AI crawlers get the after-state, not raw fragments. */
+  visualLabel?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -75,12 +104,18 @@ function Tile({
           </div>
         </div>
         {badge && (
-          <span className="shrink-0 rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
+          <span
+            className={
+              badgeTone === "muted"
+                ? "shrink-0 rounded-full border border-border bg-secondary/50 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-steel"
+                : "shrink-0 rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan"
+            }
+          >
             {badge}
           </span>
         )}
       </div>
-      <div className="p-5" aria-hidden>
+      <div className="p-5" role={visualLabel ? "img" : undefined} aria-label={visualLabel} aria-hidden={visualLabel ? undefined : true}>
         {children}
       </div>
     </div>

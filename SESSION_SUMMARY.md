@@ -1,99 +1,136 @@
-# Session Summary — Missed No More Pro (June 30, 2026 · Voice Fast Tier + Membership shipped + Social Studio scaffolded)
+# Session Summary — Missed No More Pro (Aug 14, 2026 · Site-audit fixes shipped)
 
-**All shipped, committed, and pushed.** Voice moved to GPT-4.1 Fast Tier with
-ZIP/state pronunciation fixes; the RED_TEAM launch gate passed; the last clean
-core feature (customer memberships) is built and live; and a separate Social
-Studio product was scaffolded to its own repo.
+**All shipped, committed, and pushed directly to `main`** from a mobile Claude
+Code session. A third-party site audit (heycatch.ai) scored the marketing
+site; every below-max finding that could be fixed from the repo was fixed.
+Two things are researched but NOT built: a JobNimbus/ServiceTitan CRM
+integration (see below) and nothing else pending.
 
 **Commits on `main`:**
-- `8f5beae` — Voice: GPT-4.1 Fast Tier + ZIP/state TTS fixes (TUNING_VERSION 5)
-- `7c7cb08` — Membership: customer recurring plans (Phase 12, Elite)
+- `d006286` — Site-audit pass: hero wedge, real `/pricing` + `/about`, CTA
+  hierarchy, FAQ/SEO gaps
+- `86c6cac` — Clarify founding-offer wording (named the actual free add-on
+  instead of "every add-on")
 
-build ✅ · typecheck ✅ · pushed ✅ · membership migration applied ✅
+build ✅ · typecheck ✅ · pushed ✅ · no migration needed for either commit
 
 ---
 
 ## ▶ Next session — start here
 
-**The next build is the Social Studio, which is a SEPARATE project in its own
-folder/repo:** `C:\Users\Stran\Desktop\mnmp-social-studio`. Open a new Claude
-Code session **rooted in that folder** (not this one). It's self-contained:
-`README.md` (status + operator setup), `docs/BUILD_PLAN.md` (full spec),
-`supabase/migrations/0001_init.sql` (14-table schema), `.env.example`,
-`supabase/seed.sql` (MNMP brand kit). See memory `social-studio-separate-product`.
+### Operator items still open (not code)
+- **Re-run the heycatch.ai audit** against the live site once Vercel has
+  redeployed, to confirm the score deltas on D1.1, D1.2, D1.4, D1.6, D2.2,
+  D2.4, D3.1, D3.3, D5.1, D5.3, D5.5, and "Brief fit."
+- **Send 2-3 real testimonials** (name, trade, city, quote) — this is the
+  single biggest lever left (D3.2 was 1/7, the lowest-scoring finding on the
+  whole audit, and can't be fixed with more code, only real customer proof).
+- **Send your name, a headshot, and your LinkedIn URL** for `/about` — the
+  page is written to drop them in without a rewrite (see the comment near
+  the top of `src/app/about/page.tsx`).
+- **Product Hunt / press / review-site presence** (D3.5, was 0/3) — nothing
+  to build until a real listing or mention exists.
 
-For the core SaaS, nothing is pending — it's feature-complete and past its launch
-gate. The highest-leverage work is customer acquisition (record the demo video,
-first signups), not more features.
+### JobNimbus / ServiceTitan integration — researched, not built
+Operator asked what it'd take to add these (closing the "no native
+integrations" objection from ICP2 reviewers). Findings, in case this gets
+picked up next session:
 
-### Operator items still open here (not code)
-- **Record the demo video** — follow `docs/demo-video-script.md`. Place a warm-up
-  "Test my AI" call first so the agent re-syncs to v5 (Fast Tier), then record.
-- **Watch Fast Tier cost** — `model_high_priority: true` bills higher per message.
-  Confirm voice margin still clears ~70% over the first real calls; revert is one
-  line (`MODEL_HIGH_PRIORITY = false` in `src/lib/voice/retell.ts`).
-- **Membership live test** — on an Elite-entitled tenant: create a plan at
-  `/dashboard/membership`, enroll a contact from their contact page, send a
-  renewal link, confirm the Stripe link texts and the next-renewal date advances.
+- **Quick win available today, zero new code:** MNMP already ships generic
+  outbound webhooks (`/dashboard/integrations`, Professional+, fires on
+  `lead.created`/`appointment.booked`/`job.completed`/`payment.received`),
+  and both JobNimbus and ServiceTitan already have Zapier apps with
+  "Create Contact"/"New Booking" actions. A short setup guide for each
+  (docs, no code) would let customers wire this up immediately.
+- **JobNimbus (native, ~1 build session):** self-serve per-customer bearer
+  API key, no partner approval needed. Endpoints: `/contacts`, `/jobs`,
+  `/tasks`, `/estimates`, `/invoices` at `app.jobnimbus.com/api1/`. Docs are
+  thin (Postman collection only, no sandbox, unpublished rate limits — graded
+  "C" by third-party API trackers), so expect live trial-and-error. Maps
+  cleanly onto two patterns already in the codebase: encrypted per-business
+  credential storage (the `calendar_connections` pattern from Google
+  Calendar) and the retry/backoff HTTP delivery already in
+  `src/lib/webhooks/deliver.ts`. Recommended scope: **push-only**
+  (MNMP → JobNimbus, new leads/jobs land there automatically) — doesn't touch
+  the live call-answering path, so no risk to the working AI receptionist.
+  Pulling JobNimbus data into MNMP's CRM for caller lookup is a separate,
+  riskier project (touches `contacts`, needs real dedup) — not recommended
+  as a first step.
+- **ServiceTitan: a business decision, not an engineering one, yet.** Access
+  is gated behind a formal App Marketplace Partner Program — signed
+  agreement, an Information Security Review, tiered annual dues, and either
+  a per-tenant connection fee or revenue share. No published approval
+  timeline. Recommend validating real demand (e.g. a "request this
+  integration" link) before spending partner-program money — ServiceTitan
+  customers skew toward the larger multi-crew operations that sit past
+  MNMP's declared "1–15 person, not enterprise" positioning.
+- **Recommended order if this gets picked up:** (1) write the two Zapier
+  guides, (2) build the native JobNimbus push integration, (3) hold
+  ServiceTitan until a paying customer specifically asks.
 
 ---
 
 ## What shipped this session
 
-### 1. Voice: GPT-4.1 Fast Tier + pronunciation fixes (`8f5beae`)
-Addressed the ATTENTION.md voice items:
-- **Latency** — was on `gpt-4.1` Standard pool; added `model_high_priority: true`
-  in `src/lib/voice/retell.ts` → Retell **Fast Tier** (dedicated high-priority
-  pool, lower latency, higher cost). Verified the field against retell-sdk.
-- **ZIP read as "forty-four thousand"** — `src/lib/voice/prompt.ts` speaking rule
-  now reads ZIPs digit-by-digit, spaced (`4 4 1 4 2`).
-- **"Cleveland OCH"** — rule to always write the state's full name ("Cleveland,
-  Ohio"), so the TTS never sees the 2-letter code.
-- `TUNING_VERSION` 4 → 5 forces a lazy agent re-sync on the next call.
+### 1. Site-audit fixes (`d006286`)
+A professional site audit (positioning, conversion clarity, trust, pricing,
+SEO dimensions) was worked dimension-by-dimension, lowest-scoring first,
+since the audit page had no action plan to follow. Every finding scored
+below its max was reviewed; only those with an actual described defect were
+touched (three findings — D2.1, D2.3, D2.5 — were below max but had purely
+positive one-line findings with nothing to fix, so were left alone).
 
-### 2. RED_TEAM launch gate — PASSED
-Operator ran all 25 calls: **all 15 hard-rule calls green at 0% pricing
-hallucination.** Verified the answer key's math matches the live `calculateQuote`
-engine before the run (zones, free-tow-miles, overnight surcharge window all
-reproduce). Stripe was already live (June 25), so no flip needed.
+- **Positioning (D1.x):** hero H1 now leads with the deterministic-quote
+  differentiator instead of the category-generic "never miss a call" framing
+  every competitor uses; added the wasted-ad-spend angle for HVAC/plumbing/
+  electrical owners running Google/LSA ads; new FAQ item rebuts the
+  "will the AI fumble a complicated call" objection; plain-language "AI
+  minute" definition next to the plan cards.
+- **Conversion (D2.x):** the site had two competing top-of-funnel CTAs (a
+  "founding access" mailto and a self-serve "Start free trial") — unified to
+  the self-serve path everywhere except the Enterprise "Talk to us" tier,
+  which legitimately needs a sales conversation. Also: `/pricing` and
+  `/about` both 404'd; both are now real pages via a new shared
+  `MarketingShell` component.
+- **Trust (D3.x):** the showcase's mock revenue-dashboard tile now says
+  "Sample data" instead of implying it's live. Real quantity/story/
+  third-party proof (D3.1/D3.2/D3.5) needs actual customers and can't be
+  faked — flagged for the operator, not stubbed with placeholder content.
+- **SEO (D5.x):** found and fixed a real bug along the way — privacy/terms/
+  sms-terms/signup/login were all silently inheriting the root layout's
+  `canonical="/"` instead of pointing at themselves, meaning every one of
+  those pages was telling Google to index the homepage in its place. Added
+  FAQPage JSON-LD schema and `public/llms.txt`.
 
-### 3. Customer membership plans — Phase 12 (`7c7cb08`)
-The last clean unbuilt core feature. Lets a business sell its own customers a
-recurring maintenance/membership plan. **Elite-gated** via the existing
-`membership` feature flag.
-- Migration `supabase/migrations/20260705090000_membership.sql` — `membership_plans`
-  + `customer_memberships` (RLS `is_member`, grants). **Applied.**
-- `src/lib/membership/queries.ts` — types + billing-interval date math.
-- `/dashboard/membership` — plan catalog + MRR/member stats + non-Elite upsell.
-- Contact page — enroll / send-renewal / cancel card (gated).
-- Nav link added.
-- **V1 = "assisted recurring", no Stripe Connect** (keeps margin): renewal reuses
-  the Phase-8 payment-link + SMS flow and rolls `current_period_end` forward one
-  interval. True auto-charge is the documented v2.
+Full finding-by-finding change log with "was" scores was posted in-chat;
+CLAUDE.md's Current State log carries the same detail for future reference.
 
-### 4. Phase 13 (CRM polish) — found already shipped
-LTV (sum of paid payments), VIP tags, and inbound-MMS photos are already on the
-contact detail page. Nothing to build.
+### 2. Founder-offer wording fix (`86c6cac`)
+Operator flagged the founding-offer copy as confusing and suggested "you
+get all the features in the Growth Suite bundle for free." Checked
+`src/lib/billing/addons.ts` first: `growth_suite_bundle` is `retired: true`
+— two of its three original components are already free for every
+customer, not a founder-exclusive perk, so using that name would reintroduce
+the same confusion pointing at a product that doesn't really exist anymore.
+Reworded both the landing pricing banner and the billing-page founder card
+to name the actual current paid add-on (AI Outbound Assistant, "plus
+anything we add later") and adopted the "lifetime of your subscription, as
+long as it stays continuously active" phrasing that was requested.
 
-### 5. Demo video script — `docs/demo-video-script.md`
-Pre-flight gates, recording setup, the exact call script (exercises the voice
-fixes + price guardrail), and the "lead appears on the dashboard" reveal.
-
-### 6. Social Studio — Milestone 1 foundation (separate repo)
-A separate single-user social-automation product, scaffolded at
-`C:\Users\Stran\Desktop\mnmp-social-studio` (own git repo, NOT on GitHub yet).
-Done so far (cloud-account-free): full 14-table schema + RLS, `.env.example`,
-brand-kit seed, README, and the build plan copied in. App shell is the next
-chunk, once the Supabase project exists.
+### 3. JobNimbus/ServiceTitan integration research
+See "Next session — start here" above. Pure research, no code changed.
 
 ---
 
 ## Cross-cutting notes (unchanged)
 - Push to `main` → Vercel auto-deploys; prompt/tool changes re-sync the live
-  Retell agent lazily on the next call.
+  Retell agent lazily on the next call. Neither commit this session touched
+  the voice prompt, so no re-sync is pending from tonight's work.
 - Stripe stays **LIVE** in prod; `.env.local` stays **test**.
-- §5.1 held throughout — the AI never speaks an un-computed number.
+- §5.1 held throughout — the AI never speaks an un-computed number; nothing
+  this session touched voice/pricing logic at all (marketing-site copy and
+  routing only).
 - DB migrations applied by pasting into the Supabase SQL editor (CLI not
-  authenticated).
+  authenticated). Neither commit this session needed one.
 - Parallel cloud sessions can push to GitHub — `git fetch` + reconcile before
   pushing.

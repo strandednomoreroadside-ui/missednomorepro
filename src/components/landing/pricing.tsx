@@ -12,9 +12,17 @@ type Plan = {
   monthly: number | null; // null = custom
   blurb: string;
   minutes: string;
+  approxCalls?: string;
   extras: string[];
   popular?: boolean;
 };
+
+// Rough call-count proxy for the abstract "AI minutes" unit, based on a
+// ~3-minute average call (greet, qualify, quote, book) — an estimate, not a
+// guarantee, and labeled as such next to the definition below.
+const AVG_CALL_MINUTES = 3;
+const approxCalls = (minutes: number) =>
+  `≈${Math.round(minutes / AVG_CALL_MINUTES / 5) * 5} calls/mo`;
 
 const PLANS: Plan[] = [
   {
@@ -22,6 +30,7 @@ const PLANS: Plan[] = [
     monthly: 99,
     blurb: "Solo operators who never want to miss a call",
     minutes: "250 AI minutes",
+    approxCalls: approxCalls(250),
     extras: [
       "Booking, cancel & reschedule",
       "Human transfer + Google Calendar",
@@ -35,6 +44,7 @@ const PLANS: Plan[] = [
     monthly: 199,
     blurb: "Teams that want more leads converted",
     minutes: "500 AI minutes",
+    approxCalls: approxCalls(500),
     extras: ["Lead pipeline + timeline", "AI follow-ups & reminders", "Payment requests + analytics", "3 users"],
   },
   {
@@ -42,6 +52,7 @@ const PLANS: Plan[] = [
     monthly: 349,
     blurb: "Growing teams that dispatch and need insight",
     minutes: "900 AI minutes",
+    approxCalls: approxCalls(900),
     extras: ["Dispatch board + team calendar", "Make & Zapier integrations", "10 users"],
     popular: true,
   },
@@ -50,6 +61,7 @@ const PLANS: Plan[] = [
     monthly: 599,
     blurb: "Higher-volume teams ready for advanced automation",
     minutes: "1,500 AI minutes",
+    approxCalls: approxCalls(1500),
     extras: ["Additional business numbers", "Membership management", "API access", "25 users"],
   },
   {
@@ -61,7 +73,7 @@ const PLANS: Plan[] = [
   },
 ];
 
-export function Pricing() {
+export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
   const [annual, setAnnual] = useState(false);
 
   return (
@@ -74,16 +86,22 @@ export function Pricing() {
 
       <div className="mx-auto mt-8 flex max-w-2xl flex-col items-center gap-4 rounded-2xl border border-cyan/30 bg-cyan/5 px-6 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
         <div>
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan">
-            First ten businesses
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan sm:justify-start">
+            <span>First ten businesses</span>
+            {typeof founderSlotsTaken === "number" && (
+              <span className="rounded-full border border-cyan/40 bg-night/40 px-2 py-0.5 text-cyan">
+                {founderSlotsTaken} of 10 taken
+              </span>
+            )}
           </p>
           <p className="mt-1 font-display text-xl font-semibold text-foreground">
             Founding customers get every add-on free
           </p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             No discount code, no special price — pick any plan below. The first 10 businesses
-            to become paying customers get every current and future add-on included free,
-            for as long as they stay continuously subscribed.
+            to become paying customers get every paid add-on — right now, that&rsquo;s AI Outbound
+            Assistant, plus anything we add later — free for the lifetime of their subscription,
+            as long as it stays continuously active.
           </p>
         </div>
         <a
@@ -124,6 +142,12 @@ export function Pricing() {
         <span className="font-medium text-foreground">7-day free trial</span> on every plan —
         card required, cancel anytime before it ends and you&rsquo;re not charged.
       </p>
+      <p className="mx-auto mt-3 max-w-lg text-center text-xs leading-relaxed text-steel">
+        <span className="font-medium text-foreground">What&rsquo;s an &ldquo;AI minute&rdquo;?</span>{" "}
+        One minute your AI receptionist is actually on the phone talking to a caller — not hold
+        time, not texts. The call counts on each plan below are an estimate based on a ~3-minute
+        average call.
+      </p>
 
       <div id="plans" className="mt-10 scroll-mt-24 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
         {PLANS.map((plan) => {
@@ -152,6 +176,9 @@ export function Pricing() {
                 <li className="flex items-center gap-2 font-medium text-foreground">
                   <Check className="size-3.5 shrink-0 text-cyan" strokeWidth={3} aria-hidden />
                   {plan.minutes}
+                  {plan.approxCalls && (
+                    <span className="font-normal text-muted-foreground">({plan.approxCalls})</span>
+                  )}
                 </li>
                 {plan.extras.map((extra) => (
                   <li key={extra} className="flex items-center gap-2">

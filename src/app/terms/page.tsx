@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Terms of Service",
   description:
     "The terms that govern use of the Missed No More Pro platform.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

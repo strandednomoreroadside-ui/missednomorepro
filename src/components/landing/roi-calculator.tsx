@@ -53,9 +53,12 @@ function Slider({
 }
 
 export function RoiCalculator() {
-  const [missedPerWeek, setMissedPerWeek] = useState(10);
-  const [avgJob, setAvgJob] = useState(150);
-  const [bookRate, setBookRate] = useState(40);
+  // Defaults model an ad-driven HVAC/plumbing/electrical business (paying for
+  // Google/LSA clicks, higher-ticket service calls) — every value is still a
+  // slider the visitor can drag to their own numbers.
+  const [missedPerWeek, setMissedPerWeek] = useState(8);
+  const [avgJob, setAvgJob] = useState(275);
+  const [bookRate, setBookRate] = useState(35);
 
   const monthlyMissedCalls = Math.round(missedPerWeek * WEEKS_PER_MONTH);
   const walkingAway = monthlyMissedCalls * avgJob;
