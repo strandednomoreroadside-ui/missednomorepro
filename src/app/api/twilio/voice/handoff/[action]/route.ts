@@ -12,6 +12,11 @@ import { sayHangupTwiml, twimlResponse } from "@/lib/twilio/twiml";
 
 import { forbidden, parseValidTwilioRequest } from "../../shared";
 
+/** The decline/no-answer path releases the caller and then writes a task and
+ * staff texts; the platform default is too tight for that tail. Matches the
+ * voice tool router. */
+export const maxDuration = 30;
+
 /** Twilio-signed callbacks for the server-owned warm handoff. The only
  * publicly reachable values are an opaque UUID and an action; every action
  * verifies Twilio's signature and cross-checks the recipient CallSid. */
