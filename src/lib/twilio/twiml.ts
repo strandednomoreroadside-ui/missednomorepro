@@ -6,7 +6,6 @@ export {
   twimlDocument,
   handoffCallerTwiml,
   handoffFallbackTwiml,
-  handoffHoldTwiml,
   handoffRecipientBridgeTwiml,
   handoffRecipientTwiml,
 } from "./handoff-twiml";

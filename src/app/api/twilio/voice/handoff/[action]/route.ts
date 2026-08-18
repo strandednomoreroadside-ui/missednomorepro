@@ -3,7 +3,6 @@ import {
   acceptVoiceHandoff,
   failVoiceHandoff,
   getVoiceHandoff,
-  holdHandoffTwiml,
   recipientBridgeTwiml,
   recipientHandoffTwiml,
   updateHandoffRecipientStatus,
@@ -34,8 +33,6 @@ export async function POST(
   const admin = createAdminClient();
   const handoff = await getVoiceHandoff(admin, handoffId);
   if (!handoff) return twimlResponse(sayHangupTwiml("We couldn't complete that handoff."));
-
-  if (action === "hold") return twimlResponse(holdHandoffTwiml(handoffId));
 
   const callSid = form.CallSid ?? "";
   if (action === "recipient") {

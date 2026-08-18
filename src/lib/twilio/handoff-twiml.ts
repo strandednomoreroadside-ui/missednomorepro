@@ -11,18 +11,21 @@ function escapeXml(text: string): string {
 
 const VOICE = `voice="Polly.Matthew-Neural"`;
 
-export function handoffCallerTwiml(opts: { conferenceName: string; holdUrl: string }): string {
+/** Music, not speech, while the caller waits. A spoken hold loop had to use a
+ * generic Twilio voice, which meant a stranger's voice cut in right after the
+ * business's own agent — jarring, and it read as a different company. Music is
+ * neutral and never competes with the agent.
+ *
+ * This is the same Twilio-hosted service Twilio itself uses as the default
+ * conference hold music. Change the vibe by swapping the bucket:
+ * ambient | classical | electronica | guitars | rock | soft-rock */
+const HOLD_MUSIC_URL = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient";
+
+export function handoffCallerTwiml(opts: { conferenceName: string }): string {
   return (
     `<Dial><Conference startConferenceOnEnter="false" endConferenceOnExit="true" ` +
-    `beep="false" waitUrl="${escapeXml(opts.holdUrl)}" waitMethod="POST">` +
+    `beep="false" waitUrl="${escapeXml(HOLD_MUSIC_URL)}" waitMethod="GET">` +
     `${escapeXml(opts.conferenceName)}</Conference></Dial>`
-  );
-}
-
-export function handoffHoldTwiml(holdUrl: string): string {
-  return (
-    `<Say ${VOICE}>Please hold while I connect you with the team.</Say>` +
-    `<Pause length="10"/><Redirect method="POST">${escapeXml(holdUrl)}</Redirect>`
   );
 }
 

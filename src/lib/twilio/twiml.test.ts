@@ -10,10 +10,7 @@ import {
 } from "./handoff-twiml.ts";
 
 test("normal handoff holds the caller and requires recipient acceptance", () => {
-  const caller = handoffCallerTwiml({
-    conferenceName: "handoff-test",
-    holdUrl: "https://app.test/api/twilio/voice/handoff/hold?id=abc",
-  });
+  const caller = handoffCallerTwiml({ conferenceName: "handoff-test" });
   const recipient = handoffRecipientTwiml({
     mode: "normal",
     summary: "Taylor needs a lockout at Main Street.",
@@ -21,7 +18,9 @@ test("normal handoff holds the caller and requires recipient acceptance", () => 
   });
 
   assert.match(caller, /startConferenceOnEnter="false"/);
-  assert.match(caller, /waitUrl=/);
+  // Hold is music, never a second synthetic voice talking over the agent.
+  assert.match(caller, /waitUrl="[^"]*holdmusic/);
+  assert.doesNotMatch(caller, /<Say/);
   assert.match(recipient, /<Gather numDigits="1"/);
   assert.match(recipient, /Press 1 to accept and join the caller, or 2 to decline/);
   assert.match(handoffRecipientBridgeTwiml("handoff-test"), /startConferenceOnEnter="true"/);
@@ -59,7 +58,7 @@ test("call-modification payloads are complete documents, not bare fragments", ()
   // TwiML and hangs up. Every builder handed to updateActiveCall must survive
   // twimlDocument() as a single-rooted document.
   const fragments = [
-    handoffCallerTwiml({ conferenceName: "c", holdUrl: "https://app.test/hold?id=a" }),
+    handoffCallerTwiml({ conferenceName: "c" }),
     handoffFallbackTwiml({
       recordDoneUrl: "https://app.test/recording-done",
       recordingStatusUrl: "https://app.test/recording",
@@ -77,7 +76,7 @@ test("call-modification payloads are complete documents, not bare fragments", ()
 
 test("the caller is moved into the conference, never hung up", () => {
   const doc = twimlDocument(
-    handoffCallerTwiml({ conferenceName: "handoff-x", holdUrl: "https://app.test/hold?id=a" })
+    handoffCallerTwiml({ conferenceName: "handoff-x" })
   );
   assert.match(doc, /<Conference[^>]*>handoff-x<\/Conference>/);
   assert.doesNotMatch(doc, /<Hangup/);

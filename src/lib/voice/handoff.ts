@@ -9,7 +9,6 @@ import { createOutboundCall, updateActiveCall } from "@/lib/twilio/calls";
 import {
   handoffCallerTwiml,
   handoffFallbackTwiml,
-  handoffHoldTwiml,
   handoffRecipientBridgeTwiml,
   handoffRecipientTwiml,
 } from "@/lib/twilio/twiml";
@@ -42,6 +41,12 @@ type HandoffRow = {
   outcome: HandoffOutcome;
 };
 
+/** How long the agent's closing sentence gets to finish before the caller is
+ * moved to hold music. Long enough for "let me get someone on the line for
+ * you — one moment" at the tuned voice speed, short enough that the caller
+ * isn't left hanging. Raise it if the agent still gets clipped. */
+const AGENT_SPEECH_TAIL_MS = 3000;
+
 const ACTIVE_OUTCOMES: HandoffOutcome[] = [
   "starting",
   "holding",
@@ -53,7 +58,7 @@ function appUrl(): string {
   return env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
 }
 
-export function handoffUrl(id: string, action: "hold" | "recipient" | "decision" | "status"): string {
+export function handoffUrl(id: string, action: "recipient" | "decision" | "status"): string {
   return `${appUrl()}/api/twilio/voice/handoff/${action}?id=${encodeURIComponent(id)}`;
 }
 
@@ -161,9 +166,18 @@ export async function startVoiceHandoff(input: {
   }
 
   const handoffId = created.id as string;
+
+  // Let the agent land its sentence. The model speaks "let me get someone on
+  // the line for you" and calls this tool in the same turn, so redirecting the
+  // moment the tool fires chops the line off mid-word. Nothing in the provider
+  // API reports "finished speaking", so we simply give the tail time to play
+  // before the caller leaves the SIP leg. The during-execution filler keeps the
+  // line alive meanwhile, and this is well inside the tool's 20s budget.
+  await new Promise((resolve) => setTimeout(resolve, AGENT_SPEECH_TAIL_MS));
+
   const hold = await updateActiveCall({
     callSid: callResult.data.twilio_call_sid,
-    twiml: handoffCallerTwiml({ conferenceName, holdUrl: handoffUrl(handoffId, "hold") }),
+    twiml: handoffCallerTwiml({ conferenceName }),
   });
   if (!hold.ok) {
     await input.admin
@@ -217,10 +231,6 @@ export async function getVoiceHandoff(
     .eq("id", handoffId)
     .maybeSingle();
   return (data as HandoffRow | null) ?? null;
-}
-
-export function holdHandoffTwiml(handoffId: string): string {
-  return handoffHoldTwiml(handoffUrl(handoffId, "hold"));
 }
 
 export function recipientHandoffTwiml(handoff: HandoffRow): string {
