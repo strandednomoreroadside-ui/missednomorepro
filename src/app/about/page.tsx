@@ -4,7 +4,7 @@ import { ArrowRight, PhoneCall, Route, ShieldCheck } from "lucide-react";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import { ButtonLink } from "@/components/landing/primitives";
 
-const TITLE = "About";
+const TITLE = "Why We Built an AI Receptionist for Service Businesses";
 const DESCRIPTION =
   "Missed No More Pro was built by an operator who got tired of missing calls on the job. Here's why it exists and where it stands today.";
 

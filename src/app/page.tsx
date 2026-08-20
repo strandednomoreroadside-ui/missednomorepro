@@ -180,18 +180,17 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               {founderSlotsTaken} of 10 founding spots taken
             </p>
           )}
-          <h1 className="mt-6 text-5xl font-bold leading-[1.04] tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif] sm:text-6xl">
-            Never miss
-            <br />
-            another call.
-            <span className="text-gradient mt-3 block text-3xl font-semibold leading-tight sm:text-4xl">
-              Every call answered — and quoted at the exact price, never guessed.
+          <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif] sm:text-5xl lg:text-6xl">
+            The only AI receptionist that{" "}
+            <span className="text-gradient">quotes the exact price</span> — never guessed.
+            <span className="mt-3 block text-2xl font-semibold leading-tight text-muted-foreground sm:text-3xl">
+              Every call answered. Every job booked.
             </span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground [font-family:ui-sans-serif,system-ui,sans-serif]">
-            The only AI front desk that computes your price from your own rates, not a made-up
-            number. Missed No More Pro answers your phones 24/7, qualifies the caller, books the
-            job, and follows up by text — then shows you the revenue it saved.
+            Missed No More Pro computes your price from your own rates — not a made-up number —
+            then answers your phones 24/7, qualifies the caller, books the job, and follows up by
+            text. You see exactly what it saved.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <ButtonLink href="/signup" large>
@@ -347,8 +346,7 @@ function MissedCallMath() {
       <Reveal>
         <SectionHeading
           eyebrow="The math of a missed call"
-          title="A missed call isn't a missed call. It's a booked job — for someone else."
-          sub="Running Google or LSA ads? Every missed call burns the ad dollar that made the phone ring."
+          title="Every missed call goes to the next guy on Google."
         />
       </Reveal>
       <div className="mt-12 grid gap-6 sm:grid-cols-3">
@@ -361,6 +359,14 @@ function MissedCallMath() {
           </Reveal>
         ))}
       </div>
+      <Reveal delay={150}>
+        <p className="mx-auto mt-8 max-w-2xl rounded-xl border border-cyan/25 bg-cyan/5 px-6 py-4 text-center text-base font-medium leading-relaxed text-foreground">
+          Running Google or LSA ads?{" "}
+          <span className="text-cyan">
+            Every missed call burns the ad dollar that made the phone ring.
+          </span>
+        </p>
+      </Reveal>
       <Reveal delay={180}>
         <div className="mt-8">
           <p className="mb-4 text-center text-sm text-muted-foreground">
@@ -770,11 +776,26 @@ function SiteFooter() {
               >
                 vs. Answering Service
               </a>
+              <a className="block text-muted-foreground transition-colors hover:text-foreground" href="/vs/rosie">
+                vs. Rosie
+              </a>
+              <a
+                className="block text-muted-foreground transition-colors hover:text-foreground"
+                href="/vs/sameday"
+              >
+                vs. Sameday AI
+              </a>
               <a
                 className="block text-muted-foreground transition-colors hover:text-foreground"
                 href="/ai-receptionist-for-towing"
               >
                 AI for Towing
+              </a>
+              <a
+                className="block text-muted-foreground transition-colors hover:text-foreground"
+                href="/changelog"
+              >
+                Changelog
               </a>
             </div>
             <div className="space-y-2">
