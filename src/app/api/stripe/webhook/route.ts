@@ -6,7 +6,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { syncSubscription } from "@/lib/billing/sync";
 import { clearPaymentFailed, handlePaymentFailed } from "@/lib/billing/dunning";
 import { maybeClaimFounderSlot } from "@/lib/billing/founder";
-import { analytics, getTenantOwnerUserId } from "@/lib/analytics/server";
 import { sendPaymentReceipt, sendSubscriptionReceipt } from "@/lib/email/receipts";
 import { emitWebhookEvent } from "@/lib/webhooks";
 
@@ -55,24 +54,7 @@ export async function POST(req: Request) {
           const sub = await stripe.subscriptions.retrieve(
             String(session.subscription)
           );
-          const synced = await syncSubscription(admin, stripe, sub);
-
-          // HeyCatch business event — best-effort, isolated from billing.
-          if (synced) {
-            try {
-              const ownerId = await getTenantOwnerUserId(admin, synced.tenantId);
-              if (ownerId) {
-                await analytics.setIdentity(ownerId, { plan: synced.plan });
-                await analytics.trackEvent(
-                  "subscription_started",
-                  { plan: synced.plan },
-                  { userId: ownerId }
-                );
-              }
-            } catch (err) {
-              console.error("[stripe-webhook] HeyCatch subscription_started failed:", err);
-            }
-          }
+          await syncSubscription(admin, stripe, sub);
         } else if (session.mode === "payment" && session.payment_status === "paid") {
           // Customer payment (deposit/invoice/payment link) — mark it paid.
           const paymentId = session.metadata?.payment_id;
