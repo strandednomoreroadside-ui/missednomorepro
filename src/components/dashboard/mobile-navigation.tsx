@@ -34,7 +34,6 @@ import {
 
 import { signOut } from "@/app/(auth)/actions";
 import { switchOrganization } from "@/app/dashboard/actions";
-import { SignOutForm } from "@/components/analytics/sign-out-form";
 import { Button } from "@/components/ui/button";
 import { InstallApp } from "@/components/pwa/install-app";
 import { cn } from "@/lib/utils";
@@ -233,11 +232,11 @@ export function MobileNavigation({
 
           <InstallApp />
 
-          <SignOutForm action={signOut}>
+          <form action={signOut}>
             <Button type="submit" variant="outline" className="min-h-11 w-full">
               Sign out
             </Button>
-          </SignOutForm>
+          </form>
         </div>
       </dialog>
     </>

@@ -34,17 +34,6 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: SECURITY_HEADERS },
     ];
   },
-  async redirects() {
-    return [
-      // HeyCatch short-link channel attribution — single lowercase-letter/digit
-      // paths are reserved. No real route uses one (verified against src/app).
-      {
-        source: "/:l([a-z0-9])",
-        destination: "/?utm_source=heycatch&utm_campaign=:l",
-        permanent: false,
-      },
-    ];
-  },
 };
 
 export default withSentryConfig(nextConfig, {

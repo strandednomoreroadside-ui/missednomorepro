@@ -25,8 +25,6 @@ import {
   Webhook,
 } from "lucide-react";
 
-import { Identify } from "@/components/analytics/identify";
-import { SignOutForm } from "@/components/analytics/sign-out-form";
 import { PaymentFailedBanner } from "@/components/billing/payment-failed-banner";
 import { Logo } from "@/components/brand/logo";
 import { MobileNavigation } from "@/components/dashboard/mobile-navigation";
@@ -45,12 +43,6 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-dvh">
-      <Identify
-        userId={user.id}
-        email={user.email}
-        plan={active.organizations.plan}
-        signupDate={user.created_at}
-      />
       {/* ── Sidebar ── */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border/60 bg-navy/20 md:flex">
         <div className="flex h-16 items-center border-b border-border/60 px-5">
@@ -263,11 +255,11 @@ export default async function DashboardLayout({
               </Link>
             )}
             <span className="hidden text-xs text-steel sm:block">{user.email}</span>
-            <SignOutForm action={signOut} className="hidden md:block">
+            <form action={signOut} className="hidden md:block">
               <Button type="submit" variant="ghost" size="sm">
                 Sign out
               </Button>
-            </SignOutForm>
+            </form>
           </div>
         </header>
         <PaymentFailedBanner tenantId={active.organization_id} />

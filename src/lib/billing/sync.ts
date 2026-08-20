@@ -24,7 +24,7 @@ export async function syncSubscription(
   admin: SupabaseClient,
   stripe: Stripe,
   sub: Stripe.Subscription
-): Promise<{ tenantId: string; plan: PlanId | "none" } | null> {
+) {
   // Find the tenant: subscription metadata first, customer metadata as backup.
   let tenantId = sub.metadata?.tenant_id;
   if (!tenantId && typeof sub.customer === "string") {
@@ -33,7 +33,7 @@ export async function syncSubscription(
   }
   if (!tenantId) {
     console.error(`[billing] subscription ${sub.id} has no tenant_id metadata — skipped`);
-    return null;
+    return;
   }
 
   // The subscription carries the base plan item PLUS any add-on items. Find
@@ -118,8 +118,6 @@ export async function syncSubscription(
     entityId: sub.id,
     metadata: { plan, status: sub.status, interval },
   });
-
-  return { tenantId, plan };
 }
 
 /**
