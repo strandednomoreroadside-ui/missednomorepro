@@ -1620,16 +1620,25 @@ const calculateQuoteTool = defineTool(
     }
     if (matched.length === 0 || unmatched.length > 0) {
       const names = bundle.services.map((s) => s.name);
+      // Reading a long catalog out loud is unbearable on a phone call, so past
+      // a handful of services we ask the caller to describe the problem
+      // instead. The model still gets every name in `available_services` and
+      // can map their answer itself. Businesses at or under the threshold keep
+      // the original wording exactly.
+      const SPEAKABLE_LIST_MAX = 8;
+      const say =
+        names.length <= SPEAKABLE_LIST_MAX
+          ? unmatched.length && matched.length
+            ? `I can price these: ${names.join(", ")}. I didn't recognize "${unmatched.join(", ")}" — which of these did you mean?`
+            : `I can price these: ${names.join(", ")}. Which one do you need?`
+          : `I want to make sure I price the right thing — can you tell me in a few words what's going on?`;
       return {
         status: "ok",
         data: {
           ok: false,
           reason: "unknown_service",
           available_services: names,
-          say:
-            unmatched.length && matched.length
-              ? `I can price these: ${names.join(", ")}. I didn't recognize "${unmatched.join(", ")}" — which of these did you mean?`
-              : `I can price these: ${names.join(", ")}. Which one do you need?`,
+          say,
         },
       };
     }

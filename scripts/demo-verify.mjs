@@ -125,12 +125,45 @@ const { data: ps } = await db
   .eq("business_id", biz.id).maybeSingle();
 const { count: zones } = await db
   .from("pricing_zones").select("id", { count: "exact", head: true }).eq("business_id", biz.id);
-const { count: priced } = await db
-  .from("service_pricing").select("id", { count: "exact", head: true }).eq("business_id", biz.id).eq("active", true);
+const { data: pricedRows } = await db
+  .from("service_pricing").select("name").eq("business_id", biz.id).eq("active", true);
+const priced = pricedRows?.length ?? 0;
 const quoting = Boolean(ps?.approved_at && ps.base_lat && zones && priced);
 quoting
   ? ok(`quoting ON — ${priced} priced services, ${zones} zone(s), ${ps.max_service_miles}mi radius`)
   : warn("quoting OFF — AI will say the owner texts a quote");
+
+// matchService (voice/tools/handlers.ts) matches the caller's words against
+// these names by substring, first hit wins. If one name contains another, the
+// nested one silently swallows every request for the longer one — so a caller
+// asking for the pricier service would be quoted the cheaper one. Cheap to
+// check, invisible until it bites on a live call.
+{
+  const names = (pricedRows ?? []).map((r) => r.name);
+  const clashes = [];
+  for (const a of names)
+    for (const b of names)
+      if (a !== b && a.toLowerCase().includes(b.toLowerCase())) clashes.push(`"${b}" swallows "${a}"`);
+  clashes.length
+    ? bad(`service-name collision — ${clashes.join("; ")}`)
+    : ok("no service-name collisions (each service is reachable by name)");
+}
+
+// The engine adds auto_time surcharges on its own and only MENTIONS the
+// conditional ones, so it's worth seeing which is which before a demo call.
+{
+  const { data: sur } = await db
+    .from("pricing_surcharges").select("name, amount, apply_type, window_start, window_end")
+    .eq("business_id", biz.id).eq("active", true);
+  if (!sur?.length) warn("no surcharges configured");
+  else
+    for (const s of sur)
+      ok(
+        s.apply_type === "auto_time"
+          ? `auto surcharge: ${s.name} +$${s.amount} between ${s.window_start} and ${s.window_end}`
+          : `mentioned only: ${s.name} (+$${s.amount}, never auto-added)`
+      );
+}
 
 // 5) Booking (needs a connected Google Calendar).
 const { data: cal } = await db

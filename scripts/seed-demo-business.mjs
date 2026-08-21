@@ -39,29 +39,101 @@ const SERVICE_RADIUS_MILES = 75;
 const PLAN = "starter";
 const DAILY_SPEND_CAP_CENTS = 300; // $3/day
 
+// The catalog a demo caller can ask about. Summit is a full home-services
+// shop — HVAC, plumbing, and electrical — so a prospect testing the line can
+// ask about whatever trade they're actually in and still hear a real quote.
+//
+// Naming rules that matter (see matchService in voice/tools/handlers.ts): the
+// caller's words are matched against these names, so each one is SHORT and
+// canonical, and no name is a substring of another (a nested name like
+// "Drain Cleaning" inside "Main Line Drain Cleaning" would silently match the
+// cheaper row first).
 const SERVICES = [
+  // ── HVAC ──
   ["AC Repair", "Diagnose and repair air conditioning that isn't cooling, won't turn on, or is making noise."],
-  ["Furnace & Heating Repair", "Diagnose and repair furnaces and heating systems that won't start or won't hold temperature."],
-  ["Heating & Cooling Tune-Up", "Seasonal maintenance to keep a system running efficiently and catch problems early."],
-  ["Water Heater Repair", "Repair for no hot water, leaks, pilot light, and thermostat problems."],
-  ["Drain Cleaning", "Clear slow or fully clogged sinks, tubs, showers, and main lines."],
-  ["Leak Detection & Repair", "Find and fix hidden water leaks under sinks, behind walls, and at fixtures."],
-  ["Toilet Repair", "Fix running, clogged, or leaking toilets."],
-  ["Garbage Disposal Repair", "Repair or replace a jammed, humming, or leaking disposal."],
-  ["Emergency After-Hours Service", "Urgent nights, weekends, and holiday service calls."],
+  ["Furnace Repair", "Diagnose and repair a furnace that won't start, short cycles, or won't hold temperature."],
+  ["Heat Pump Repair", "Diagnose and repair heat pumps that aren't heating or cooling properly."],
+  ["AC Tune Up", "Seasonal air-conditioning maintenance to keep the system efficient and catch problems early."],
+  ["Furnace Tune Up", "Seasonal heating maintenance, including a safety and carbon-monoxide check."],
+  ["Thermostat Installation", "Install and configure a new programmable or smart thermostat."],
+  ["Duct Repair", "Seal and repair leaking, disconnected, or damaged ductwork."],
+  // ── Plumbing ──
+  ["Drain Cleaning", "Clear a slow or fully clogged sink, tub, shower, or floor drain."],
+  ["Main Line Hydro Jetting", "High-pressure cleaning of a main sewer line for repeat clogs and root intrusion."],
+  ["Water Heater Repair", "Repair for no hot water, leaks, pilot light, thermostat, and heating-element problems."],
+  ["Toilet Repair", "Fix a running, clogged, or leaking toilet."],
+  ["Faucet Installation", "Install a new kitchen, bathroom, or tub faucet."],
+  ["Garbage Disposal Replacement", "Replace a jammed, humming, or leaking disposal using the existing connections."],
+  ["Sump Pump Replacement", "Replace a failed or failing sump pump before the next heavy rain."],
+  ["Leak Detection", "Locate a hidden water leak under a sink, behind a wall, or beneath a slab."],
+  ["Pipe Repair", "Repair a burst, cracked, or frozen water line."],
+  // ── Electrical ──
+  ["Outlet Installation", "Install or replace an interior, exterior, or GFCI outlet."],
+  ["Ceiling Fan Installation", "Mount and wire a new ceiling fan, including replacing an existing fixture."],
+  ["Light Fixture Installation", "Install a new interior or exterior light fixture."],
+  ["Circuit Breaker Replacement", "Replace a tripping, worn, or failed breaker in an existing panel."],
+  ["Electrical Troubleshooting", "Track down dead outlets, flickering lights, and repeat breaker trips."],
 ];
 
-// Flat, all-in pricing so a quote is a single clean number the AI reads back.
+// Flat, all-in labor pricing so a quote reads back as one clean number, which
+// is what the FAQ ("flat, all-in rate quoted before we start") promises.
+// Figures are mid-range against 2026 national cost guides, nudged slightly
+// under the national average for the Cleveland market. Deliberately absent:
+// full system replacements (AC, furnace, electrical panel), which the FAQ
+// sends to a free in-home assessment — a real shop can't flat-rate those, and
+// pretending to would make the demo LESS believable, not more.
+//
+// `variable_part` is for jobs where the fee is labor and the customer's chosen
+// hardware is extra: the AI quotes the exact labor total and discloses "plus
+// the cost of the {part}, confirmed before dispatch" — never guessing at it.
 const PRICING = [
-  { name: "AC Repair", service_fee: 189 },
-  { name: "Furnace & Heating Repair", service_fee: 189 },
-  { name: "Heating & Cooling Tune-Up", service_fee: 99 },
-  { name: "Water Heater Repair", service_fee: 225 },
-  { name: "Drain Cleaning", service_fee: 149 },
-  { name: "Leak Detection & Repair", service_fee: 199 },
-  { name: "Toilet Repair", service_fee: 159 },
-  { name: "Garbage Disposal Repair", service_fee: 139 },
-  { name: "Emergency After-Hours Service", service_fee: 289 },
+  // ── HVAC ── (repairs $150–$650; AC avg ~$319, furnace avg ~$268)
+  { name: "AC Repair", service_fee: 249 },
+  { name: "Furnace Repair", service_fee: 239 },
+  { name: "Heat Pump Repair", service_fee: 269 },
+  { name: "AC Tune Up", service_fee: 119 },          // guides: $89–$179
+  { name: "Furnace Tune Up", service_fee: 119 },     // guides: $75–$200
+  { name: "Thermostat Installation", service_fee: 129, variable_part: "thermostat" },
+  { name: "Duct Repair", service_fee: 299 },
+  // ── Plumbing ──
+  { name: "Drain Cleaning", service_fee: 189 },      // guides: $150–$400
+  { name: "Main Line Hydro Jetting", service_fee: 449 }, // guides: $350–$1,000
+  { name: "Water Heater Repair", service_fee: 279 }, // guides: $150–$750
+  { name: "Toilet Repair", service_fee: 179 },       // guides: $130–$310
+  { name: "Faucet Installation", service_fee: 159, variable_part: "faucet" },
+  { name: "Garbage Disposal Replacement", service_fee: 229, variable_part: "disposal" },
+  { name: "Sump Pump Replacement", service_fee: 349, variable_part: "pump" },
+  { name: "Leak Detection", service_fee: 199 },
+  { name: "Pipe Repair", service_fee: 329 },
+  // ── Electrical ──
+  { name: "Outlet Installation", service_fee: 189 }, // guides: $100–$450
+  { name: "Ceiling Fan Installation", service_fee: 229 }, // guides: $150–$500
+  { name: "Light Fixture Installation", service_fee: 169 },
+  { name: "Circuit Breaker Replacement", service_fee: 249 }, // guides: $100–$400
+  { name: "Electrical Troubleshooting", service_fee: 179 },
+];
+
+// Distance-banded trip charge, on top of the flat service fee. This is what
+// makes the demo undeniably LIVE rather than a memorized script: the same
+// service quoted from Lakewood and from Akron comes back as two different
+// totals, because the engine did a real driving-distance lookup. Zone 1 is
+// free, which is how most shops treat their core service area.
+const ZONES = [
+  { zone_number: 1, min_miles: 0, max_miles: 20, dispatch_fee: 0 },
+  { zone_number: 2, min_miles: 20, max_miles: 40, dispatch_fee: 29 },
+  { zone_number: 3, min_miles: 40, max_miles: SERVICE_RADIUS_MILES, dispatch_fee: 59 },
+];
+
+// auto_time surcharges are added by the engine when the call lands in the
+// window; conditional ones are only MENTIONED ("may add"), never added.
+// The after-hours fee replaces the old "Emergency After-Hours Service" line
+// item — as a surcharge it applies to whatever the caller actually needs,
+// instead of being a separate service that would double-charge if quoted
+// alongside the real one. Call the demo line after 7 PM and you hear it.
+const SURCHARGES = [
+  { name: "After-hours service", amount: 99, apply_type: "auto_time", window_start: "19:00", window_end: "07:00" },
+  { name: "Crawl space or attic access", amount: 45, apply_type: "conditional", window_start: null, window_end: null },
+  { name: "A city permit if one is required", amount: 95, apply_type: "conditional", window_start: null, window_end: null },
 ];
 
 const AREAS = ["Cleveland", "Parma", "Lakewood", "Strongsville", "Westlake", "Brook Park", "Independence", "Beachwood"];
@@ -84,10 +156,12 @@ const HOURS = [
 const FAQS = [
   ["Are you licensed and insured?", "Yes. We're fully licensed, bonded, and insured, and every technician is background-checked before they ever come to your home."],
   ["How soon can someone come out?", "In most cases we can get a technician out same day or next day. If it's an emergency, we'll get someone moving right away and the team will confirm your arrival window by text."],
-  ["Do you offer emergency service?", "Yes, we offer emergency service around the clock, including nights, weekends, and holidays. After-hours calls are billed at our emergency rate."],
-  ["Do you charge for estimates or a service call?", "Our repair pricing is a flat, all-in rate quoted before we start, so there are no surprise add-ons. For a full system replacement, the in-home assessment and written quote are free."],
+  ["Do you offer emergency service?", "Yes, we offer emergency service around the clock, including nights, weekends, and holidays. Calls outside normal hours include an after-hours fee, and that's already built into the exact total we quote you, so there's no surprise on the invoice."],
+  ["Do you charge for estimates or a service call?", "Our repair pricing is a flat, all-in rate quoted before we start, so there are no surprise add-ons. There's no trip charge inside our core Cleveland-area service zone; farther out, a small travel fee is included in the total we quote you. For a full system replacement, the in-home assessment and written quote are free."],
   ["What areas do you serve?", "We serve the greater Cleveland area and surrounding communities within about 75 miles, including Parma, Lakewood, Strongsville, Westlake, Brook Park, Independence, and Beachwood."],
-  ["What brands do you work on?", "We service all major residential heating, cooling, and plumbing brands, including Carrier, Trane, Lennox, Goodman, Rheem, Bradford White, and A.O. Smith."],
+  ["What brands do you work on?", "We service all major residential heating, cooling, plumbing, and electrical brands, including Carrier, Trane, Lennox, Goodman, Rheem, Bradford White, A.O. Smith, Square D, and Eaton."],
+  ["What kind of work do you do?", "We're a full home-services company covering three trades: heating and cooling, plumbing, and electrical. That means one call for an AC or furnace repair, a clogged drain or water heater, or an outlet, ceiling fan, or breaker problem."],
+  ["Do you do electrical work?", "Yes. We have licensed electricians on staff for outlets, ceiling fans, light fixtures, breakers, and troubleshooting things like flickering lights or a breaker that keeps tripping. Full panel replacements are quoted after a free in-home assessment."],
   ["Do you offer financing?", "Yes, we offer financing on system replacements and larger repairs, with several term options. The team will walk you through what you qualify for."],
   ["Do you warranty your work?", "Yes. Our workmanship is guaranteed for one year, and any parts we install carry the manufacturer's warranty on top of that."],
   ["How long does a typical repair take?", "Most standard repairs are finished in about one to two hours. If a part has to be ordered, we'll tell you up front and schedule the return visit before we leave."],
@@ -302,21 +376,31 @@ console.log(`✓ pricing base ${base ? `geocoded (${base.lat.toFixed(3)}, ${base
 
 await db.from("pricing_zones").delete().eq("business_id", businessId);
 {
-  // One flat zone covering the whole radius: dispatch is baked into the
-  // all-in service price, so a quote reads back as one clean number.
-  const { error } = await db
-    .from("pricing_zones")
-    .insert({ ...scope, zone_number: 1, min_miles: 0, max_miles: SERVICE_RADIUS_MILES, dispatch_fee: 0 });
-  if (error) die("insert pricing zone", error);
+  const { error } = await db.from("pricing_zones").insert(ZONES.map((z) => ({ ...scope, ...z, active: true })));
+  if (error) die("insert pricing zones", error);
 }
 await db.from("service_pricing").delete().eq("business_id", businessId);
 {
+  // NOTE: a PostgREST bulk insert unions the keys across all rows and sends
+  // null for any a given row is missing, so every column a row might set has
+  // to be either present on every row or safe as null. `free_miles` is pinned
+  // here for that reason; `variable_part` is absent on most rows, where null
+  // is exactly what we want.
   const { error } = await db
     .from("service_pricing")
     .insert(PRICING.map((p) => ({ ...scope, pricing_type: "flat", free_miles: 0, active: true, ...p })));
   if (error) die("insert service pricing", error);
 }
-console.log(`✓ ${PRICING.length} priced services (1 zone, ${SERVICE_RADIUS_MILES}mi)`);
+await db.from("pricing_surcharges").delete().eq("business_id", businessId);
+{
+  const { error } = await db
+    .from("pricing_surcharges")
+    .insert(SURCHARGES.map((s) => ({ ...scope, ...s, active: true })));
+  if (error) die("insert pricing surcharges", error);
+}
+console.log(
+  `✓ ${PRICING.length} priced services, ${ZONES.length} zones, ${SURCHARGES.length} surcharges (${SERVICE_RADIUS_MILES}mi radius)`
+);
 
 // ── 7. Setup approvals (the launch gate reads these) ────────────────
 {
