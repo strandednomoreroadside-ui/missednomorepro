@@ -7,8 +7,15 @@
 // it's visible via the org switcher (their real org stays the default — the
 // app falls back to the FIRST membership by created_at).
 //
-// Idempotent: re-running updates in place rather than duplicating.
-// Run: node scripts/seed-demo-business.mjs
+// Idempotent: re-running updates in place rather than duplicating. This file
+// is the SOURCE OF TRUTH for the demo tenant, so a run overwrites anything
+// hand-edited in the dashboard for it. Dry run by default, like
+// redteam-cleanup.mjs:
+//
+//   node scripts/seed-demo-business.mjs             # show what would change
+//   node scripts/seed-demo-business.mjs --confirm   # actually apply it
+//
+// Then: node scripts/demo-verify.mjs
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 
@@ -153,16 +160,25 @@ const HOURS = [
 // this covers the business basics, the "gotcha" questions, and the safety
 // answer that matters most. Anything not here → search_knowledge_base, then
 // "the team will follow up" (never a guess — master plan §5.1).
+//
+// ORDER MATTERS. prompt.ts inlines only the first MAX_INLINE_FAQS (20) into
+// the system prompt and leaves the rest to search_knowledge_base, and it takes
+// them in created_at order — which a bulk insert would make a coin flip, since
+// every row lands on the same now(). The insert below stamps created_at from
+// this array's index so the ordering is deterministic and the 20 that matter
+// most on a demo call are always the ones the AI knows by heart.
 const FAQS = [
+  ["What kind of work do you do?", "We're a full home-services company covering three trades: heating and cooling, plumbing, and electrical. That means one call for an AC or furnace repair, a clogged drain or water heater, or an outlet, ceiling fan, or breaker problem."],
+  // The honesty answer, kept high in the list so it is always inlined. See
+  // DEMO_AI_NOTES below for the proactive side of this.
+  ["Is this a real company? Can I actually hire you?", "I should be straight with you: Summit Home Services is a sample company we use to demonstrate Missed No More Pro, an A I receptionist for home service businesses. Everything you're hearing is the real product running live, including the prices, but there's no technician for me to send. If you need actual service today, please call a licensed contractor in your area. And if you run a home service business and you'd like this answering your phones, take a look at missed no more pro dot com."],
   ["Are you licensed and insured?", "Yes. We're fully licensed, bonded, and insured, and every technician is background-checked before they ever come to your home."],
   ["How soon can someone come out?", "In most cases we can get a technician out same day or next day. If it's an emergency, we'll get someone moving right away and the team will confirm your arrival window by text."],
   ["Do you offer emergency service?", "Yes, we offer emergency service around the clock, including nights, weekends, and holidays. Calls outside normal hours include an after-hours fee, and that's already built into the exact total we quote you, so there's no surprise on the invoice."],
   ["Do you charge for estimates or a service call?", "Our repair pricing is a flat, all-in rate quoted before we start, so there are no surprise add-ons. There's no trip charge inside our core Cleveland-area service zone; farther out, a small travel fee is included in the total we quote you. For a full system replacement, the in-home assessment and written quote are free."],
   ["What areas do you serve?", "We serve the greater Cleveland area and surrounding communities within about 75 miles, including Parma, Lakewood, Strongsville, Westlake, Brook Park, Independence, and Beachwood."],
-  ["What brands do you work on?", "We service all major residential heating, cooling, plumbing, and electrical brands, including Carrier, Trane, Lennox, Goodman, Rheem, Bradford White, A.O. Smith, Square D, and Eaton."],
-  ["What kind of work do you do?", "We're a full home-services company covering three trades: heating and cooling, plumbing, and electrical. That means one call for an AC or furnace repair, a clogged drain or water heater, or an outlet, ceiling fan, or breaker problem."],
   ["Do you do electrical work?", "Yes. We have licensed electricians on staff for outlets, ceiling fans, light fixtures, breakers, and troubleshooting things like flickering lights or a breaker that keeps tripping. Full panel replacements are quoted after a free in-home assessment."],
-  ["Do you offer financing?", "Yes, we offer financing on system replacements and larger repairs, with several term options. The team will walk you through what you qualify for."],
+  ["What brands do you work on?", "We service all major residential heating, cooling, plumbing, and electrical brands, including Carrier, Trane, Lennox, Goodman, Rheem, Bradford White, A.O. Smith, Square D, and Eaton."],
   ["Do you warranty your work?", "Yes. Our workmanship is guaranteed for one year, and any parts we install carry the manufacturer's warranty on top of that."],
   ["How long does a typical repair take?", "Most standard repairs are finished in about one to two hours. If a part has to be ordered, we'll tell you up front and schedule the return visit before we leave."],
   ["Do I need to be home for the appointment?", "Yes, we need an adult on site to let the technician in, approve the work, and go over what was found when the job is done."],
@@ -171,17 +187,81 @@ const FAQS = [
   ["Do you offer maintenance plans?", "Yes. Our maintenance plan covers two seasonal tune-ups a year, priority scheduling, and a discount on repairs. The team can go over the details with you."],
   ["How often should I service my furnace or AC?", "We recommend a tune-up twice a year, heating in the fall and cooling in the spring. Regular maintenance is the cheapest way to avoid a breakdown in the middle of a heat wave or a cold snap."],
   ["My AC is blowing warm air. What's wrong?", "That's usually a refrigerant issue, a dirty coil, or a failing compressor, but it needs eyes on it to know for sure. Try setting the thermostat to cool and checking that the outdoor unit is running, and we'll get a technician out to diagnose it properly."],
+  ["What should I do if I smell gas?", "Leave the house right away and take everyone with you. Don't flip any light switches, don't use your phone inside, and don't try to find the leak yourself. Once you're safely outside, call 911 or your gas utility's emergency line first, then call us and we'll get a technician out."],
   ["Do you work weekends?", "Yes. We're open Saturdays, and we take emergency calls seven days a week, including Sundays and holidays."],
+  ["Do you offer financing?", "Yes, we offer financing on system replacements and larger repairs, with several term options. The team will walk you through what you qualify for."],
+  // ── Past the inline cap: still answered, via search_knowledge_base. ──
   ["How long have you been in business?", "We've been serving homeowners in the Cleveland area for over fifteen years."],
   ["Can I get a same-day appointment?", "Often, yes, especially if you call early in the day. Tell us what's going on and we'll find you the soonest opening we have."],
   ["Do you offer senior or military discounts?", "Yes, we offer a discount for seniors, active military, and veterans. Just mention it when the technician arrives."],
-  ["What should I do if I smell gas?", "Leave the house right away and take everyone with you. Don't flip any light switches, don't use your phone inside, and don't try to find the leak yourself. Once you're safely outside, call 911 or your gas utility's emergency line first, then call us and we'll get a technician out."],
 ];
 
+// Free-text prompt context (businesses.ai_notes, migration
+// 20260725090000_business_ai_notes.sql). The FAQ above covers a caller who
+// ASKS whether this is real; this covers the caller who never thinks to ask
+// and simply starts behaving like a customer. Stay in character for the
+// prospects — that's the whole point of the demo — but never let a real
+// person walk away believing a technician is coming.
+const DEMO_AI_NOTES = `This phone number is a public demonstration line for Missed No More Pro, an A I receptionist product. Summit Home Services is a realistic sample company, not a real business, and there are no technicians to send.
+
+Almost every caller is a business owner trying the product out, so stay fully in character and give them the real experience: quote exact prices, capture their details, and handle the call the way you would for a real customer.
+
+But never let anyone believe help is actually on the way. If a caller seems to genuinely need service rather than testing the product — they describe a real emergency, they ask when someone will arrive, they try to confirm an appointment, or they ask whether this is real — tell them warmly and plainly that this is a demonstration line, that Summit Home Services is a sample company, and that they should call a licensed local contractor for real help. Say that before the call ends.
+
+Never say a technician is on the way, never give an arrival time, and never promise that a real person will call them back.`;
+
 // ── Helpers ─────────────────────────────────────────────────────────
+// This script REPLACES the demo business's services, pricing, zones,
+// surcharges, hours, areas and FAQs — it is the source of truth for that
+// tenant, so anything hand-edited in /dashboard/pricing or /dashboard/faqs is
+// discarded on a run. That is correct for a seeded demo and disastrous by
+// accident, so it follows the same convention as redteam-cleanup.mjs: dry run
+// by default, and nothing is written without --confirm.
+const CONFIRM = process.argv.includes("--confirm");
+
 function die(step, error) {
   console.error(`\n✗ ${step}: ${error?.message ?? error}`);
   process.exit(1);
+}
+
+const plan = (msg) => console.log(`  · would ${msg}`);
+const done = (msg) => console.log(`  ✓ ${msg}`);
+
+/** Replace every row this seed owns for the business (delete + insert). */
+async function replaceAll(table, rows, label) {
+  const { count } = await db
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId);
+  const existing = count ?? 0;
+  if (!CONFIRM) {
+    plan(
+      `replace ${existing} existing ${label} with the ${rows.length} in this file` +
+        (existing > rows.length ? "  ← net loss of rows, check this is intended" : "")
+    );
+    return;
+  }
+  const { error: delErr } = await db.from(table).delete().eq("business_id", businessId);
+  if (delErr) die(`clear ${label}`, delErr);
+  const { error } = await db.from(table).insert(rows);
+  if (error) die(`insert ${label}`, error);
+  done(`${rows.length} ${label} (replaced ${existing})`);
+}
+
+/** Update the one matching row, or create it. */
+async function upsertOne(table, filter, row, label) {
+  let q = db.from(table).select("id");
+  for (const [col, val] of Object.entries(filter)) q = q.eq(col, val);
+  const { data: existing } = await q.maybeSingle();
+  if (!CONFIRM) {
+    plan(`${existing ? "update" : "create"} ${label}`);
+    return;
+  }
+  const { error } = existing
+    ? await db.from(table).update(row).eq("id", existing.id)
+    : await db.from(table).insert(row);
+  if (error) die(label, error);
+  done(`${label} ${existing ? "updated" : "created"}`);
 }
 
 async function geocode(address) {
@@ -198,11 +278,22 @@ async function geocode(address) {
   return { lat: loc.lat, lng: loc.lng };
 }
 
-console.log("=== Seeding the public demo business ===\n");
+console.log(
+  CONFIRM
+    ? "=== Seeding the public demo business (APPLYING CHANGES) ===\n"
+    : "=== Seeding the public demo business — DRY RUN ===\n" +
+        "    Nothing is written. Re-run with --confirm to apply.\n"
+);
 
 // ── 1. Organization ─────────────────────────────────────────────────
 let { data: org } = await db.from("organizations").select("id").eq("name", ORG_NAME).maybeSingle();
 if (!org) {
+  if (!CONFIRM) {
+    console.log(`  · would create the "${ORG_NAME}" organization and everything under it.`);
+    console.log("\nThe demo tenant doesn't exist yet, so there's nothing else to compare against.");
+    console.log("Re-run with --confirm to build it.\n");
+    process.exit(0);
+  }
   const { data, error } = await db
     .from("organizations")
     // founder_excluded: a demo tenant must never consume a real founder slot.
@@ -211,10 +302,12 @@ if (!org) {
     .single();
   if (error) die("create organization", error);
   org = data;
-  console.log(`✓ organization created (${org.id})`);
+  done(`organization created (${org.id})`);
 } else {
-  await db.from("organizations").update({ plan: PLAN, founder_excluded: true }).eq("id", org.id);
-  console.log(`✓ organization exists (${org.id})`);
+  if (CONFIRM) {
+    await db.from("organizations").update({ plan: PLAN, founder_excluded: true }).eq("id", org.id);
+  }
+  done(`organization exists (${org.id})`);
 }
 const tenantId = org.id;
 
@@ -229,12 +322,17 @@ const { data: member } = await db
   .eq("user_id", owner.id)
   .maybeSingle();
 if (!member) {
-  const { error } = await db
-    .from("organization_members")
-    .insert({ organization_id: tenantId, user_id: owner.id, role: "owner" });
-  if (error) die("add owner membership", error);
+  if (!CONFIRM) plan(`add ${OWNER_EMAIL} as owner`);
+  else {
+    const { error } = await db
+      .from("organization_members")
+      .insert({ organization_id: tenantId, user_id: owner.id, role: "owner" });
+    if (error) die("add owner membership", error);
+    done(`owner membership (${OWNER_EMAIL})`);
+  }
+} else {
+  done(`owner membership (${OWNER_EMAIL})`);
 }
-console.log(`✓ owner membership (${OWNER_EMAIL})`);
 
 // ── 3. Business ─────────────────────────────────────────────────────
 let { data: biz } = await db
@@ -244,6 +342,11 @@ let { data: biz } = await db
   .eq("name", BIZ_NAME)
   .maybeSingle();
 if (!biz) {
+  if (!CONFIRM) {
+    console.log(`  · would create the "${BIZ_NAME}" business and everything under it.`);
+    console.log("\nRe-run with --confirm to build it.\n");
+    process.exit(0);
+  }
   const { data, error } = await db
     .from("businesses")
     .insert({
@@ -261,101 +364,109 @@ if (!biz) {
     .single();
   if (error) die("create business", error);
   biz = data;
-  console.log(`✓ business created (${biz.id})`);
+  done(`business created (${biz.id})`);
 } else {
-  await db
-    .from("businesses")
-    .update({ industry: INDUSTRY, phone: DEMO_NUMBER, address: BASE_ADDRESS, timezone: TIMEZONE, ai_enabled: true })
-    .eq("id", biz.id);
-  console.log(`✓ business exists (${biz.id})`);
+  done(`business exists (${biz.id})`);
 }
 const businessId = biz.id;
 const scope = { tenant_id: tenantId, business_id: businessId };
 
-// Live transfer OFF: this is a public line, so a stranger asking "can I talk to
-// a person?" must not ring the owner's cell. The AI takes a detailed message
-// and the staff alert text still fires, so no lead is lost. Requires migration
-// 20260724090000_transfer_target.sql.
-{
-  const { error } = await db
-    .from("businesses")
-    .update({ transfer_enabled: false })
-    .eq("id", businessId);
+// Business-level flags, applied together:
+//  * transfer OFF — this is a public line, so a stranger asking "can I talk to
+//    a person?" must not ring the owner's cell. The AI takes a detailed
+//    message and the staff alert text still fires, so no lead is lost.
+//    (migration 20260724090000_transfer_target.sql)
+//  * ai_notes — the demo-honesty instruction, see DEMO_AI_NOTES above.
+//    (migration 20260725090000_business_ai_notes.sql)
+if (!CONFIRM) {
+  plan("set industry/phone/address/timezone, AI on, live transfer OFF, and the demo-honesty AI notes");
+} else {
+  const patch = {
+    industry: INDUSTRY,
+    phone: DEMO_NUMBER,
+    address: BASE_ADDRESS,
+    timezone: TIMEZONE,
+    ai_enabled: true,
+    transfer_enabled: false,
+    ai_notes: DEMO_AI_NOTES,
+  };
+  const { error } = await db.from("businesses").update(patch).eq("id", businessId);
   if (error) {
-    console.log(`  ! live transfer not disabled — apply 20260724090000_transfer_target.sql (${error.message})`);
+    // Both flags come from recent migrations; say which one is missing rather
+    // than failing the whole seed over a column that isn't there yet.
+    console.log(`  ! business flags not fully applied (${error.message})`);
+    console.log("    apply 20260724090000_transfer_target.sql + 20260725090000_business_ai_notes.sql");
   } else {
-    console.log("✓ live transfer OFF (lead alert texts unaffected)");
+    done("live transfer OFF, demo-honesty AI notes set (lead alert texts unaffected)");
   }
 }
 
 // ── 4. Services / hours / areas / staff / SMS ───────────────────────
-await db.from("services").delete().eq("business_id", businessId);
-{
-  const { error } = await db
-    .from("services")
-    .insert(SERVICES.map(([name, description]) => ({ ...scope, name, description, active: true })));
-  if (error) die("insert services", error);
-}
-console.log(`✓ ${SERVICES.length} services`);
+await replaceAll(
+  "services",
+  SERVICES.map(([name, description]) => ({ ...scope, name, description, active: true })),
+  "services"
+);
+await replaceAll("business_hours", HOURS.map((h) => ({ ...scope, ...h })), "business-hour rows");
+await replaceAll(
+  "service_areas",
+  AREAS.map((city) => ({ ...scope, type: "city", city, state: "OH", active: true })),
+  "service-area cities"
+);
+await replaceAll(
+  "staff_contacts",
+  [{ ...scope, name: STAFF_NAME, phone: STAFF_PHONE, notify_on_lead: true }],
+  `staff contacts (lead alerts → ${STAFF_PHONE})`
+);
 
-await db.from("business_hours").delete().eq("business_id", businessId);
-{
-  const { error } = await db.from("business_hours").insert(HOURS.map((h) => ({ ...scope, ...h })));
-  if (error) die("insert hours", error);
-}
-console.log("✓ business hours (7 days)");
-
-await db.from("service_areas").delete().eq("business_id", businessId);
-{
-  const { error } = await db
-    .from("service_areas")
-    .insert(AREAS.map((city) => ({ ...scope, type: "city", city, state: "OH", active: true })));
-  if (error) die("insert service areas", error);
-}
-console.log(`✓ ${AREAS.length} service-area cities`);
-
-await db.from("staff_contacts").delete().eq("business_id", businessId);
-{
-  const { error } = await db
-    .from("staff_contacts")
-    .insert({ ...scope, name: STAFF_NAME, phone: STAFF_PHONE, notify_on_lead: true });
-  if (error) die("insert staff contact", error);
-}
-console.log(`✓ lead alerts → ${STAFF_PHONE}`);
-
-{
-  const { data: existing } = await db.from("sms_settings").select("id").eq("business_id", businessId).maybeSingle();
-  const row = {
+await upsertOne(
+  "sms_settings",
+  { business_id: businessId },
+  {
     ...scope,
     ask_consent_on_call: true,
-    consent_script: "Is it okay if we text you updates about your service request? Reply STOP anytime to opt out.",
+    consent_script:
+      "Is it okay if we text you updates about your service request? Reply STOP anytime to opt out.",
     transactional_only: false,
     text_back_enabled: true,
+    // In character, but it names itself as a demo — a prospect who hangs up
+    // gets to SEE the missed-call text-back fire (one of the best moments in
+    // the whole demo) without a real homeowner being left expecting a call.
     text_back_template:
-      "Thanks for calling Summit Home Services! Sorry we missed you — reply here and we'll get you taken care of.",
-  };
-  const { error } = existing
-    ? await db.from("sms_settings").update(row).eq("id", existing.id)
-    : await db.from("sms_settings").insert(row);
-  if (error) die("sms settings", error);
-}
-console.log("✓ SMS settings + missed-call text-back");
+      "Thanks for calling Summit Home Services! Sorry we missed you — reply here and we'll help. " +
+      "Heads up: Summit is a demo company for Missed No More Pro, so this is a sample of the text your business would send.",
+    // OFF, and this one matters. notify_staff with high/emergency urgency fires
+    // dispatchEtaToCustomer, which opens a job and texts the caller "we're on
+    // the way, arriving in about 60 minutes". On a public demo line that is a
+    // promise to a stranger that nobody will keep. The AI still captures the
+    // lead and still alerts staff — only the false arrival promise is gone.
+    dispatch_confirmation_enabled: false,
+  },
+  "SMS settings (text-back on, dispatch ETA OFF)"
+);
 
 // ── 5. FAQ knowledge base ───────────────────────────────────────────
-await db.from("faqs").delete().eq("business_id", businessId);
-{
-  const { error } = await db
-    .from("faqs")
-    .insert(FAQS.map(([question, answer]) => ({ ...scope, question, answer, active: true })));
-  if (error) die("insert faqs", error);
-}
-console.log(`✓ ${FAQS.length} FAQs`);
+// created_at is stamped from the array index so prompt.ts's "first 20 inline"
+// cut is deterministic — see the note on FAQS above.
+const faqBase = Date.now();
+await replaceAll(
+  "faqs",
+  FAQS.map(([question, answer], i) => ({
+    ...scope,
+    question,
+    answer,
+    active: true,
+    created_at: new Date(faqBase + i).toISOString(),
+  })),
+  "FAQs"
+);
 
 // ── 6. Pricing engine (exact quotes, computed server-side) ──────────
 const base = await geocode(BASE_ADDRESS);
-{
-  const { data: existing } = await db.from("pricing_settings").select("id").eq("business_id", businessId).maybeSingle();
-  const row = {
+await upsertOne(
+  "pricing_settings",
+  { business_id: businessId },
+  {
     ...scope,
     base_address: BASE_ADDRESS,
     base_lat: base?.lat ?? null,
@@ -366,71 +477,51 @@ const base = await geocode(BASE_ADDRESS);
     // Quoting turns on only with a geocoded base — otherwise the AI correctly
     // falls back to "the owner will text you an exact quote".
     approved_at: base ? new Date().toISOString() : null,
-  };
-  const { error } = existing
-    ? await db.from("pricing_settings").update(row).eq("id", existing.id)
-    : await db.from("pricing_settings").insert(row);
-  if (error) die("pricing settings", error);
-}
-console.log(`✓ pricing base ${base ? `geocoded (${base.lat.toFixed(3)}, ${base.lng.toFixed(3)})` : "NOT geocoded"}`);
+  },
+  `pricing settings (base ${base ? `geocoded ${base.lat.toFixed(3)}, ${base.lng.toFixed(3)}` : "NOT geocoded — quoting stays off"})`
+);
 
-await db.from("pricing_zones").delete().eq("business_id", businessId);
-{
-  const { error } = await db.from("pricing_zones").insert(ZONES.map((z) => ({ ...scope, ...z, active: true })));
-  if (error) die("insert pricing zones", error);
-}
-await db.from("service_pricing").delete().eq("business_id", businessId);
-{
-  // NOTE: a PostgREST bulk insert unions the keys across all rows and sends
-  // null for any a given row is missing, so every column a row might set has
-  // to be either present on every row or safe as null. `free_miles` is pinned
-  // here for that reason; `variable_part` is absent on most rows, where null
-  // is exactly what we want.
-  const { error } = await db
-    .from("service_pricing")
-    .insert(PRICING.map((p) => ({ ...scope, pricing_type: "flat", free_miles: 0, active: true, ...p })));
-  if (error) die("insert service pricing", error);
-}
-await db.from("pricing_surcharges").delete().eq("business_id", businessId);
-{
-  const { error } = await db
-    .from("pricing_surcharges")
-    .insert(SURCHARGES.map((s) => ({ ...scope, ...s, active: true })));
-  if (error) die("insert pricing surcharges", error);
-}
-console.log(
-  `✓ ${PRICING.length} priced services, ${ZONES.length} zones, ${SURCHARGES.length} surcharges (${SERVICE_RADIUS_MILES}mi radius)`
+await replaceAll("pricing_zones", ZONES.map((z) => ({ ...scope, ...z, active: true })), "pricing zones");
+// NOTE: a PostgREST bulk insert unions the keys across all rows and sends null
+// for any a given row is missing, so every column a row might set has to be
+// either present on every row or safe as null. `free_miles` is pinned here for
+// that reason; `variable_part` is absent on most rows, where null is right.
+await replaceAll(
+  "service_pricing",
+  PRICING.map((p) => ({ ...scope, pricing_type: "flat", free_miles: 0, active: true, ...p })),
+  "priced services"
+);
+await replaceAll(
+  "pricing_surcharges",
+  SURCHARGES.map((x) => ({ ...scope, ...x, active: true })),
+  "surcharges"
 );
 
 // ── 7. Setup approvals (the launch gate reads these) ────────────────
 {
   const now = new Date().toISOString();
-  const { data: existing } = await db.from("setup_states").select("id").eq("business_id", businessId).maybeSingle();
-  const row = { hours_approved_at: now, area_approved_at: now, current_step: "launch" };
-  const { error } = existing
-    ? await db.from("setup_states").update(row).eq("id", existing.id)
-    : await db.from("setup_states").insert({ ...scope, ...row });
-  if (error) die("setup state", error);
+  await upsertOne(
+    "setup_states",
+    { business_id: businessId },
+    { ...scope, hours_approved_at: now, area_approved_at: now, current_step: "launch" },
+    "setup approvals"
+  );
 }
-console.log("✓ setup approvals stamped");
 
 // ── 8. Comped subscription with a hard daily spend cap ──────────────
-{
-  const { data: existing } = await db.from("subscriptions").select("id").eq("tenant_id", tenantId).maybeSingle();
-  const row = {
+await upsertOne(
+  "subscriptions",
+  { tenant_id: tenantId },
+  {
     tenant_id: tenantId,
     plan: PLAN,
     status: "active", // NOT "trialing" — that would force the 30-min trial cap.
     billing_interval: "month",
     overage_enabled: false,
     daily_spend_cap_cents: DAILY_SPEND_CAP_CENTS,
-  };
-  const { error } = existing
-    ? await db.from("subscriptions").update(row).eq("id", existing.id)
-    : await db.from("subscriptions").insert(row);
-  if (error) die("subscription", error);
-}
-console.log(`✓ comped ${PLAN} plan, $${(DAILY_SPEND_CAP_CENTS / 100).toFixed(2)}/day hard cap`);
+  },
+  `comped ${PLAN} plan, $${(DAILY_SPEND_CAP_CENTS / 100).toFixed(2)}/day hard cap`
+);
 
 // ── 9. Attach the demo phone number ─────────────────────────────────
 {
@@ -452,44 +543,54 @@ console.log(`✓ comped ${PLAN} plan, $${(DAILY_SPEND_CAP_CENTS / 100).toFixed(2
     // NOT cosmetic: Twilio still accepts the message and reports "sent", but
     // US carriers silently drop it with error 30034 (unregistered sender), so
     // every confirmation/alert text vanishes with no error in our logs.
+    // This one writes to Twilio, so it waits for --confirm like everything else.
     if (twilioSid && mgSid) {
-      const att = await fetch(`https://messaging.twilio.com/v1/Services/${mgSid}/PhoneNumbers`, {
-        method: "POST",
-        headers: { Authorization: auth, "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ PhoneNumberSid: twilioSid }),
-      });
-      // 409 = already attached, which is success for our purposes.
-      a2pAttached = att.ok || att.status === 409;
-      console.log(`  a2p messaging service: ${a2pAttached ? "attached" : `FAILED (HTTP ${att.status}) — texts will be dropped`}`);
+      if (!CONFIRM) {
+        plan("attach the number to the approved A2P messaging service");
+      } else {
+        const att = await fetch(`https://messaging.twilio.com/v1/Services/${mgSid}/PhoneNumbers`, {
+          method: "POST",
+          headers: { Authorization: auth, "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ PhoneNumberSid: twilioSid }),
+        });
+        // 409 = already attached, which is success for our purposes.
+        a2pAttached = att.ok || att.status === 409;
+        console.log(
+          `  a2p messaging service: ${a2pAttached ? "attached" : `FAILED (HTTP ${att.status}) — texts will be dropped`}`
+        );
+      }
     }
   }
-  const { data: existing } = await db
-    .from("phone_numbers")
-    .select("id")
-    .eq("phone_number", DEMO_NUMBER)
-    .maybeSingle();
-  const row = {
-    ...scope,
-    phone_number: DEMO_NUMBER,
-    twilio_sid: twilioSid,
-    type: "local",
-    a2p_status: a2pAttached ? "approved" : "pending",
-    voice_enabled: true,
-    sms_enabled: true,
-  };
-  const { error } = existing
-    ? await db.from("phone_numbers").update(row).eq("id", existing.id)
-    : await db.from("phone_numbers").insert(row);
-  if (error) die("attach phone number", error);
-  console.log(`✓ ${DEMO_NUMBER} attached${twilioSid ? ` (${twilioSid})` : " (twilio sid not found)"}`);
+  await upsertOne(
+    "phone_numbers",
+    { phone_number: DEMO_NUMBER },
+    {
+      ...scope,
+      phone_number: DEMO_NUMBER,
+      twilio_sid: twilioSid,
+      type: "local",
+      a2p_status: a2pAttached ? "approved" : "pending",
+      voice_enabled: true,
+      sms_enabled: true,
+    },
+    `${DEMO_NUMBER} attached${twilioSid ? ` (${twilioSid})` : " (twilio sid not found)"}`
+  );
 }
 
 // ── 10. Launch (the DB trigger re-validates the whole setup) ────────
-{
+if (!CONFIRM) {
+  plan("mark the business LIVE (the DB setup gate re-validates everything)");
+} else {
   const { error } = await db.from("businesses").update({ status: "live" }).eq("id", businessId);
   if (error) die("launch business (setup gate rejected it)", error);
+  done("business is LIVE");
 }
-console.log("✓ business is LIVE");
 
-console.log(`\n✅ Demo ready. Call ${DEMO_NUMBER} — the AI should answer as "${BIZ_NAME}".`);
-console.log("   First call provisions the Retell agent, so give it a few extra seconds.\n");
+if (!CONFIRM) {
+  console.log("\nDry run only — nothing was written.");
+  console.log("Review the list above, then re-run with --confirm to apply.\n");
+} else {
+  console.log(`\n✅ Demo ready. Call ${DEMO_NUMBER} — the AI should answer as "${BIZ_NAME}".`);
+  console.log("   First call provisions the Retell agent, so give it a few extra seconds.");
+  console.log("   Then: node scripts/demo-verify.mjs\n");
+}

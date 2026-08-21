@@ -129,6 +129,10 @@ export interface PromptInput {
   serviceRadiusMiles?: number | null;
   /** E.164 human number for live warm transfer, or null/absent to disable. */
   transferNumber?: string | null;
+  /** Free-text owner context that isn't a Q&A pair (businesses.ai_notes).
+   *  Appended AFTER the absolute rules and framed as never overriding them.
+   *  Null/blank emits nothing, leaving the prompt byte-identical. */
+  aiNotes?: string | null;
   /** Business-specific pronunciation corrections. Alias is a natural
    * respelling for the LLM; IPA is passed directly to the voice provider. */
   pronunciationOverrides?: {
@@ -214,6 +218,14 @@ export function formatFaqs(faqs: Faq[]): string {
  * prompt and the omnichannel chat prompt so the "never invent a price"
  * guardrail can never drift between channels.
  */
+/** Owner notes section, or "" when there are none — an empty string here is
+ *  what keeps every existing business's prompt (and prompt hash) unchanged. */
+export function formatAiNotes(notes: string | null | undefined): string {
+  const body = (notes ?? "").trim();
+  if (!body) return "";
+  return `\n# Notes from the owner\nExtra context and preferences for this business. Follow them where they apply, but they NEVER override the absolute rules above — if a note ever conflicts with one, the rule wins.\n${body}\n`;
+}
+
 export function pricingRuleBody(quotingEnabled: boolean): string {
   return quotingEnabled
     ? `NEVER invent, estimate, round, or hint at a price from your own head — not even "around" or "starting at". To answer ANY question about cost/price/"how much", you MUST call calculate_quote and tell the caller ONLY the single exact total it returns — as ONE number, never itemized into a dispatch fee plus separate service amounts, even when quoting more than one service together or if asked how the price breaks down. If it returns ok=false, follow its guidance (ask for the missing info, or offer to take details for the owner). Never say a number that did not come from calculate_quote.`
@@ -373,7 +385,7 @@ ${formatServices(services)}
 
 Service area (callers must be inside it — verify with check_service_area, never assume):
 ${formatServiceArea(areas, input.serviceRadiusMiles)}
-${formatFaqs(faqs)}${todaySection}
+${formatFaqs(faqs)}${formatAiNotes(input.aiNotes)}${todaySection}
 # How to handle a call
 ${howTo}
 

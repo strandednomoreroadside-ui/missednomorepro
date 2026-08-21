@@ -185,6 +185,50 @@ export async function deletePronunciationOverride(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/**
+ * Free-text context appended to the voice prompt (businesses.ai_notes).
+ *
+ * This is the one place an owner can tell the receptionist something that
+ * isn't a service, an hour, or a Q&A pair. It is deliberately NOT a way to
+ * change what the AI is allowed to do: the notes are rendered after the
+ * numbered absolute rules and explicitly subordinated to them, so a note
+ * like "just estimate a price if they push" still loses to the §5.1 rule
+ * that every number comes from calculate_quote.
+ *
+ * Owner/admin only, for the same reason as the kill switch — this text is
+ * spoken to every caller.
+ */
+export async function updateAiNotes(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
+  const supabase = await createClient();
+
+  // Blank clears it, which restores the exact prompt the business had before
+  // any note was ever set. Trimmed so whitespace can't leave an empty section.
+  const raw = String(formData.get("ai_notes") ?? "").trim();
+  if (raw.length > 2000) redirect("/dashboard/settings?error=notes_too_long");
+  const notes = raw === "" ? null : raw;
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  await supabase
+    .from("businesses")
+    .update({ ai_notes: notes })
+    .eq("id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  // The notes are part of the prompt, so the agent has to pick them up.
+  await resyncVoiceAgent(active.organization_id, business.id);
+  revalidatePath("/dashboard/settings");
+}
+
 export async function updateAiSwitch(formData: FormData) {
   const { active } = await requireActiveOrg();
   // The AI kill switch silences the whole business's receptionist — owner/admin

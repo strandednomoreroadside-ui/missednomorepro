@@ -38,6 +38,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   connectGoogleCalendar,
   disconnectGoogleCalendar,
+  updateAiNotes,
   updateAiSwitch,
   updateBookingConfirmation,
   updateCallbackIvr,
@@ -100,12 +101,13 @@ export default async function SettingsPage({
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name, ai_enabled, forward_number, transfer_enabled, transfer_number")
+    .select("id, name, ai_enabled, forward_number, transfer_enabled, transfer_number, ai_notes")
     .eq("tenant_id", active.organization_id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   const aiEnabled = (business?.ai_enabled ?? true) as boolean;
+  const aiNotes = (business?.ai_notes ?? "") as string;
   const forwardNumber = (business?.forward_number ?? "") as string;
   const transferEnabled = (business?.transfer_enabled ?? true) as boolean;
   const transferNumber = (business?.transfer_number ?? "") as string;
@@ -334,6 +336,57 @@ export default async function SettingsPage({
               </span>
               <span className="mt-0.5 block text-xs text-steel">
                 Only an owner or admin can change the receptionist switch.
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Bot className="size-4 text-cyan" aria-hidden />
+            Extra instructions for your AI
+          </CardTitle>
+          <CardDescription>
+            Anything that isn&rsquo;t a service, an hour, or a question and
+            answer — house rules, things you don&rsquo;t work on, what to
+            mention on every call. Written in plain English, as if you were
+            training a new receptionist on their first day.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {canManage ? (
+            <form action={updateAiNotes} className="space-y-3">
+              <Textarea
+                name="ai_notes"
+                defaultValue={aiNotes}
+                rows={5}
+                maxLength={2000}
+                placeholder={
+                  "We don't service oil furnaces or mobile homes.\n" +
+                  "Always mention our maintenance plan to anyone booking a tune-up.\n" +
+                  "If someone asks for Dave, he handles commercial jobs only."
+                }
+                aria-label="Extra instructions for your AI"
+              />
+              <p className="text-xs text-steel">
+                These never override your prices, your booking rules, or the
+                rule that your AI always says it&rsquo;s an assistant — those
+                stay locked. Leave it blank to remove the instructions
+                entirely. Saving updates your receptionist on its next call.
+              </p>
+              <Button type="submit">Save</Button>
+            </form>
+          ) : (
+            <div className="rounded-lg border border-border/40 px-3.5 py-3 text-sm">
+              <span className="text-muted-foreground">
+                {aiNotes
+                  ? aiNotes
+                  : "No extra instructions are set."}
+              </span>
+              <span className="mt-1 block text-xs text-steel">
+                Only an owner or admin can change these.
               </span>
             </div>
           )}

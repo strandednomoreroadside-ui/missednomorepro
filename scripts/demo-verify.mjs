@@ -165,6 +165,57 @@ quoting
       );
 }
 
+// prompt.ts inlines only the first 20 FAQs (by created_at) into the system
+// prompt and leaves the rest to search_knowledge_base, which is a slower and
+// less certain path. The seed stamps created_at from its array order so this
+// cut is deterministic — confirm the answers that matter landed inside it.
+{
+  const MAX_INLINE_FAQS = 20;
+  const { data: faqRows } = await db
+    .from("faqs").select("question").eq("business_id", biz.id).eq("active", true)
+    .order("created_at", { ascending: true });
+  const all = faqRows ?? [];
+  const inline = all.slice(0, MAX_INLINE_FAQS);
+  const overflow = all.slice(MAX_INLINE_FAQS);
+  ok(`${all.length} active FAQs — ${inline.length} inlined in the prompt${overflow.length ? `, ${overflow.length} search-only` : ""}`);
+  // The demo-honesty answer has to be one the AI knows by heart.
+  const honesty = all.findIndex((f) => /real company|actually hire/i.test(f.question));
+  if (honesty < 0) bad("no 'is this a real company' FAQ — the demo can't answer honestly if asked");
+  else if (honesty >= MAX_INLINE_FAQS) bad(`the demo-honesty FAQ is #${honesty + 1}, past the inline cut — move it earlier`);
+  else ok(`demo-honesty FAQ is inlined (#${honesty + 1})`);
+  for (const f of overflow) console.log(`      search-only: ${f.question}`);
+}
+
+// The AI's free-text instructions (businesses.ai_notes) — for the demo line
+// this is what stops a genuine caller believing a technician is coming.
+{
+  const { data: b, error } = await db
+    .from("businesses").select("ai_notes, transfer_enabled").eq("id", biz.id).maybeSingle();
+  if (error) warn(`can't read ai_notes — apply 20260725090000_business_ai_notes.sql (${error.message})`);
+  else {
+    b?.ai_notes
+      ? ok(`AI notes set (${b.ai_notes.length} chars) — includes the demo disclosure`)
+      : bad("no AI notes — the AI won't volunteer that this is a demo");
+    b?.transfer_enabled === false
+      ? ok("live transfer OFF — a stranger can't ring the owner's cell")
+      : warn("live transfer is ON — demo callers asking for a human will ring the transfer number");
+  }
+}
+
+// A public demo line must never text a stranger "we're on the way, ETA 60 min".
+{
+  const { data: sms, error } = await db
+    .from("sms_settings").select("dispatch_confirmation_enabled, text_back_enabled")
+    .eq("business_id", biz.id).maybeSingle();
+  if (error) warn(`can't read dispatch settings (${error.message})`);
+  else {
+    sms?.dispatch_confirmation_enabled === false
+      ? ok("dispatch ETA texts OFF — no false 'help is on the way' promise")
+      : bad("dispatch ETA texts are ON — an urgent demo call will promise a stranger a technician");
+    sms?.text_back_enabled ? ok("missed-call text-back on") : warn("missed-call text-back off");
+  }
+}
+
 // 5) Booking (needs a connected Google Calendar).
 const { data: cal } = await db
   .from("calendar_connections").select("id").eq("business_id", biz.id).maybeSingle();

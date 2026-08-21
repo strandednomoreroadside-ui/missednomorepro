@@ -20,13 +20,16 @@ export type AgentBusiness = {
    *  See supabase/migrations/20260724090000_transfer_target.sql. */
   transfer_enabled?: boolean | null;
   transfer_number?: string | null;
+  /** Free-text owner context appended to the prompt.
+   *  See supabase/migrations/20260725090000_business_ai_notes.sql. */
+  ai_notes?: string | null;
 };
 
 /** Every businesses column loadPromptInput reads. Shared so the call sites
  *  (voice webhook, demo route, demo lib, chat) can't silently drift — a
  *  missing column here just disables a feature, with no type error. */
 export const AGENT_BUSINESS_COLUMNS =
-  "id, tenant_id, name, industry, timezone, status, transfer_enabled, transfer_number";
+  "id, tenant_id, name, industry, timezone, status, transfer_enabled, transfer_number, ai_notes";
 
 /** Load the wizard data the prompt builder needs, server-side (admin). */
 export async function loadPromptInput(
@@ -176,6 +179,7 @@ export async function loadPromptInput(
     quotingEnabled: quoting === true,
     serviceRadiusMiles,
     transferNumber,
+    aiNotes: business.ai_notes,
     pronunciationOverrides,
     agent: {
       name: agent.data?.name ?? null,
