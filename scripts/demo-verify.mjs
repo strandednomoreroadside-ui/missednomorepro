@@ -191,7 +191,7 @@ quoting
 {
   const { data: b, error } = await db
     .from("businesses").select("ai_notes, transfer_enabled").eq("id", biz.id).maybeSingle();
-  if (error) warn(`can't read ai_notes — apply 20260725090000_business_ai_notes.sql (${error.message})`);
+  if (error) warn(`can't read ai_notes — apply 20260821090000_business_ai_notes.sql (${error.message})`);
   else {
     b?.ai_notes
       ? ok(`AI notes set (${b.ai_notes.length} chars) — includes the demo disclosure`)

@@ -21,7 +21,7 @@ export type AgentBusiness = {
   transfer_enabled?: boolean | null;
   transfer_number?: string | null;
   /** Free-text owner context appended to the prompt.
-   *  See supabase/migrations/20260725090000_business_ai_notes.sql. */
+   *  See supabase/migrations/20260821090000_business_ai_notes.sql. */
   ai_notes?: string | null;
 };
 

@@ -197,7 +197,7 @@ const FAQS = [
 ];
 
 // Free-text prompt context (businesses.ai_notes, migration
-// 20260725090000_business_ai_notes.sql). The FAQ above covers a caller who
+// 20260821090000_business_ai_notes.sql). The FAQ above covers a caller who
 // ASKS whether this is real; this covers the caller who never thinks to ask
 // and simply starts behaving like a customer. Stay in character for the
 // prospects — that's the whole point of the demo — but never let a real
@@ -377,7 +377,7 @@ const scope = { tenant_id: tenantId, business_id: businessId };
 //    message and the staff alert text still fires, so no lead is lost.
 //    (migration 20260724090000_transfer_target.sql)
 //  * ai_notes — the demo-honesty instruction, see DEMO_AI_NOTES above.
-//    (migration 20260725090000_business_ai_notes.sql)
+//    (migration 20260821090000_business_ai_notes.sql)
 if (!CONFIRM) {
   plan("set industry/phone/address/timezone, AI on, live transfer OFF, and the demo-honesty AI notes");
 } else {
@@ -395,7 +395,7 @@ if (!CONFIRM) {
     // Both flags come from recent migrations; say which one is missing rather
     // than failing the whole seed over a column that isn't there yet.
     console.log(`  ! business flags not fully applied (${error.message})`);
-    console.log("    apply 20260724090000_transfer_target.sql + 20260725090000_business_ai_notes.sql");
+    console.log("    apply 20260724090000_transfer_target.sql + 20260821090000_business_ai_notes.sql");
   } else {
     done("live transfer OFF, demo-honesty AI notes set (lead alert texts unaffected)");
   }

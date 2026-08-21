@@ -21,9 +21,26 @@
 -- re-sync churn.
 -- ════════════════════════════════════════════════════════════════
 
+-- Written idempotently so it is safe to paste twice, and so it matches the
+-- copy-pastable block in docs/pending-migrations.md exactly (the constraint is
+-- named explicitly rather than left to Postgres, so both paths land on the
+-- same name and neither can create a duplicate).
 alter table public.businesses
-  add column ai_notes text
-    check (ai_notes is null or char_length(ai_notes) <= 2000);
+  add column if not exists ai_notes text;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'businesses_ai_notes_check'
+  ) then
+    alter table public.businesses
+      add constraint businesses_ai_notes_check
+      check (ai_notes is null or char_length(ai_notes) <= 2000);
+  end if;
+end $$;
+
+comment on column public.businesses.ai_notes is
+  'Free-text owner context appended to the voice prompt, after (and subordinate to) the absolute rules. Null = nothing is added and the prompt is unchanged.';
 
 -- No RLS/grant changes needed: businesses is already member-managed, and
 -- this column rides the existing policies.
