@@ -86,7 +86,7 @@ Confirmed against the live catalog, July 2026:
 - The only remaining paid add-on is the AI Outbound Assistant at $49/mo.
 - Founder's Offer: the first 10 businesses to go paid get that $49/mo add-on, plus any future paid
   add-on, free for life while subscribed.
-- Plans: Starter $99, Growth $199, Professional $349, Elite $599. Annual is cheaper.
+- Plans: Starter $79, Growth $159, Professional $279, Elite $479. Annual is cheaper.
 - Trial: 7 days, card required, about 30 minutes of talk time. Hard cap, no surprise overage.
 
 Safe value line to publish: "a $49/mo add-on free for life, on top of the ~$116/mo of AI tools every

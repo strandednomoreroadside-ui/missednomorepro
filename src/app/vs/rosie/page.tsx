@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 const COLS = ["Missed No More Pro", "Rosie"];
 const ROWS: ComparisonRow[] = [
-  { label: "Entry price", values: ["from $99/mo", "from $49/mo"] },
+  { label: "Entry price", values: ["from $79/mo", "from $49/mo"] },
   {
     label: "Computes an exact price from your rates + real driving distance",
     values: [true, "Not publicly advertised"],

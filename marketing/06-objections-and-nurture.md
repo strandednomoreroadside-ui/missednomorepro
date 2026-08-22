@@ -42,7 +42,7 @@ Nurture email #2 (pre-trial).
 _Strongest reframe in the deck — see summary._
 
 ### 3. "Too expensive / I'm just a one-man shop."
-**Answer:** One booked job usually covers the whole month. Starter is **$99/mo** — that's less than the
+**Answer:** One booked job usually covers the whole month. Starter is **$79/mo** — that's less than the
 value of a **single** job you'd lose to voicemail. Miss two calls a week and it's not a cost, it's the
 cheapest employee you'll ever hire (one who works 24/7 and never calls in sick). And it's a **hard cap** —
 you'll never get a surprise bill. Run the free trial for 7 days and let it pay for itself before you decide.
@@ -229,7 +229,7 @@ The card auto-charges at the end of day 7, so "convert" here = **activate + don'
 >
 > - Flat monthly price, **hard cap, no per-minute meter, no bill shock.** Hit your cap and calls just
 >   forward to you.
-> - **Starter $99 · Growth $199 · Professional $349 · Elite $599** (annual is cheaper).
+> - **Starter $79 · Growth $159 · Professional $279 · Elite $479** (annual is cheaper).
 > - Cancel in one click before [charge date] and you pay nothing.
 >
 > In [X] days Grace has answered [N] calls and booked [N] jobs for you. Keeping her on is the easy math.

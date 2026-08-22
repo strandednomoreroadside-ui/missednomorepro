@@ -179,7 +179,7 @@ Every email closes on one of the two self-serve CTAs — **never** "book a call 
 
 | They reply | You send |
 |---|---|
-| "How much?" | "Starts at $99/mo flat, hard cap, no surprise per-minute charges. There's a free 7-day trial: https://missednomorepro.com/signup — or hear it first: (440) 644-2423." |
+| "How much?" | "Starts at $79/mo flat, hard cap, no surprise per-minute charges. There's a free 7-day trial: https://missednomorepro.com/signup — or hear it first: (440) 644-2423." |
 | "Is this a bot / does it sound robotic?" | "That's exactly why I'd rather you just call it — (440) 644-2423 — and judge for yourself. Takes a minute." |
 | "We already have an answering service." | "Makes sense — the real difference is a service takes a message; this books the job into your calendar and texts the caller back in seconds, 24/7, no per-call fee. Worth a 60-second listen to compare: (440) 644-2423." |
 | "Not interested." | "Totally fair, {{first_name}} — I'll take you off the list. Appreciate you saying so." *(then suppress/unsubscribe them in GHL immediately, don't wait for the unsubscribe link)* |

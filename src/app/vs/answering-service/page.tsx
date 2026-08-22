@@ -24,7 +24,7 @@ const ROWS: ComparisonRow[] = [
   { label: "Logs every lead in a CRM", values: [true, "Maybe"] },
   { label: "Follows up by text", values: [true, "Maybe"] },
   { label: "Never calls in sick", values: [true, true] },
-  { label: "Monthly cost", values: ["from $99", "$300+"] },
+  { label: "Monthly cost", values: ["from $79", "$300+"] },
 ];
 
 const SECTIONS = [
@@ -34,7 +34,7 @@ const SECTIONS = [
   },
   {
     title: "You're paying for messages, not outcomes",
-    body: "A $300+/mo answering service charges roughly the same whether it books zero jobs or ten. Missed No More Pro starts at $99/mo, and on most plans one recovered job covers the month — because the AI doesn't just take a message, it moves the caller all the way to a booked appointment.",
+    body: "A $300+/mo answering service charges roughly the same whether it books zero jobs or ten. Missed No More Pro starts at $79/mo, and on most plans one recovered job covers the month — because the AI doesn't just take a message, it moves the caller all the way to a booked appointment.",
   },
   {
     title: "No re-entering someone else's notes",
@@ -53,7 +53,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "Is it really cheaper than a $300/mo answering service?",
-    a: "Plans start at $99/mo with a 7-day free trial, and every plan is a hard cap — no surprise overage. If you go over your minutes, calls simply forward to your phone instead of billing you more.",
+    a: "Plans start at $79/mo with a 7-day free trial, and every plan is a hard cap — no surprise overage. If you go over your minutes, calls simply forward to your phone instead of billing you more.",
   },
 ];
 

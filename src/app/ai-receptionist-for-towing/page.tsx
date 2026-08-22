@@ -22,7 +22,7 @@ const ROWS: ComparisonRow[] = [
   { label: "Computes the tow price — hook fee + per-mile", values: [true, false, false] },
   { label: "Finds the nearest shop when the caller has no drop-off in mind", values: [true, false, false] },
   { label: "Books the dispatch and texts staff instantly", values: [true, false, false] },
-  { label: "Monthly cost", values: ["from $99", "$0", "$300+"] },
+  { label: "Monthly cost", values: ["from $79", "$0", "$300+"] },
 ];
 
 const SECTIONS = [

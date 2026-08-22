@@ -19,7 +19,7 @@ _Last updated: July 24 2026._
 - **The highest-leverage lever is the automated "call/hear the AI" demo.** Force *every* prospect through
   "hear it" before the trial ask. A prospect who has heard Grace converts to a card-trial at roughly
   **3–5× the rate** of one who hasn't — and it costs **zero founder time.**
-- **Cash cost is NOT the constraint.** At $99–$349/mo and a blended cash CAC around $40, payback is
+- **Cash cost is NOT the constraint.** At $79–$279/mo and a blended cash CAC around $40, payback is
   ~1 month and LTV:CAC is wildly healthy. We are volume-constrained, not money-constrained.
 - **Scheduling truth:** trials take 7 days to convert. To have 20 *paid* by day 30, **most trials must
   start by ~day 21–23.** The real lead-gen window is ~3 weeks, not 4. Front-load.
@@ -167,7 +167,7 @@ Nine metrics, by funnel stage. Targets are **30-day** unless noted. "Base" = lik
 
 **Efficiency check (not a target, a sanity rail):** blended cash CAC ≈ $500 ad spend ÷ paying ≈ **$40**
 (most customers come from $0 organic/outbound; the paid-attributed subset is higher, ~$125–165 each).
-At $99–$349/mo, **CAC payback ≈ 1 month, LTV:CAC easily 5:1+.** Confirms the constraint is trial volume,
+At $79–$279/mo, **CAC payback ≈ 1 month, LTV:CAC easily 5:1+.** Confirms the constraint is trial volume,
 not money — spend freely inside the $500 to buy demo calls.
 
 ### One-screen weekly dashboard (single Google Sheet or Notion page)

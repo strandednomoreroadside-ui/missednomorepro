@@ -485,7 +485,7 @@ a home. Post **3–4x/week**; quality over frequency.
 > Not here. Every plan is a **flat price with a HARD CAP.** No metered per-minute charges. No overage. No
 > bill shock — ever. If you somehow blow past your plan's minutes, calls just forward to you. That's it.
 >
-> Starter is $99/mo. That's less than one lost job. And there's a free 7-day trial to prove it before you
+> Starter is $79/mo. That's less than one lost job. And there's a free 7-day trial to prove it before you
 > pay a cent past the card on file.
 >
 > `https://missednomorepro.com/signup`

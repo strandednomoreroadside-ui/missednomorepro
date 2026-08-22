@@ -48,18 +48,64 @@ export async function runStripeSetup() {
 
   // ── Products & prices ──────────────────────────────────────────
   // Stripe caps lookup_keys filtering at 10; list all and match in code.
-  const existing = await stripe.prices.list({ limit: 100 });
-  const have = new Set(existing.data.map((p) => p.lookup_key));
+  // Prices are immutable in Stripe, so a plan_limits price change (e.g. the
+  // 20% across-the-board cut) can't edit unit_amount in place. Instead we
+  // detect a mismatch and mint a replacement price with the SAME lookup_key
+  // via transfer_lookup_key — Stripe atomically moves the key over, so every
+  // future checkout (which always resolves the price BY lookup_key) picks up
+  // the new amount immediately. Existing subscribers keep their current
+  // price/amount until they change plans — that's intentional, not a bug.
+  const existing = await stripe.prices.list({ limit: 100, active: true });
+  const byLookupKey = new Map(existing.data.filter((p) => p.lookup_key).map((p) => [p.lookup_key!, p]));
+
+  async function ensurePrice(opts: {
+    product: string;
+    key: string;
+    amount: number;
+    interval: "month" | "year";
+    metadata: Record<string, string>;
+    label: string;
+  }) {
+    const current = byLookupKey.get(opts.key);
+    if (current) {
+      if (current.unit_amount === opts.amount) {
+        log.push(`= ${opts.label}: already $${(opts.amount / 100).toFixed(2)}`);
+        return current;
+      }
+      const fresh = await stripe.prices.create({
+        product: opts.product,
+        currency: "usd",
+        unit_amount: opts.amount,
+        recurring: { interval: opts.interval },
+        lookup_key: opts.key,
+        transfer_lookup_key: true,
+        metadata: opts.metadata,
+      });
+      await stripe.prices.update(current.id, { active: false });
+      byLookupKey.set(opts.key, fresh);
+      log.push(
+        `~ ${opts.label}: $${((current.unit_amount ?? 0) / 100).toFixed(2)} → $${(opts.amount / 100).toFixed(2)} (old price archived)`
+      );
+      return fresh;
+    }
+    const created = await stripe.prices.create({
+      product: opts.product,
+      currency: "usd",
+      unit_amount: opts.amount,
+      recurring: { interval: opts.interval },
+      lookup_key: opts.key,
+      metadata: opts.metadata,
+    });
+    byLookupKey.set(opts.key, created);
+    log.push(`+ ${opts.label} $${(opts.amount / 100).toFixed(2)}`);
+    return created;
+  }
 
   for (const plan of PLAN_ORDER) {
     const meta = PLAN_META[plan];
     const { monthly, annual } = amounts(plan);
     const monthlyKey = lookupKey(plan, "month");
     const annualKey = lookupKey(plan, "year");
-    if (have.has(monthlyKey) && have.has(annualKey)) {
-      log.push(`= ${meta.name}: prices already exist`);
-      continue;
-    }
 
     const search = await stripe.products.search({
       query: `metadata['plan']:'${plan}'`,
@@ -72,35 +118,29 @@ export async function runStripeSetup() {
         metadata: { plan },
       }));
 
-    if (!have.has(monthlyKey)) {
-      await stripe.prices.create({
-        product: product.id,
-        currency: "usd",
-        unit_amount: monthly,
-        recurring: { interval: "month" },
-        lookup_key: monthlyKey,
-        metadata: { plan, interval: "month" },
-      });
-      log.push(`+ ${meta.name} monthly $${(monthly / 100).toFixed(2)}`);
-    }
-    if (!have.has(annualKey)) {
-      await stripe.prices.create({
-        product: product.id,
-        currency: "usd",
-        unit_amount: annual,
-        recurring: { interval: "year" },
-        lookup_key: annualKey,
-        metadata: { plan, interval: "year" },
-      });
-      log.push(`+ ${meta.name} annual $${(annual / 100).toFixed(2)}/yr`);
-    }
+    await ensurePrice({
+      product: product.id,
+      key: monthlyKey,
+      amount: monthly,
+      interval: "month",
+      metadata: { plan, interval: "month" },
+      label: `${meta.name} monthly`,
+    });
+    await ensurePrice({
+      product: product.id,
+      key: annualKey,
+      amount: annual,
+      interval: "year",
+      metadata: { plan, interval: "year" },
+      label: `${meta.name} annual`,
+    });
   }
 
   // ── Add-on products & prices (monthly only) ────────────────────
   for (const key of ADDON_ORDER) {
     const meta = ADDON_META[key];
     const lk = addonLookupKey(key);
-    if (have.has(lk)) {
+    if (byLookupKey.has(lk)) {
       log.push(`= Add-on ${meta.name}: price already exists`);
       continue;
     }
@@ -165,26 +205,41 @@ export async function runStripeSetup() {
   }
 
   // ── Customer Portal configuration ──────────────────────────────
-  const configs = await stripe.billingPortal.configurations.list({ limit: 10 });
-  if (configs.data.some((c) => c.active)) {
-    log.push("= Customer Portal already configured");
-  } else {
-    // Allow switching between every plan/interval + managing add-ons.
-    const expectedSet = new Set([...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS]);
-    const priceList = await stripe.prices.list({ limit: 100 });
-    const prices = { data: priceList.data.filter((p) => p.lookup_key && expectedSet.has(p.lookup_key)) };
-    const byProduct = new Map<string, string[]>();
-    for (const price of prices.data) {
-      const product = typeof price.product === "string" ? price.product : price.product.id;
-      byProduct.set(product, [...(byProduct.get(product) ?? []), price.id]);
-    }
-    const products: Stripe.BillingPortal.ConfigurationCreateParams.Features.SubscriptionUpdate.Product[] =
-      [...byProduct.entries()].map(([product, priceIds]) => ({
-        product,
-        prices: priceIds,
-      }));
+  // Reconciled EVERY run (not just created once) — the portal's
+  // subscription_update.products list pins specific price IDs, so after a
+  // price change (old price archived, new one minted above) the portal must
+  // be re-pointed or customers switching plans there would still see stale
+  // prices even though checkout/billing-page already show the new ones.
+  const expectedSet = new Set([...ALL_LOOKUP_KEYS, ...ALL_ADDON_LOOKUP_KEYS]);
+  const priceList = await stripe.prices.list({ limit: 100, active: true });
+  const currentPrices = priceList.data.filter((p) => p.lookup_key && expectedSet.has(p.lookup_key));
+  const byProduct = new Map<string, string[]>();
+  for (const price of currentPrices) {
+    const product = typeof price.product === "string" ? price.product : price.product.id;
+    byProduct.set(product, [...(byProduct.get(product) ?? []), price.id]);
+  }
+  const portalProducts: Stripe.BillingPortal.ConfigurationCreateParams.Features.SubscriptionUpdate.Product[] =
+    [...byProduct.entries()].map(([product, priceIds]) => ({
+      product,
+      prices: priceIds,
+    }));
 
-    const base = await productionBaseUrl();
+  const base = await productionBaseUrl();
+  const configs = await stripe.billingPortal.configurations.list({ limit: 10 });
+  const activeConfig = configs.data.find((c) => c.active);
+  if (activeConfig) {
+    await stripe.billingPortal.configurations.update(activeConfig.id, {
+      features: {
+        subscription_update: {
+          enabled: true,
+          default_allowed_updates: ["price"],
+          proration_behavior: "create_prorations",
+          products: portalProducts,
+        },
+      },
+    });
+    log.push("~ Customer Portal price list refreshed");
+  } else {
     await stripe.billingPortal.configurations.create({
       business_profile: {
         headline: "Missed No More Pro — manage your subscription",
@@ -199,7 +254,7 @@ export async function runStripeSetup() {
           enabled: true,
           default_allowed_updates: ["price"],
           proration_behavior: "create_prorations",
-          products,
+          products: portalProducts,
         },
       },
     });

@@ -63,7 +63,7 @@ rates in the 12–25% range instead of the 1–3% spray-and-pray gutter.
   competitor instead.
 - Has been pitched a hundred "marketing" things and is skeptical. **He does not trust claims; he trusts
   hearing it.** That's why every message ends with "call it yourself," not "let me show you a demo."
-- Buys tools that pay for themselves in one saved job. $99/mo is a rounding error if it catches even one
+- Buys tools that pay for themselves in one saved job. $79/mo is a rounding error if it catches even one
   call a month — and that's the whole pitch.
 
 ---
@@ -295,7 +295,7 @@ pitch.
 
 **DM #1 (after accept):**
 > "Thanks {{first_name}}. Quick version: the owners you serve miss 25–40% of their calls, and it costs
-> them real jobs every month. I built an AI that answers 24/7 + books the work, self-serve, from $99/mo
+> them real jobs every month. I built an AI that answers 24/7 + books the work, self-serve, from $79/mo
 > with a free trial. I'd love to make your members look good — a referral arrangement, a group deal, or
 > just a demo number they can call and hear for themselves ((440) 644-2423). Open to a quick back-and-forth
 > here on what would actually be useful to your folks?"
@@ -311,7 +311,7 @@ pitch.
 
 | They say | You reply |
 |---|---|
-| "How much?" | "Starts at $99/mo, flat — and it's a **hard cap**, no surprise per-minute bills ever. There's a free 7-day trial so you can test it on your own line first: https://missednomorepro.com/signup. Want to hear it before anything? (440) 644-2423." |
+| "How much?" | "Starts at $79/mo, flat — and it's a **hard cap**, no surprise per-minute bills ever. There's a free 7-day trial so you can test it on your own line first: https://missednomorepro.com/signup. Want to hear it before anything? (440) 644-2423." |
 | "Does it sound like a robot?" | "That's exactly why I don't try to describe it — just call (440) 644-2423 and talk to it like a customer. Takes a minute. Tell me if it passes." |
 | "I already have an answering service / voicemail." | "Fair — quick difference: a service takes a *message*; this **books the job** into your calendar and **texts the caller back** in seconds so they don't dial the next guy. And it's 24/7 with no per-call fee. Worth a 60-sec listen to compare: (440) 644-2423." |
 | "Not interested." | "All good, {{first_name}} — appreciate you saying so. Demo line's there if it ever comes up: (440) 644-2423. Good luck this season." |

@@ -27,7 +27,7 @@ const approxCalls = (minutes: number) =>
 const PLANS: Plan[] = [
   {
     name: "Starter",
-    monthly: 99,
+    monthly: 79,
     blurb: "Solo operators who never want to miss a call",
     minutes: "250 AI minutes",
     approxCalls: approxCalls(250),
@@ -41,7 +41,7 @@ const PLANS: Plan[] = [
   },
   {
     name: "Growth",
-    monthly: 199,
+    monthly: 159,
     blurb: "Teams that want more leads converted",
     minutes: "500 AI minutes",
     approxCalls: approxCalls(500),
@@ -49,7 +49,7 @@ const PLANS: Plan[] = [
   },
   {
     name: "Professional",
-    monthly: 349,
+    monthly: 279,
     blurb: "Growing teams that dispatch and need insight",
     minutes: "900 AI minutes",
     approxCalls: approxCalls(900),
@@ -58,7 +58,7 @@ const PLANS: Plan[] = [
   },
   {
     name: "Elite",
-    monthly: 599,
+    monthly: 479,
     blurb: "Higher-volume teams ready for advanced automation",
     minutes: "1,500 AI minutes",
     approxCalls: approxCalls(1500),

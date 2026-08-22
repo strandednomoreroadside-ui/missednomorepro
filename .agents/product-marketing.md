@@ -12,7 +12,7 @@
 
 **Product type:** Multi-tenant B2B SaaS with usage-sensitive voice and messaging costs.
 
-**Business model:** Standard self-serve plan pricing (Starter $99 → Elite $599) for everyone, no special launch price. The first five businesses to become paying customers (trial converted to a real charge, tracked automatically) get every current and future paid add-on included free for as long as they stay continuously subscribed — a full cancellation ends the benefit even if they resubscribe later.
+**Business model:** Standard self-serve plan pricing (Starter $79 → Elite $479) for everyone, no special launch price. The first ten businesses to become paying customers (trial converted to a real charge, tracked automatically) get every current and future paid add-on included free for as long as they stay continuously subscribed — a full cancellation ends the benefit even if they resubscribe later.
 
 ## Target Audience
 

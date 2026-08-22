@@ -632,7 +632,7 @@ function Comparison() {
     { label: "Logs every lead in a CRM", values: [true, false, false, "Maybe"] },
     { label: "Follows up by text", values: [true, false, false, "Maybe"] },
     { label: "Never calls in sick", values: [true, true, true, false] },
-    { label: "Monthly cost", values: ["from $99", "$0", "$300+", "$3,000+"] },
+    { label: "Monthly cost", values: ["from $79", "$0", "$300+", "$3,000+"] },
   ];
   return (
     <section className="mx-auto max-w-5xl px-6 py-20 lg:py-28">
