@@ -32,8 +32,9 @@ const BUSINESS_COLUMNS = `${AGENT_BUSINESS_COLUMNS}, ai_enabled, forward_number`
 
 /**
  * The public demo is a measurement surface: alert its owner as soon as a
- * caller reaches the live AI, including callers who hang up before becoming a
- * lead. The call's existing alert stamp makes Twilio webhook retries safe.
+ * caller reaches the line, including callers who hang up before becoming a
+ * lead or hit the AI fallback. The call's existing alert stamp makes Twilio
+ * webhook retries safe.
  */
 async function alertPublicDemoCall(
   admin: ReturnType<typeof createAdminClient>,
@@ -74,6 +75,22 @@ async function alertPublicDemoCall(
       toPhone: contact.phone as string,
       body,
     });
+  }
+}
+
+async function maybeAlertPublicDemoCall(
+  admin: ReturnType<typeof createAdminClient>,
+  business: VoiceBusiness | null,
+  to: string,
+  providerCallId: string,
+  from: string
+): Promise<void> {
+  if (to !== DEMO_PHONE_E164 || !business) return;
+  try {
+    await alertPublicDemoCall(admin, business, providerCallId, from);
+  } catch (err) {
+    // An owner-facing alert must never interrupt a prospect's call.
+    console.error("[twilio] demo-call alert failed:", err);
   }
 }
 
@@ -200,6 +217,7 @@ export async function POST(request: Request) {
           },
           { onConflict: "provider_call_id", ignoreDuplicates: true }
         );
+        await maybeAlertPublicDemoCall(admin, business, to, callSid, from);
         console.info(`[twilio] forwarding to owner (${blockReason}) for ${to}`);
         return twimlResponse(dialNumberTwiml(forwardTo));
       }
@@ -316,14 +334,7 @@ export async function POST(request: Request) {
           { onConflict: "provider_call_id", ignoreDuplicates: true }
         );
 
-        if (to === DEMO_PHONE_E164) {
-          try {
-            await alertPublicDemoCall(admin, business, reg.providerCallId, from);
-          } catch (err) {
-            // An owner-facing alert must never interrupt a prospect's call.
-            console.error("[twilio] demo-call alert failed:", err);
-          }
-        }
+        await maybeAlertPublicDemoCall(admin, business, to, reg.providerCallId, from);
 
         if (reg.bridge.kind === "sip") {
           return twimlResponse(dialSipTwiml(reg.bridge.uri));
@@ -353,6 +364,7 @@ export async function POST(request: Request) {
     { onConflict: "provider_call_id", ignoreDuplicates: true }
   );
   if (callErr) console.error("[twilio] failed to log call:", callErr.message);
+  await maybeAlertPublicDemoCall(admin, business, to, callSid, from);
 
   return twimlResponse(
     greetingTwiml({
