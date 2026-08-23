@@ -106,7 +106,6 @@ plan already includes."
 | `05-automation-funnel-metrics.md` | Funnel, tool stack, KPIs, honest math, growth loops | The machine. Your metrics live here. |
 | `06-objections-and-nurture.md` | 12-objection battlecard, trial-to-paid nurture | Answering doubts, converting trials |
 | `07-30-day-execution-calendar.md` | Day-by-day checklist tying it all together | What to do each day |
-| `08-ghl-cold-email-outreach.md` | Cold **email** sequence + GHL workflow setup for a purchased/built list (no cold SMS — TCPA risk) | Running outreach through your GoHighLevel trial |
 
 ---
 

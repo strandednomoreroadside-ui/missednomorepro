@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import {
   ArrowRight,
   BellRing,
   Bot,
   CalendarCheck,
   Check,
+  ClipboardList,
   CreditCard,
   KanbanSquare,
   MessageSquareText,
@@ -28,6 +30,31 @@ import { Reveal } from "@/components/landing/reveal";
 import { CheckRow, ProductShowcase } from "@/components/landing/showcase";
 import { getFounderSlotsTakenSafe } from "@/lib/billing/founder";
 import { env } from "@/lib/env";
+
+const TITLE =
+  "AI Phone Assistant, Receptionist & CRM for Local Service Businesses";
+const DESCRIPTION =
+  "Missed No More Pro is an AI phone assistant for local service businesses. It answers calls 24/7, quotes exact prices from your rates, books jobs, follows up by text, and logs every lead in a built-in CRM.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  keywords: [
+    "AI phone assistant",
+    "AI phone answering service",
+    "AI receptionist",
+    "AI answering service for small business",
+    "AI virtual receptionist",
+    "AI receptionist with CRM",
+    "AI receptionist with price quoting",
+    "AI phone assistant for local service businesses",
+    "AI answering service for home services",
+    "missed call text back",
+  ],
+  openGraph: { title: `${TITLE} · Missed No More Pro`, description: DESCRIPTION, url: "/" },
+  twitter: { card: "summary_large_image", title: `${TITLE} · Missed No More Pro`, description: DESCRIPTION },
+};
 
 const NICHES = [
   "Towing",
@@ -66,13 +93,30 @@ export default async function LandingPage() {
         operatingSystem: "Web",
         url: base,
         description:
-          "AI receptionist for local service businesses — answers calls 24/7, qualifies callers, quotes from your rates, books jobs, and follows up by text.",
+          "AI phone assistant and AI receptionist for local service businesses — answers calls 24/7, qualifies callers, quotes from your rates, books jobs, follows up by text, and logs every lead in a built-in CRM.",
         offers: {
           "@type": "Offer",
-          price: "99",
+          price: "79",
           priceCurrency: "USD",
         },
         publisher: { "@id": `${base}/#org` },
+      },
+      {
+        "@type": "Service",
+        "@id": `${base}/#ai-phone-assistant-service`,
+        name: "AI Phone Assistant for Local Service Businesses",
+        serviceType: "AI phone answering service",
+        provider: { "@id": `${base}/#org` },
+        areaServed: "United States",
+        description:
+          "An AI phone assistant, receptionist, and CRM that answers calls, quotes prices from approved rates, books jobs, texts customers, and tracks leads for local service businesses.",
+        offers: {
+          "@type": "AggregateOffer",
+          lowPrice: "79",
+          highPrice: "479",
+          priceCurrency: "USD",
+          offerCount: "4",
+        },
       },
     ],
   };
@@ -89,6 +133,7 @@ export default async function LandingPage() {
         <NicheMarquee />
         <MissedCallMath />
         <Showcase />
+        <AiPhoneAssistantSeo />
         <HowItWorks />
         <Pillars />
         <AddOns />
@@ -108,6 +153,7 @@ function SiteHeader() {
   const links = [
     ["#product", "Product"],
     ["#features", "Features"],
+    ["/ai-phone-assistant", "AI phone assistant"],
     ["#add-ons", "Add-ons"],
     ["#pricing", "Pricing"],
     ["#faq", "FAQ"],
@@ -159,6 +205,23 @@ function SiteHeader() {
 }
 
 function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
+  const sellingPoints = [
+    {
+      icon: PhoneCall,
+      title: "Full receptionist + CRM",
+      body: "Answers, qualifies, books, texts, and logs every caller in one built-in front office.",
+    },
+    {
+      icon: ClipboardList,
+      title: "Public AI price quoting engine",
+      body: "We openly advertise exact AI quotes because prices are computed from your approved rates.",
+    },
+    {
+      icon: Sparkles,
+      title: "Founder offer is live",
+      body: "First 10 paying businesses get paid add-ons included for the life of an active subscription.",
+    },
+  ];
   return (
     <section id="top" className="glow-field relative">
       <div className="grid-lines pointer-events-none absolute inset-0" aria-hidden />
@@ -181,17 +244,33 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
             </p>
           )}
           <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif] sm:text-5xl lg:text-6xl">
-            The only AI receptionist that{" "}
-            <span className="text-gradient">quotes the exact price</span> — never guessed.
+            AI phone assistant that{" "}
+            <span className="text-gradient">answers, quotes, books, and sells.</span>
             <span className="mt-3 block text-2xl font-semibold leading-tight text-muted-foreground sm:text-3xl">
-              Every call answered. Every job booked.
+              A full receptionist and CRM for the jobs you cannot afford to miss.
             </span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground [font-family:ui-sans-serif,system-ui,sans-serif]">
-            Missed No More Pro computes your price from your own rates — not a made-up number —
-            then answers your phones 24/7, qualifies the caller, books the job, and follows up by
-            text. You see exactly what it saved.
+            Missed No More Pro gives local service businesses a 24/7 AI phone answering
+            service, a smart CRM, and the only openly advertised AI price quoting engine we
+            know of. New prices start at $79/mo, and founding customers get paid add-ons free.
           </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {sellingPoints.map((point) => (
+              <div
+                key={point.title}
+                className="rounded-xl border border-cyan/25 bg-night/55 p-4 shadow-[0_18px_50px_-30px_rgba(0,229,255,0.55)]"
+              >
+                <point.icon className="size-5 text-cyan" aria-hidden />
+                <h3 className="mt-3 text-sm font-semibold leading-snug text-foreground">
+                  {point.title}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {point.body}
+                </p>
+              </div>
+            ))}
+          </div>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <ButtonLink href="/signup" large>
               Start free trial <ArrowRight className="size-4" aria-hidden />
@@ -201,7 +280,7 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
             </ButtonLink>
           </div>
           <p className="mt-5 font-mono text-xs uppercase tracking-wider text-steel">
-            A2P 10DLC-compliant · STOP/HELP built in · for 1–15 person teams
+            20% lower prices · A2P 10DLC-compliant · STOP/HELP built in · for 1-15 person teams
           </p>
           <div className="mt-8 flex flex-wrap gap-2">
             {NICHES.slice(0, 8).map((niche) => (
@@ -215,6 +294,53 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
           </div>
         </div>
         <LiveCallCard />
+      </div>
+    </section>
+  );
+}
+
+function AiPhoneAssistantSeo() {
+  const answers = [
+    {
+      q: "What is an AI phone assistant?",
+      a: "An AI phone assistant answers business calls, asks qualifying questions, captures caller details, and routes the next step. For local service companies, the best version does more than take messages: it books appointments, texts customers, and keeps every lead organized in a CRM.",
+    },
+    {
+      q: "How is it different from a standard answering service?",
+      a: "A traditional answering service usually takes a message and forwards it. Missed No More Pro can quote from approved pricing rules, book on your calendar, send compliant text follow-ups, and show the owner which calls became real revenue.",
+    },
+    {
+      q: "Who is it built for?",
+      a: "Missed No More Pro is built for small local service teams: towing, roadside assistance, HVAC, plumbing, electrical, roofing, locksmiths, pest control, cleaning, landscaping, appliance repair, garage doors, and similar field-service businesses.",
+    },
+  ];
+  return (
+    <section className="border-y border-border/60 bg-night/45">
+      <div className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
+        <Reveal>
+          <SectionHeading
+            eyebrow="AI phone assistant"
+            title="Built for calls that need action, not voicemail"
+            sub="People searching for an AI phone assistant usually need one thing: a reliable way to turn rings into booked work. Missed No More Pro is designed around that full call-to-customer path."
+          />
+        </Reveal>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          {answers.map((item, i) => (
+            <Reveal key={item.q} delay={i * 80}>
+              <article className="h-full rounded-xl border border-border bg-card/55 p-6">
+                <h3 className="font-display text-lg font-semibold">{item.q}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+              </article>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal delay={220}>
+          <div className="mt-8 text-center">
+            <ButtonLink href="/ai-phone-assistant" variant="outline">
+              Read the AI phone assistant guide <ArrowRight className="size-4" aria-hidden />
+            </ButtonLink>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -632,7 +758,7 @@ function Comparison() {
     { label: "Logs every lead in a CRM", values: [true, false, false, "Maybe"] },
     { label: "Follows up by text", values: [true, false, false, "Maybe"] },
     { label: "Never calls in sick", values: [true, true, true, false] },
-    { label: "Monthly cost", values: ["from $99", "$0", "$300+", "$3,000+"] },
+    { label: "Monthly cost", values: ["from $79", "$0", "$300+", "$3,000+"] },
   ];
   return (
     <section className="mx-auto max-w-5xl px-6 py-20 lg:py-28">

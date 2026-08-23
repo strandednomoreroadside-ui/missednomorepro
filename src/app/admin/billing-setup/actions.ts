@@ -56,11 +56,6 @@ export async function runStripeSetup() {
     const { monthly, annual } = amounts(plan);
     const monthlyKey = lookupKey(plan, "month");
     const annualKey = lookupKey(plan, "year");
-    if (have.has(monthlyKey) && have.has(annualKey)) {
-      log.push(`= ${meta.name}: prices already exist`);
-      continue;
-    }
-
     const search = await stripe.products.search({
       query: `metadata['plan']:'${plan}'`,
       limit: 1,
@@ -72,6 +67,16 @@ export async function runStripeSetup() {
         metadata: { plan },
       }));
 
+    const { data: monthlyMatches } = await stripe.prices.list({ lookup_keys: [monthlyKey], limit: 1 });
+    const monthlyExisting = monthlyMatches[0];
+    if (monthlyExisting && monthlyExisting.unit_amount !== monthly) {
+      await stripe.prices.update(monthlyExisting.id, {
+        active: false,
+        lookup_key: `${monthlyKey}_old_${Date.now()}`,
+      });
+      have.delete(monthlyKey);
+      log.push(`~ ${meta.name} monthly archived stale price`);
+    }
     if (!have.has(monthlyKey)) {
       await stripe.prices.create({
         product: product.id,
@@ -82,6 +87,17 @@ export async function runStripeSetup() {
         metadata: { plan, interval: "month" },
       });
       log.push(`+ ${meta.name} monthly $${(monthly / 100).toFixed(2)}`);
+    }
+
+    const { data: annualMatches } = await stripe.prices.list({ lookup_keys: [annualKey], limit: 1 });
+    const annualExisting = annualMatches[0];
+    if (annualExisting && annualExisting.unit_amount !== annual) {
+      await stripe.prices.update(annualExisting.id, {
+        active: false,
+        lookup_key: `${annualKey}_old_${Date.now()}`,
+      });
+      have.delete(annualKey);
+      log.push(`~ ${meta.name} annual archived stale price`);
     }
     if (!have.has(annualKey)) {
       await stripe.prices.create({

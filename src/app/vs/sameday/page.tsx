@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 const COLS = ["Missed No More Pro", "Sameday AI"];
 const ROWS: ComparisonRow[] = [
-  { label: "Entry price", values: ["from $99/mo", "$449/mo (Pro plan)"] },
+  { label: "Entry price", values: ["from $79/mo", "$449/mo (Pro plan)"] },
   { label: "Free trial before you pay", values: ["7 days", "Not publicly advertised"] },
   { label: "Built-in CRM — contacts, leads, pipeline, timeline", values: [true, "Not publicly advertised"] },
   { label: "Hard cap billing — no surprise overage", values: [true, "Not publicly advertised"] },
@@ -28,7 +28,7 @@ const ROWS: ComparisonRow[] = [
 const SECTIONS = [
   {
     title: "Built for a smaller crew and a smaller budget",
-    body: "Sameday AI's Pro plan is priced well above our entire range — roughly four to five times our entry price. Missed No More Pro starts at $99/mo with a 7-day free trial, aimed at solo operators and small crews (1–15 people) who want to prove the AI recovers a job before committing to enterprise-scale spend.",
+    body: "Sameday AI's Pro plan is priced well above our entry price. Missed No More Pro starts at $79/mo with a 7-day free trial, aimed at solo operators and small crews (1-15 people) who want to prove the AI recovers a job before committing to enterprise-scale spend.",
   },
   {
     title: "Hard caps, not surprise bills",
@@ -36,7 +36,7 @@ const SECTIONS = [
   },
   {
     title: "Where Sameday AI may have the edge",
-    body: "Sameday AI is squarely built for home-service trades and, at its price point, likely includes more done-for-you setup and support than a self-serve $99/mo plan does. We're earlier and smaller — if you need white-glove onboarding and have the budget for it, it's worth a look. We're not able to independently verify every detail of Sameday's current plans as we write this — pricing and features change, so confirm directly with them before deciding.",
+    body: "Sameday AI is squarely built for home-service trades and, at its price point, likely includes more done-for-you setup and support than a self-serve $79/mo plan does. We're earlier and smaller — if you need white-glove onboarding and have the budget for it, it's worth a look. We're not able to independently verify every detail of Sameday's current plans as we write this — pricing and features change, so confirm directly with them before deciding.",
   },
 ];
 
@@ -47,7 +47,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "Is Missed No More Pro cheaper than Sameday AI?",
-    a: "Based on Sameday AI's publicly stated $449/mo Pro plan, yes — Missed No More Pro starts at $99/mo. Confirm current pricing directly with Sameday AI, since plans change.",
+    a: "Based on Sameday AI's publicly stated $449/mo Pro plan, yes — Missed No More Pro starts at $79/mo. Confirm current pricing directly with Sameday AI, since plans change.",
   },
   {
     q: "Can I switch from Sameday AI to Missed No More Pro?",

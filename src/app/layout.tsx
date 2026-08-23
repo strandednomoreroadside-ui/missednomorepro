@@ -32,7 +32,7 @@ reportEnvStatus();
 const SITE_NAME = "Missed No More Pro";
 const SITE_TITLE = "Missed No More Pro — AI Receptionist for Local Service Businesses";
 const SITE_DESCRIPTION =
-  "Every call answered. Every lead captured. Missed No More Pro answers your phones 24/7, qualifies callers, books jobs, follows up by text, and shows the revenue it saved.";
+  "AI phone assistant and AI receptionist for local service businesses. Missed No More Pro answers calls 24/7, quotes exact prices, books jobs, follows up by text, and logs every lead in a built-in CRM.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
@@ -52,7 +52,11 @@ export const metadata: Metadata = {
   },
   keywords: [
     "AI receptionist",
+    "AI phone assistant",
     "AI phone answering service",
+    "AI answering service for small business",
+    "AI receptionist with CRM",
+    "AI receptionist with price quoting",
     "missed call text back",
     "24/7 answering service",
     "appointment booking software",

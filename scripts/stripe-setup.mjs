@@ -25,13 +25,12 @@ if (!key.startsWith("sk_test_")) {
 const stripe = new Stripe(key);
 const WEBHOOK_URL = "https://missednomorepro.com/api/stripe/webhook";
 
-// §6.1 — monthly cents and annual cents (12 × monthly × 0.8).
+// Current public catalog — monthly cents and annual cents (12 × monthly × 0.8).
 const PLANS = [
-  { plan: "answer",  name: "Answer",  monthly: 9900,  annual: 95040 },
-  { plan: "book",    name: "Book",    monthly: 19900, annual: 191040 },
-  { plan: "revenue", name: "Revenue", monthly: 34900, annual: 335040 },
-  { plan: "scale",   name: "Scale",   monthly: 59900, annual: 575040 },
-  { plan: "agency",  name: "Agency",  monthly: 89900, annual: 863040 },
+  { plan: "starter", name: "Starter", monthly: 7900, annual: 75840 },
+  { plan: "growth", name: "Growth", monthly: 15900, annual: 152640 },
+  { plan: "professional", name: "Professional", monthly: 27900, annual: 267840 },
+  { plan: "elite", name: "Elite", monthly: 47900, annual: 459840 },
 ];
 
 const lookupKeys = PLANS.flatMap((p) => [

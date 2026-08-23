@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { requireActiveOrg } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { ALL_LOOKUP_KEYS } from "@/lib/billing/plans";
+import { ALL_LOOKUP_KEYS, PLAN_META, parseLookupKey } from "@/lib/billing/plans";
 import {
   addonLookupKey,
   isAddonKey,
@@ -82,6 +82,17 @@ export async function startCheckout(formData: FormData) {
       throw new Error(
         "Plan prices not found in Stripe — run scripts/stripe-setup.mjs."
       );
+    }
+    const parsed = parseLookupKey(lookupKey);
+    const expectedAmount =
+      parsed &&
+      Math.round(
+        (parsed.interval === "year"
+          ? PLAN_META[parsed.plan].annualMonthly * 12
+          : PLAN_META[parsed.plan].monthly) * 100
+      );
+    if (expectedAmount && price.unit_amount !== expectedAmount) {
+      throw new Error("Stripe price amount is stale — run billing setup.");
     }
 
     const origin = await getOrigin();

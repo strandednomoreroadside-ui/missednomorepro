@@ -9,6 +9,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${base}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/pricing`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${base}/pricing.md`, lastModified: now, changeFrequency: "weekly", priority: 0.5 },
+    {
+      url: `${base}/ai-phone-assistant`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
     { url: `${base}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/vs/hexnut`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     {

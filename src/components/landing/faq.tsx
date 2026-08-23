@@ -31,7 +31,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "Can I cancel anytime?",
-    a: "Yes. Plans are month-to-month (annual just saves you 20%). No long contracts, and you keep your data export.",
+    a: "Yes. Plans are month-to-month, with annual billing available if you want another 20% off the new lower monthly prices. No long contracts, and you keep your data export.",
   },
 ];
 

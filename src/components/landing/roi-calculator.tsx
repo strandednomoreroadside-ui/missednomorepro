@@ -114,7 +114,7 @@ export function RoiCalculator() {
           </div>
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
             That&rsquo;s from <span className="text-foreground">{monthlyMissedCalls} missed calls a month</span>,
-            answered 24/7 — against a plan that starts at $99/mo.
+            answered 24/7 — against a plan that starts at $79/mo.
           </p>
           <Link
             href="/signup"

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 const COLS = ["Missed No More Pro", "Hexnut"];
 const ROWS: ComparisonRow[] = [
-  { label: "Entry price", values: ["from $99/mo", "$297/mo (Pro plan)"] },
+  { label: "Entry price", values: ["from $79/mo", "$297/mo (Pro plan)"] },
   { label: "Computes an exact price from your rates — never invented", values: [true, false] },
   { label: "Shows the dollar revenue it saved", values: [true, false] },
   { label: "Free trial before you pay", values: ["7 days", "None stated — pay to start"] },
@@ -33,7 +33,7 @@ const SECTIONS = [
   },
   {
     title: "Built for the smallest crews too",
-    body: "Hexnut's entry point is $297/mo with no free tier. Missed No More Pro starts at $99/mo with a 7-day free trial, and every plan is a hard cap — no surprise overage charges. If you hit your limit, calls simply forward to your phone instead of racking up a bill.",
+    body: "Hexnut's entry point is $297/mo with no free tier. Missed No More Pro starts at $79/mo with a 7-day free trial, and every plan is a hard cap — no surprise overage charges. If you hit your limit, calls simply forward to your phone instead of racking up a bill.",
   },
   {
     title: "Where Hexnut has the edge — for now",
@@ -48,7 +48,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "Is Missed No More Pro cheaper than Hexnut?",
-    a: "Missed No More Pro starts at $99/mo with a 7-day free trial; Hexnut's Pro plan is $297/mo with no stated free tier. Both scale up from there — check each vendor's current pricing before you decide, since plans change.",
+    a: "Missed No More Pro starts at $79/mo with a 7-day free trial; Hexnut's Pro plan is $297/mo with no stated free tier. Both scale up from there — check each vendor's current pricing before you decide, since plans change.",
   },
   {
     q: "Can I switch from Hexnut to Missed No More Pro?",

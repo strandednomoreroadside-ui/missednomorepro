@@ -42,6 +42,9 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             <Link className="transition-colors hover:text-foreground" href="/pricing">
               Pricing
             </Link>
+            <Link className="transition-colors hover:text-foreground" href="/ai-phone-assistant">
+              AI Phone Assistant
+            </Link>
             <Link className="transition-colors hover:text-foreground" href="/about">
               About
             </Link>

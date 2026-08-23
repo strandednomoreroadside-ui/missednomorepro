@@ -276,7 +276,9 @@ export default async function BillingPage({
             anytime before it ends and you&rsquo;re not charged.{" "}
           </span>
         )}
-        {interval === "year" ? "Annual billing saves 20%." : "Switch to annual to save 20%."}
+        {interval === "year"
+          ? "Annual billing saves another 20% off the new lower prices."
+          : "Switch to annual to save another 20%."}
         {testMode && (
           <>
             {" "}

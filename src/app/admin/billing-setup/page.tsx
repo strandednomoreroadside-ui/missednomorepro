@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ALL_LOOKUP_KEYS } from "@/lib/billing/plans";
+import { ALL_LOOKUP_KEYS, PLAN_META, PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
 import { ALL_ADDON_LOOKUP_KEYS } from "@/lib/billing/addons";
 import { getStripe, isStripeTestMode } from "@/lib/billing/stripe";
 import { env } from "@/lib/env";
@@ -91,17 +91,25 @@ async function stripeChecks(): Promise<Check[]> {
     const found = prices.data.filter(
       (p) => p.lookup_key && expectedSet.has(p.lookup_key)
     ).length;
+    const planPricesCurrent = PLAN_ORDER.every((plan) => {
+      const meta = PLAN_META[plan];
+      const expectedMonthly = Math.round(meta.monthly * 100);
+      const expectedAnnual = Math.round(meta.annualMonthly * 12 * 100);
+      const monthly = prices.data.find((p) => p.lookup_key === lookupKey(plan, "month"));
+      const annual = prices.data.find((p) => p.lookup_key === lookupKey(plan, "year"));
+      return monthly?.unit_amount === expectedMonthly && annual?.unit_amount === expectedAnnual;
+    });
     const webhook = endpoints.data.find((e) => e.url.endsWith("/api/stripe/webhook"));
     const portalReady = portals.data.some((c) => c.active);
 
     return [
       {
         label: `Plan + add-on catalog in Stripe (${expectedKeys.length} prices)`,
-        state: found === expectedKeys.length ? "ok" : "todo",
+        state: found === expectedKeys.length && planPricesCurrent ? "ok" : "todo",
         detail:
-          found === expectedKeys.length
-            ? "All plans (monthly + annual) and add-ons exist."
-            : `${found} of ${expectedKeys.length} prices exist — run setup below.`,
+          found === expectedKeys.length && planPricesCurrent
+            ? "All plans (monthly + annual) and add-ons exist at current prices."
+            : `${found} of ${expectedKeys.length} prices exist, or plan prices are stale — run setup below.`,
       },
       {
         label: "Stripe webhook endpoint",
