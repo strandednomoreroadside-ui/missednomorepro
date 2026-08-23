@@ -1,7 +1,8 @@
 import { voiceAllowed } from "@/lib/billing/cost-controls";
 import { currentZonedStrings } from "@/lib/calendar/timezone";
+import { DEMO_PHONE_E164 } from "@/lib/constants";
 import { env } from "@/lib/env";
-import { isSuppressed } from "@/lib/sms/outbound";
+import { isSuppressed, sendStaffSms } from "@/lib/sms/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   dialNumberTwiml,
@@ -28,6 +29,53 @@ type VoiceBusiness = AgentBusiness & {
 };
 
 const BUSINESS_COLUMNS = `${AGENT_BUSINESS_COLUMNS}, ai_enabled, forward_number`;
+
+/**
+ * The public demo is a measurement surface: alert its owner as soon as a
+ * caller reaches the live AI, including callers who hang up before becoming a
+ * lead. The call's existing alert stamp makes Twilio webhook retries safe.
+ */
+async function alertPublicDemoCall(
+  admin: ReturnType<typeof createAdminClient>,
+  business: VoiceBusiness,
+  providerCallId: string,
+  from: string
+): Promise<void> {
+  const { data: claimed, error: claimError } = await admin
+    .from("calls")
+    .update({ staff_alerted_at: new Date().toISOString() })
+    .eq("provider_call_id", providerCallId)
+    .eq("tenant_id", business.tenant_id)
+    .is("staff_alerted_at", null)
+    .select("id");
+  if (claimError) {
+    console.error("[twilio] could not claim demo-call alert:", claimError.message);
+    return;
+  }
+  if (!claimed?.length) return;
+
+  const { data: staff, error: staffError } = await admin
+    .from("staff_contacts")
+    .select("phone")
+    .eq("tenant_id", business.tenant_id)
+    .eq("business_id", business.id)
+    .eq("notify_on_lead", true);
+  if (staffError) {
+    console.error("[twilio] could not load demo-call alert recipients:", staffError.message);
+    return;
+  }
+
+  const caller = from || "caller ID withheld";
+  const body = `Public demo call started from ${caller}.`;
+  for (const contact of staff ?? []) {
+    await sendStaffSms(admin, {
+      tenantId: business.tenant_id,
+      businessId: business.id,
+      toPhone: contact.phone as string,
+      body,
+    });
+  }
+}
 
 /** Where to ring when the AI is paused or a cost cap trips: the owner's
  *  configured forward number, else the first notify-on-lead staff phone. */
@@ -267,6 +315,15 @@ export async function POST(request: Request) {
           },
           { onConflict: "provider_call_id", ignoreDuplicates: true }
         );
+
+        if (to === DEMO_PHONE_E164) {
+          try {
+            await alertPublicDemoCall(admin, business, reg.providerCallId, from);
+          } catch (err) {
+            // An owner-facing alert must never interrupt a prospect's call.
+            console.error("[twilio] demo-call alert failed:", err);
+          }
+        }
 
         if (reg.bridge.kind === "sip") {
           return twimlResponse(dialSipTwiml(reg.bridge.uri));

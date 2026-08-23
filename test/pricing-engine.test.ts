@@ -34,6 +34,7 @@ const flat = (over: Partial<ServicePrice> & Pick<ServicePrice, "name" | "service
 });
 
 const JUMP = flat({ name: "Jump Start", service_fee: 40 });
+const LOCKOUT = flat({ name: "Vehicle Lockout", service_fee: 50 });
 const TIRE_NO_SPARE = flat({
   name: "Tire Change (no spare)",
   service_fee: 80,
@@ -69,7 +70,7 @@ const SEVERE_WEATHER: Surcharge = {
 };
 
 const base = (over: Partial<QuoteInput>): QuoteInput => ({
-  service: JUMP,
+  services: [JUMP],
   zones: ZONES,
   surcharges: [],
   distanceMiles: 5,
@@ -105,7 +106,7 @@ describe("calculateQuote — flat services", () => {
 describe("calculateQuote — tow (hook + per-mile after free miles)", () => {
   it("charges only miles beyond the free allowance", () => {
     const q = calculateQuote(
-      base({ service: TOW, distanceMiles: 10, towMiles: 20 })
+      base({ services: [TOW], distanceMiles: 10, towMiles: 20 })
     );
     expect(q.ok).toBe(true);
     // zone 2 (65) + hook (60) + (20 - 5 free) * 2.50 = 65 + 60 + 37.50
@@ -114,12 +115,12 @@ describe("calculateQuote — tow (hook + per-mile after free miles)", () => {
   });
 
   it("free miles never produce a negative towing charge", () => {
-    const q = calculateQuote(base({ service: TOW, distanceMiles: 5, towMiles: 3 }));
+    const q = calculateQuote(base({ services: [TOW], distanceMiles: 5, towMiles: 3 }));
     expect(q.total).toBe(115); // Zone 1 dispatch 55 + hook 60 + 0 towing
   });
 
   it("refuses to price a tow without a destination", () => {
-    const q = calculateQuote(base({ service: TOW, distanceMiles: 10, towMiles: null }));
+    const q = calculateQuote(base({ services: [TOW], distanceMiles: 10, towMiles: null }));
     expect(q.ok).toBe(false);
     expect(q.reason).toBe("need_destination");
   });
@@ -128,20 +129,41 @@ describe("calculateQuote — tow (hook + per-mile after free miles)", () => {
 describe("calculateQuote — availability windows", () => {
   it("quotes a windowed service inside its hours", () => {
     const q = calculateQuote(
-      base({ service: TIRE_NO_SPARE, localTime: { hour: 10, minute: 0 } })
+      base({ services: [TIRE_NO_SPARE], localTime: { hour: 10, minute: 0 } })
     );
     expect(q.ok).toBe(true);
     expect(q.total).toBe(135); // 55 + 80
-    expect(q.variablePart).toBe("tire");
+    expect(q.variableParts).toEqual(["tire"]);
   });
 
   it("refuses a windowed service outside its hours", () => {
     const q = calculateQuote(
-      base({ service: TIRE_NO_SPARE, localTime: { hour: 20, minute: 0 } })
+      base({ services: [TIRE_NO_SPARE], localTime: { hour: 20, minute: 0 } })
     );
     expect(q.ok).toBe(false);
     expect(q.reason).toBe("service_unavailable");
-    expect(q.availabilityWindow).toEqual({ start: "09:00", end: "16:00" });
+    expect(q.unavailableServices).toEqual([
+      { name: "Tire Change (no spare)", window: { start: "09:00", end: "16:00" } },
+    ]);
+  });
+
+  it("prices available services while flagging unavailable ones", () => {
+    const q = calculateQuote(
+      base({ services: [JUMP, TIRE_NO_SPARE], localTime: { hour: 20, minute: 0 } })
+    );
+    expect(q.ok).toBe(true);
+    expect(q.services).toEqual(["Jump Start"]);
+    expect(q.total).toBe(95);
+    expect(q.unavailableServices).toHaveLength(1);
+  });
+});
+
+describe("calculateQuote - multi-service visits", () => {
+  it("charges the dispatch fee once for one location", () => {
+    const q = calculateQuote(base({ services: [JUMP, LOCKOUT] }));
+    expect(q.ok).toBe(true);
+    expect(q.services).toEqual(["Jump Start", "Vehicle Lockout"]);
+    expect(q.total).toBe(145); // 55 dispatch + 40 jump + 50 lockout
   });
 });
 

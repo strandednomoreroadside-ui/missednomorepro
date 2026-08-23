@@ -133,9 +133,9 @@ const REMINDER_MAX_COUNT = 0;
 const STT_MODE = "fast" as const;
 const DENOISING_MODE = "noise-and-background-speech-cancellation" as const;
 const INTERRUPTION_SENSITIVITY = 0.3;
-/** Pin the Retell-hosted ElevenLabs model rather than accepting a provider
- * default that can change under us. Turbo v2.5 keeps the low-latency path. */
-const VOICE_MODEL = "eleven_turbo_v2_5" as const;
+/** Universal Retell tuning defaults. These mirror the live production line
+ * and are applied whenever any agent is created or re-synced. */
+const VOICE_MODEL = "eleven_flash_v2_5" as const;
 const VOICE_SPEED = 1.04;
 const VOICE_TEMPERATURE = 0.85;
 const DYNAMIC_VOICE_SPEED = true;

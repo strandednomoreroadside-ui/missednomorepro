@@ -108,7 +108,7 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  building the opening line. (4) A caller who said "reschedule" but had
  *  nothing booked sent the agent into a failed reschedule_appointment and an
  *  awkward recovery; it now books new instead. */
-const TUNING_VERSION = 15;
+const TUNING_VERSION = 16;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 

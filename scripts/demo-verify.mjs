@@ -9,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 try { process.loadEnvFile(".env.local"); } catch {}
 
 const DEMO_NUMBER = "+14406442423";
+const DEMO_ALERT_PHONE = "+12164151568";
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -88,20 +89,27 @@ console.log(`  spent today: $${spent.toFixed(2)} across ${(today ?? []).length} 
       headers: { Authorization: auth },
     });
     const nums = r.ok ? ((await r.json()).phone_numbers ?? []) : [];
-    nums.some((p) => p.phone_number === DEMO_NUMBER)
+    const demoSender = nums.find((p) => p.phone_number === DEMO_NUMBER);
+    demoSender
       ? ok("on the approved A2P messaging service — texts can deliver")
       : bad("NOT on the A2P messaging service — every text will be dropped (error 30034)");
 
     const m = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${tw}/Messages.json?From=${encodeURIComponent(DEMO_NUMBER)}&PageSize=5`,
+      `https://api.twilio.com/2010-04-01/Accounts/${tw}/Messages.json?From=${encodeURIComponent(DEMO_NUMBER)}&PageSize=50`,
       { headers: { Authorization: auth } }
     );
     const sent = m.ok ? ((await m.json()).messages ?? []) : [];
-    if (sent.length) {
-      const dropped = sent.filter((x) => x.status === "undelivered" || x.status === "failed");
+    // The demo number joined this service after early test texts had already
+    // failed with 30034. Only judge delivery attempts made after that point.
+    const registeredAt = demoSender?.date_created ? Date.parse(demoSender.date_created) : null;
+    const relevant = registeredAt
+      ? sent.filter((x) => Date.parse(x.date_created) >= registeredAt)
+      : sent;
+    if (relevant.length) {
+      const dropped = relevant.filter((x) => x.status === "undelivered" || x.status === "failed");
       dropped.length
-        ? bad(`${dropped.length}/${sent.length} recent texts undelivered (err ${dropped[0].error_code})`)
-        : ok(`last ${sent.length} texts delivered`);
+        ? bad(`${dropped.length}/${relevant.length} post-registration texts undelivered (err ${dropped[0].error_code})`)
+        : ok(`${relevant.length} post-registration demo text(s) delivered`);
     }
   }
 }
@@ -114,8 +122,12 @@ for (const [table, label] of [["services", "services"], ["faqs", "FAQs"], ["serv
 }
 const { data: staff } = await db
   .from("staff_contacts").select("name, phone").eq("business_id", biz.id).eq("notify_on_lead", true);
+const alertPhones = (staff ?? []).map((s) => s.phone);
+alertPhones.includes(DEMO_ALERT_PHONE)
+  ? ok(`demo-call alerts → ${DEMO_ALERT_PHONE}`)
+  : bad(`demo-call alert recipient must include ${DEMO_ALERT_PHONE}`);
 (staff ?? []).length
-  ? ok(`lead alerts → ${staff.map((s) => s.phone).join(", ")} (also the warm-transfer target)`)
+  ? ok(`lead alerts → ${alertPhones.join(", ")} (also the warm-transfer target)`)
   : warn("no notify_on_lead staff — no lead texts, no human transfer");
 
 // 4) Quoting (exact prices, computed server-side — never by the model).
