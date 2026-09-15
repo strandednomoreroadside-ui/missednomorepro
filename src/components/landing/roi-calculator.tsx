@@ -36,7 +36,7 @@ function Slider({
     <label className="block">
       <div className="flex items-baseline justify-between">
         <span className="text-sm text-muted-foreground">{label}</span>
-        <span className="font-mono text-base font-semibold text-cyan">{format(value)}</span>
+        <span className="font-mono text-base font-semibold text-primary">{format(value)}</span>
       </div>
       <input
         type="range"
@@ -45,7 +45,7 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-2 w-full accent-cyan"
+        className="mt-2 w-full accent-primary"
         aria-label={label}
       />
     </label>
@@ -65,7 +65,7 @@ export function RoiCalculator() {
   const recovered = walkingAway * (bookRate / 100);
 
   return (
-    <div className="rounded-2xl border border-cyan/25 bg-card/60 p-6 sm:p-8">
+    <div className="rounded-2xl border border-primary/25 bg-card/60 p-6 sm:p-8">
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-6">
           <Slider
@@ -97,18 +97,18 @@ export function RoiCalculator() {
           />
         </div>
 
-        <div className="flex flex-col justify-center rounded-xl border border-border/60 bg-night/40 p-6 text-center">
-          <div className="text-xs font-medium uppercase tracking-widest text-steel">
+        <div className="flex flex-col justify-center rounded-xl border border-border/60 bg-background/40 p-6 text-center">
+          <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Walking to a competitor
           </div>
           <div className="mt-1 font-mono text-4xl font-bold text-foreground sm:text-5xl">
             {money(walkingAway)}
             <span className="text-xl text-muted-foreground">/mo</span>
           </div>
-          <div className="mt-5 border-t border-border/60 pt-5 text-xs font-medium uppercase tracking-widest text-steel">
+          <div className="mt-5 border-t border-border/60 pt-5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Your AI could recover
           </div>
-          <div className="mt-1 font-mono text-4xl font-bold text-cyan sm:text-5xl">
+          <div className="mt-1 font-mono text-4xl font-bold text-primary sm:text-5xl">
             {money(recovered)}
             <span className="text-xl text-muted-foreground">/mo</span>
           </div>
@@ -118,7 +118,7 @@ export function RoiCalculator() {
           </p>
           <Link
             href="/signup"
-            className="mt-5 inline-flex items-center justify-center rounded-lg bg-cyan px-5 py-2.5 text-sm font-semibold text-night transition-opacity hover:opacity-90"
+            className="mt-5 inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             Start free trial
           </Link>

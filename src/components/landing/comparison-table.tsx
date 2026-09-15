@@ -18,7 +18,7 @@ export function ComparisonTable({ cols, rows }: { cols: string[]; rows: Comparis
               <th
                 key={c}
                 className={`px-4 py-4 text-center font-display font-semibold ${
-                  i === 0 ? "text-cyan" : "text-muted-foreground"
+                  i === 0 ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 {c}
@@ -31,16 +31,16 @@ export function ComparisonTable({ cols, rows }: { cols: string[]; rows: Comparis
             <tr key={row.label} className="border-b border-border/40 last:border-0">
               <td className="px-5 py-3.5 text-left font-medium text-foreground">{row.label}</td>
               {row.values.map((v, i) => (
-                <td key={i} className={`px-4 py-3.5 text-center ${i === 0 ? "bg-cyan/5" : ""}`}>
+                <td key={i} className={`px-4 py-3.5 text-center ${i === 0 ? "bg-primary/5" : ""}`}>
                   {typeof v === "boolean" ? (
                     v ? (
                       <Check className="mx-auto size-4 text-success" strokeWidth={3} aria-label="Yes" />
                     ) : (
-                      <X className="mx-auto size-4 text-steel/50" aria-label="No" />
+                      <X className="mx-auto size-4 text-muted-foreground/50" aria-label="No" />
                     )
                   ) : (
                     <span
-                      className={`font-mono text-xs ${i === 0 ? "font-semibold text-cyan" : "text-muted-foreground"}`}
+                      className={`font-mono text-xs ${i === 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}
                     >
                       {v}
                     </span>

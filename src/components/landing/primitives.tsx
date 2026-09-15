@@ -28,8 +28,8 @@ export function ButtonLink({
   const size = large ? "h-12 rounded-xl px-7 text-base" : "h-10 px-4 text-sm";
   const look =
     variant === "primary"
-      ? "bg-primary text-primary-foreground shadow-[0_0_24px_-6px_var(--color-cyan)] hover:shadow-[0_0_36px_-4px_var(--color-cyan)] hover:brightness-110"
-      : "border border-border bg-transparent text-foreground hover:border-cyan/50 hover:text-cyan";
+      ? "bg-primary text-primary-foreground shadow-[0_0_24px_-6px_var(--color-primary)] hover:shadow-[0_0_36px_-4px_var(--color-primary)] hover:brightness-110"
+      : "border border-border bg-transparent text-foreground hover:border-primary/50 hover:text-primary";
   return (
     <a href={href} className={cn(base, size, look, className)}>
       {children}
@@ -50,10 +50,10 @@ export function SectionHeading({
 }) {
   return (
     <div className={cn("max-w-2xl", align === "center" ? "mx-auto text-center" : "text-left")}>
-      <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
+      <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">
         {eyebrow}
       </p>
-      <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
+      <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
       {sub && <p className="mt-4 text-base leading-relaxed text-muted-foreground">{sub}</p>}
     </div>
   );

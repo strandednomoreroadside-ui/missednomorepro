@@ -70,10 +70,10 @@ export function Faq({
       <div className="mt-10 divide-y divide-border/60 rounded-2xl border border-border bg-card/40">
         {items.map((item) => (
           <details key={item.q} className="group px-5">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-left font-medium text-foreground transition-colors hover:text-cyan [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-left font-medium text-foreground transition-colors hover:text-primary [&::-webkit-details-marker]:hidden">
               {item.q}
               <Plus
-                className="size-4 shrink-0 text-steel transition-transform duration-200 group-open:rotate-45 group-open:text-cyan"
+                className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-45 group-open:text-primary"
                 aria-hidden
               />
             </summary>

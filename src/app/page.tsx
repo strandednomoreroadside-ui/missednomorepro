@@ -5,7 +5,6 @@ import {
   Bot,
   CalendarCheck,
   Check,
-  ClipboardList,
   CreditCard,
   KanbanSquare,
   MessageSquareText,
@@ -133,17 +132,28 @@ export default async function LandingPage() {
         <Hero founderSlotsTaken={founderSlotsTaken} />
         <NicheMarquee />
         <MissedCallMath />
+        <AiPhoneAssistantSeo />
         <Showcase />
         <LiveDemo />
-        <AiPhoneAssistantSeo />
         <HowItWorks />
         <Pillars />
         <AddOns />
         <Integrations />
-        <Comparison />
-        <ProofBand />
-        <Pricing founderSlotsTaken={founderSlotsTaken} />
-        <Faq />
+
+        {/* Trust act: proof, comparison, pricing, and FAQ share a warm
+            "paper" register — a deliberate register switch from the dark
+            product sections above, so the page has real visual rhythm
+            instead of one 12,000px block of the same dark-cyan treatment.
+            .on-paper re-scopes the semantic color tokens these components
+            already use (bg-card, text-muted-foreground, bg-primary, …), so
+            nothing inside needs section-specific styling. */}
+        <div className="on-paper">
+          <ProofBand />
+          <Comparison />
+          <Pricing founderSlotsTaken={founderSlotsTaken} />
+          <Faq />
+        </div>
+
         <FinalCta />
       </main>
       <SiteFooter />
@@ -207,30 +217,13 @@ function SiteHeader() {
 }
 
 function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
-  const sellingPoints = [
-    {
-      icon: PhoneCall,
-      title: "Full receptionist + CRM",
-      body: "Answers, qualifies, books, texts, and logs every caller in one built-in front office.",
-    },
-    {
-      icon: ClipboardList,
-      title: "Public AI price quoting engine",
-      body: "We openly advertise exact AI quotes because prices are computed from your approved rates.",
-    },
-    {
-      icon: Sparkles,
-      title: "Founder offer is live",
-      body: "First 10 paying businesses get paid add-ons included for the life of an active subscription.",
-    },
-  ];
   return (
     <section id="top" className="glow-field relative">
       <div className="grid-lines pointer-events-none absolute inset-0" aria-hidden />
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28 lg:pt-24">
         <div>
-          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.22em] text-steel [font-family:ui-sans-serif,system-ui,sans-serif]">
-            <span className="font-semibold text-cyan">AI Receptionist</span>
+          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.22em] text-steel">
+            <span className="font-semibold text-primary">AI Receptionist</span>
             <span className="text-border" aria-hidden>
               /
             </span>
@@ -241,38 +234,23 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
             <span>AI Business Assistant</span>
           </p>
           {typeof founderSlotsTaken === "number" && (
-            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan/25 bg-cyan/5 px-3 py-1 text-xs font-medium text-cyan">
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
               {founderSlotsTaken} of 10 founding spots taken
             </p>
           )}
-          <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif] sm:text-5xl lg:text-6xl">
+          <h1 className="mt-6 font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.4rem]">
             AI phone assistant that{" "}
             <span className="text-gradient">answers, quotes, books, and sells.</span>
-            <span className="mt-3 block text-2xl font-semibold leading-tight text-muted-foreground sm:text-3xl">
-              A full receptionist and CRM for the jobs you cannot afford to miss.
-            </span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground [font-family:ui-sans-serif,system-ui,sans-serif]">
+          <p className="mt-4 max-w-xl text-xl font-medium leading-snug text-muted-foreground">
+            A full receptionist and CRM for the jobs you cannot afford to miss.
+          </p>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
             Missed No More Pro gives local service businesses a 24/7 AI phone answering
             service, a smart CRM, and the only openly advertised AI price quoting engine we
             know of. New prices start at $79/mo, and founding customers get paid add-ons free.
           </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {sellingPoints.map((point) => (
-              <div
-                key={point.title}
-                className="rounded-xl border border-cyan/25 bg-night/55 p-4 shadow-[0_18px_50px_-30px_rgba(0,229,255,0.55)]"
-              >
-                <point.icon className="size-5 text-cyan" aria-hidden />
-                <h3 className="mt-3 text-sm font-semibold leading-snug text-foreground">
-                  {point.title}
-                </h3>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  {point.body}
-                </p>
-              </div>
-            ))}
-          </div>
+
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <ButtonLink href="/signup" large>
               Start free trial <ArrowRight className="size-4" aria-hidden />
@@ -281,10 +259,37 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               See it in action
             </ButtonLink>
           </div>
+
+          {/* The single best trust asset this product has: a real number you
+              can call right now, with no signup. Leading with it in the
+              hero (instead of five sections down) is the main conversion
+              fix here — it turns "visiting" into "trying" at zero friction. */}
+          <a
+            href={`tel:${DEMO_PHONE_E164}`}
+            className="group mt-6 flex max-w-md items-center gap-4 rounded-2xl border border-border bg-card/60 px-5 py-3.5 transition-colors hover:border-primary/50"
+          >
+            <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <span className="animate-ring-wave absolute inline-flex size-full rounded-full bg-primary" />
+              <PhoneCall className="relative size-4 text-primary" aria-hidden />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[11px] font-medium uppercase tracking-wider text-steel">
+                No signup — just call and listen
+              </span>
+              <span className="block font-display text-lg font-semibold text-foreground group-hover:text-primary">
+                {DEMO_PHONE_DISPLAY}
+              </span>
+            </span>
+            <ArrowRight
+              className="ml-auto size-4 shrink-0 text-steel transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+              aria-hidden
+            />
+          </a>
+
           <p className="mt-5 font-mono text-xs uppercase tracking-wider text-steel">
             20% lower prices · A2P 10DLC-compliant · STOP/HELP built in · for 1-15 person teams
           </p>
-          <div className="mt-8 flex flex-wrap gap-2">
+          <div className="mt-6 flex flex-wrap gap-2">
             {NICHES.slice(0, 8).map((niche) => (
               <span
                 key={niche}
@@ -305,44 +310,40 @@ function AiPhoneAssistantSeo() {
   const answers = [
     {
       q: "What is an AI phone assistant?",
-      a: "An AI phone assistant answers business calls, asks qualifying questions, captures caller details, and routes the next step. For local service companies, the best version does more than take messages: it books appointments, texts customers, and keeps every lead organized in a CRM.",
+      a: "It answers business calls, asks qualifying questions, captures caller details, and routes the next step. The best version does more than take messages: it books appointments, texts customers, and keeps every lead organized in a CRM.",
     },
     {
-      q: "How is it different from a standard answering service?",
-      a: "A traditional answering service usually takes a message and forwards it. Missed No More Pro can quote from approved pricing rules, book on your calendar, send compliant text follow-ups, and show the owner which calls became real revenue.",
+      q: "How is it different from an answering service?",
+      a: "A traditional answering service takes a message and forwards it. Missed No More Pro quotes from your approved pricing, books on your calendar, sends compliant text follow-ups, and shows you which calls became revenue.",
     },
     {
       q: "Who is it built for?",
-      a: "Missed No More Pro is built for small local service teams: towing, roadside assistance, HVAC, plumbing, electrical, roofing, locksmiths, pest control, cleaning, landscaping, appliance repair, garage doors, and similar field-service businesses.",
+      a: "Small local service teams: towing, roadside assistance, HVAC, plumbing, electrical, roofing, locksmiths, pest control, cleaning, landscaping, appliance repair, garage doors, and similar field-service businesses.",
     },
   ];
   return (
-    <section className="border-y border-border/60 bg-night/45">
-      <div className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
-        <Reveal>
-          <SectionHeading
-            eyebrow="AI phone assistant"
-            title="Built for calls that need action, not voicemail"
-            sub="People searching for an AI phone assistant usually need one thing: a reliable way to turn rings into booked work. Missed No More Pro is designed around that full call-to-customer path."
-          />
-        </Reveal>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {answers.map((item, i) => (
-            <Reveal key={item.q} delay={i * 80}>
-              <article className="h-full rounded-xl border border-border bg-card/55 p-6">
-                <h3 className="font-display text-lg font-semibold">{item.q}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
-              </article>
-            </Reveal>
+    <section className="border-y border-border/60 bg-card/20">
+      <div className="mx-auto max-w-6xl px-6 py-14">
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          AI phone assistant
+        </p>
+        <h2 className="mt-2 max-w-xl font-display text-2xl font-semibold tracking-tight">
+          Built for calls that need action, not voicemail
+        </h2>
+        <div className="mt-8 grid gap-8 divide-y divide-border/60 md:grid-cols-3 md:gap-10 md:divide-x md:divide-y-0">
+          {answers.map((item) => (
+            <div key={item.q} className="pt-8 first:pt-0 md:px-8 md:pt-0 md:first:pl-0 md:last:pr-0">
+              <h3 className="text-sm font-semibold text-foreground">{item.q}</h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+            </div>
           ))}
         </div>
-        <Reveal delay={220}>
-          <div className="mt-8 text-center">
-            <ButtonLink href="/ai-phone-assistant" variant="outline">
-              Read the AI phone assistant guide <ArrowRight className="size-4" aria-hidden />
-            </ButtonLink>
-          </div>
-        </Reveal>
+        <a
+          href="/ai-phone-assistant"
+          className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          Read the AI phone assistant guide <ArrowRight className="size-3.5" aria-hidden />
+        </a>
       </div>
     </section>
   );
@@ -353,7 +354,7 @@ function LiveDemo() {
     <section id="live-demo" className="relative border-y border-border/60 bg-card/20">
       <div className="mx-auto max-w-4xl px-6 py-20 text-center sm:py-24">
         <Reveal>
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-primary">
             Hear it live
           </p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
@@ -367,16 +368,16 @@ function LiveDemo() {
           <div className="mt-9 inline-flex flex-col items-center gap-2 rounded-2xl border border-border/70 bg-night/50 px-8 py-6 shadow-[0_24px_80px_-32px_rgba(0,107,255,0.4)]">
             <span className="flex items-center gap-2.5">
               <span className="relative flex size-2.5">
-                <span className="animate-ring-wave absolute inline-flex size-full rounded-full bg-cyan" />
-                <span className="animate-pulse-dot relative inline-flex size-2.5 rounded-full bg-cyan" />
+                <span className="animate-ring-wave absolute inline-flex size-full rounded-full bg-primary" />
+                <span className="animate-pulse-dot relative inline-flex size-2.5 rounded-full bg-primary" />
               </span>
-              <span className="font-mono text-xs uppercase tracking-widest text-cyan">
+              <span className="font-mono text-xs uppercase tracking-widest text-primary">
                 Live 24/7
               </span>
             </span>
             <a
               href={`tel:${DEMO_PHONE_E164}`}
-              className="font-display text-3xl font-bold tracking-tight text-foreground transition-colors hover:text-cyan sm:text-4xl"
+              className="font-display text-3xl font-bold tracking-tight text-foreground transition-colors hover:text-primary sm:text-4xl"
             >
               {DEMO_PHONE_DISPLAY}
             </a>
@@ -409,10 +410,10 @@ function LiveCallCard() {
       <div className="flex items-center justify-between" aria-hidden>
         <span className="inline-flex items-center gap-2.5">
           <span className="relative flex size-2.5">
-            <span className="animate-ring-wave absolute inline-flex size-full rounded-full bg-cyan" />
-            <span className="animate-pulse-dot relative inline-flex size-2.5 rounded-full bg-cyan" />
+            <span className="animate-ring-wave absolute inline-flex size-full rounded-full bg-primary" />
+            <span className="animate-pulse-dot relative inline-flex size-2.5 rounded-full bg-primary" />
           </span>
-          <span className="font-mono text-xs font-medium uppercase tracking-widest text-cyan">
+          <span className="font-mono text-xs font-medium uppercase tracking-widest text-primary">
             Live · Incoming call
           </span>
         </span>
@@ -463,13 +464,13 @@ function Bubble({
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           isAi
-            ? "rounded-br-sm border border-cyan/25 bg-cyan/10 text-foreground"
+            ? "rounded-br-sm border border-primary/25 bg-primary/10 text-foreground"
             : "rounded-bl-sm bg-secondary/70 text-foreground"
         }`}
       >
         <span
           className={`mb-0.5 block font-mono text-[10px] uppercase tracking-widest ${
-            isAi ? "text-cyan" : "text-steel"
+            isAi ? "text-primary" : "text-steel"
           }`}
         >
           {label}
@@ -532,16 +533,16 @@ function MissedCallMath() {
         {stats.map(([big, small], i) => (
           <Reveal key={big} delay={i * 90}>
             <div className="rounded-2xl border border-border bg-card/50 p-6 text-center">
-              <div className="font-mono text-4xl font-bold text-cyan">{big}</div>
+              <div className="font-mono text-4xl font-bold text-primary">{big}</div>
               <div className="mt-3 text-sm leading-relaxed text-muted-foreground">{small}</div>
             </div>
           </Reveal>
         ))}
       </div>
       <Reveal delay={150}>
-        <p className="mx-auto mt-8 max-w-2xl rounded-xl border border-cyan/25 bg-cyan/5 px-6 py-4 text-center text-base font-medium leading-relaxed text-foreground">
+        <p className="mx-auto mt-8 max-w-2xl rounded-xl border border-primary/25 bg-primary/5 px-6 py-4 text-center text-base font-medium leading-relaxed text-foreground">
           Running Google or LSA ads?{" "}
-          <span className="text-cyan">
+          <span className="text-primary">
             Every missed call burns the ad dollar that made the phone ring.
           </span>
         </p>
@@ -578,22 +579,18 @@ function Showcase() {
 function HowItWorks() {
   const steps = [
     {
-      icon: PhoneCall,
       title: "Answers & qualifies",
       body: "Greets callers with your business name, spots spam, and captures who, what, and where — one question at a time.",
     },
     {
-      icon: CalendarCheck,
       title: "Quotes & books",
       body: "Computes the exact price from your approved rates, checks real availability, and books inside the hours you allow.",
     },
     {
-      icon: MessageSquareText,
       title: "Texts & follows up",
       body: "Instant confirmations, missed-call text-back, reminders, and staff alerts — fully STOP/HELP compliant out of the box.",
     },
     {
-      icon: TrendingUp,
       title: "Proves the revenue",
       body: "Every call becomes a logged lead with a transcript, summary, and dollar value — so you see exactly what it saved.",
     },
@@ -607,17 +604,14 @@ function HowItWorks() {
           sub="Your AI front desk runs the whole play — you just do the work you get paid for."
         />
       </Reveal>
-      <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-14 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, i) => (
           <Reveal key={step.title} delay={i * 80}>
-            <div className="h-full rounded-xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue/80 to-cyan/80">
-                  <step.icon className="size-5 text-white" aria-hidden />
-                </span>
-                <span className="font-mono text-xs text-steel">0{i + 1}</span>
-              </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">{step.title}</h3>
+            <div className="border-t-2 border-primary/40 pt-5">
+              <span className="font-display text-3xl font-semibold text-primary/30">
+                0{i + 1}
+              </span>
+              <h3 className="mt-2 font-display text-lg font-semibold">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </div>
           </Reveal>
@@ -679,9 +673,9 @@ function Pillars() {
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {pillars.map((pillar, i) => (
             <Reveal key={pillar.name} delay={i * 90}>
-              <div className="flex h-full flex-col rounded-2xl border border-border bg-card/60 p-6 transition-colors hover:border-cyan/40">
-                <span className="inline-flex size-11 items-center justify-center rounded-xl border border-cyan/25 bg-cyan/10">
-                  <pillar.icon className="size-5.5 text-cyan" aria-hidden />
+              <div className="flex h-full flex-col rounded-2xl border border-border bg-card/60 p-6 transition-colors hover:border-primary/40">
+                <span className="inline-flex size-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
+                  <pillar.icon className="size-5.5 text-primary" aria-hidden />
                 </span>
                 <h3 className="mt-4 font-display text-xl font-semibold">{pillar.name}</h3>
                 <p className="mt-1 text-sm text-steel">{pillar.tagline}</p>
@@ -754,8 +748,8 @@ function AddOns() {
       <Reveal delay={320}>
         <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-card/60 p-6 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
-            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-cyan/25 bg-cyan/10">
-              <Repeat2 className="size-5 text-cyan" aria-hidden />
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+              <Repeat2 className="size-5 text-primary" aria-hidden />
             </span>
             <div>
               <h3 className="font-display text-base font-semibold">AI Outbound Assistant</h3>
@@ -765,7 +759,7 @@ function AddOns() {
               </p>
             </div>
           </div>
-          <p className="shrink-0 font-mono text-sm font-semibold text-cyan">+$49/mo</p>
+          <p className="shrink-0 font-mono text-sm font-semibold text-primary">+$49/mo</p>
         </div>
       </Reveal>
     </section>
@@ -792,7 +786,7 @@ function Integrations() {
               key={t.label}
               className="inline-flex items-center gap-2.5 rounded-xl border border-border/70 bg-card/40 px-4 py-2.5 text-sm font-medium text-steel"
             >
-              <t.icon className="size-4 text-cyan" aria-hidden />
+              <t.icon className="size-4 text-primary" aria-hidden />
               {t.label}
             </span>
           ))}
@@ -830,14 +824,14 @@ function Comparison() {
 
 function ProofBand() {
   return (
-    <section className="border-t border-border/60 bg-navy/20">
+    <section className="border-t border-border/60">
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:py-28">
         <Reveal>
-          <span className="inline-flex items-center gap-2 rounded-full border border-cyan/25 bg-cyan/5 px-3.5 py-1.5 text-xs font-medium text-cyan">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3.5 py-1.5 text-xs font-medium text-primary">
             <Sparkles className="size-3.5" aria-hidden />
             Early access — founding customers
           </span>
-          <h2 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="mt-5 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             Built by an operator who got tired of missing calls.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
@@ -853,15 +847,17 @@ function ProofBand() {
           </div>
         </Reveal>
         <Reveal delay={120}>
-          <div className="border-glow rounded-2xl p-6">
-            <p className="font-mono text-xs uppercase tracking-widest text-steel">Live pilot</p>
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-[0_20px_60px_-30px_rgba(26,21,16,0.3)]">
+            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              Live pilot
+            </p>
             <div className="mt-4 space-y-3">
               <ProofStat icon={PhoneCall} label="Answering calls 24/7" value="Live now" />
               <ProofStat icon={Route} label="Exact quotes by driving distance" value="Per call" />
               <ProofStat icon={KanbanSquare} label="Leads tracked to booked jobs" value="Automatic" />
               <ProofStat icon={BellRing} label="Staff alerted on every lead" value="Instant" />
             </div>
-            <p className="mt-5 border-t border-border/70 pt-4 text-xs leading-relaxed text-steel">
+            <p className="mt-5 border-t border-border/70 pt-4 text-xs leading-relaxed text-muted-foreground">
               Customer results vary. We&rsquo;ll publish verified outcomes as founding customers
               come online.
             </p>
@@ -884,7 +880,7 @@ function ProofStat({
   return (
     <div className="flex items-center justify-between gap-4">
       <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <Icon className="size-4 text-cyan" aria-hidden />
+        <Icon className="size-4 text-primary" aria-hidden />
         {label}
       </span>
       <span className="font-mono text-xs font-semibold text-foreground">{value}</span>
@@ -894,18 +890,21 @@ function ProofStat({
 
 function FinalCta() {
   return (
-    <section className="glow-field border-t border-border/60">
-      <div className="mx-auto max-w-3xl px-6 py-20 text-center lg:py-28">
+    <section className="glow-field-copper relative border-t border-border/60 bg-navy">
+      <div className="relative mx-auto max-w-3xl px-6 py-20 text-center lg:py-28">
         <h2 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
-          Stop paying for <span className="text-gradient">missed calls.</span>
+          Stop paying for <span className="text-gradient-copper">missed calls.</span>
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
           Every unanswered ring is a job your competitor books. Put an AI front desk on your phones
           — and never wonder what that voicemail cost you.
         </p>
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <ButtonLink href="/signup" large>
             Start free trial <ArrowRight className="size-4" aria-hidden />
+          </ButtonLink>
+          <ButtonLink href={`tel:${DEMO_PHONE_E164}`} variant="outline" large>
+            <PhoneCall className="size-4" aria-hidden /> Or just call {DEMO_PHONE_DISPLAY}
           </ButtonLink>
         </div>
       </div>

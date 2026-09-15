@@ -92,11 +92,11 @@ function Tile({
   children: React.ReactNode;
 }) {
   return (
-    <div className="group h-full overflow-hidden rounded-2xl border border-border bg-card/50 transition-colors hover:border-cyan/40">
+    <div className="group h-full overflow-hidden rounded-2xl border border-border bg-card/50 transition-colors hover:border-primary/40">
       <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className="inline-flex size-9 items-center justify-center rounded-lg border border-cyan/25 bg-cyan/10">
-            <Icon className="size-4.5 text-cyan" aria-hidden />
+          <span className="inline-flex size-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+            <Icon className="size-4.5 text-primary" aria-hidden />
           </span>
           <div>
             <h3 className="font-display text-base font-semibold leading-tight">{title}</h3>
@@ -107,8 +107,8 @@ function Tile({
           <span
             className={
               badgeTone === "muted"
-                ? "shrink-0 rounded-full border border-border bg-secondary/50 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-steel"
-                : "shrink-0 rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan"
+                ? "shrink-0 rounded-full border border-border bg-secondary/50 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-muted-foreground"
+                : "shrink-0 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-primary"
             }
           >
             {badge}
@@ -136,8 +136,8 @@ function AnalyticsMock() {
     <div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpis.map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-border/70 bg-night/40 px-3 py-2.5">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-steel">{label}</div>
+          <div key={label} className="rounded-lg border border-border/70 bg-background/40 px-3 py-2.5">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
             <div className="mt-1 font-mono text-lg font-semibold text-foreground">{value}</div>
           </div>
         ))}
@@ -173,7 +173,7 @@ function QuoteMock() {
         <span className="text-sm font-medium">Total</span>
         <span className="font-mono text-xl font-bold text-success">$135</span>
       </div>
-      <p className="pt-1 text-[11px] leading-relaxed text-steel">
+      <p className="pt-1 text-[11px] leading-relaxed text-muted-foreground">
         Computed server-side from owner-approved rules + driving distance.
       </p>
     </div>
@@ -184,16 +184,16 @@ function InboxMock() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-[11px]">
-        <span className="inline-flex items-center gap-1 rounded-full border border-cyan/30 bg-cyan/10 px-2 py-0.5 font-mono uppercase tracking-wider text-cyan">
+        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono uppercase tracking-wider text-primary">
           <Phone className="size-2.5" aria-hidden /> SMS
         </span>
-        <span className="text-steel">Returning customer · 2m ago</span>
+        <span className="text-muted-foreground">Returning customer · 2m ago</span>
       </div>
       <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-secondary/70 px-3 py-2 text-sm">
         Do you guys do lockouts? Locked my keys in the car downtown.
       </div>
-      <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm border border-cyan/25 bg-cyan/10 px-3 py-2 text-sm">
-        <span className="mb-0.5 block font-mono text-[9px] uppercase tracking-widest text-cyan">
+      <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm border border-primary/25 bg-primary/10 px-3 py-2 text-sm">
+        <span className="mb-0.5 block font-mono text-[9px] uppercase tracking-widest text-primary">
           <Bot className="mr-1 inline size-2.5" aria-hidden />
           AI
         </span>
@@ -213,9 +213,9 @@ function PipelineMock() {
   return (
     <div className="grid grid-cols-4 gap-2">
       {cols.map((c) => (
-        <div key={c.name} className="rounded-lg border border-border/70 bg-night/40 p-2">
+        <div key={c.name} className="rounded-lg border border-border/70 bg-background/40 p-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-steel">{c.name}</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{c.name}</span>
             <span className={`font-mono text-[10px] font-semibold ${c.tone}`}>{c.count}</span>
           </div>
           <div className="mt-2 space-y-1.5">
@@ -232,7 +232,7 @@ function PipelineMock() {
 export function CheckRow({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2.5 text-sm leading-relaxed text-muted-foreground">
-      <Check className="mt-0.5 size-4 shrink-0 text-cyan" strokeWidth={3} aria-hidden />
+      <Check className="mt-0.5 size-4 shrink-0 text-primary" strokeWidth={3} aria-hidden />
       <span>{children}</span>
     </li>
   );

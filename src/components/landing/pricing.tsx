@@ -107,12 +107,12 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
         </p>
       </div>
 
-      <div className="mx-auto mt-6 flex max-w-2xl flex-col items-center gap-4 rounded-2xl border border-cyan/30 bg-cyan/5 px-6 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div className="mx-auto mt-6 flex max-w-2xl flex-col items-center gap-4 rounded-2xl border border-primary/30 bg-primary/5 px-6 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
         <div>
-          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan sm:justify-start">
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-primary sm:justify-start">
             <span>First ten businesses</span>
             {typeof founderSlotsTaken === "number" && (
-              <span className="rounded-full border border-cyan/40 bg-night/40 px-2 py-0.5 text-cyan">
+              <span className="rounded-full border border-primary/40 bg-background/50 px-2 py-0.5 text-primary">
                 {founderSlotsTaken} of 10 taken
               </span>
             )}
@@ -144,11 +144,11 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
           aria-checked={annual}
           aria-label="Toggle annual billing"
           onClick={() => setAnnual((v) => !v)}
-          className="relative inline-flex h-7 w-12 cursor-pointer items-center rounded-full border border-border bg-night/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="relative inline-flex h-7 w-12 cursor-pointer items-center rounded-full border border-border bg-background/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <span
             className={cn(
-              "inline-block size-5 transform rounded-full bg-cyan shadow transition-transform duration-200",
+              "inline-block size-5 transform rounded-full bg-primary shadow transition-transform duration-200",
               annual ? "translate-x-6" : "translate-x-1"
             )}
           />
@@ -161,11 +161,11 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
         </span>
       </div>
 
-      <p className="mx-auto mt-5 w-fit rounded-full border border-cyan/25 bg-cyan/5 px-4 py-1.5 text-center text-xs text-steel">
+      <p className="mx-auto mt-5 w-fit rounded-full border border-primary/25 bg-primary/5 px-4 py-1.5 text-center text-xs text-muted-foreground">
         <span className="font-medium text-foreground">7-day free trial</span> on every plan —
         card required, cancel anytime before it ends and you&rsquo;re not charged.
       </p>
-      <p className="mx-auto mt-3 max-w-lg text-center text-xs leading-relaxed text-steel">
+      <p className="mx-auto mt-3 max-w-lg text-center text-xs leading-relaxed text-muted-foreground">
         <span className="font-medium text-foreground">What&rsquo;s an &ldquo;AI minute&rdquo;?</span>{" "}
         One minute your AI receptionist is actually on the phone talking to a caller — not hold
         time, not texts. The call counts on each plan below are an estimate based on a ~3-minute
@@ -181,7 +181,9 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               key={plan.name}
               className={cn(
                 "relative flex flex-col rounded-xl p-6",
-                plan.popular ? "border-glow shadow-[0_16px_60px_-20px_rgba(0,229,255,0.4)]" : "border border-border bg-card/60"
+                plan.popular
+                  ? "border-2 border-primary bg-card shadow-[0_16px_50px_-24px_var(--color-primary)]"
+                  : "border border-border bg-card/60"
               )}
             >
               {plan.popular && (
@@ -202,7 +204,7 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{plan.blurb}</p>
               <ul className="mt-4 flex-1 space-y-2 border-t border-border/70 pt-4 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2 font-medium text-foreground">
-                  <Check className="size-3.5 shrink-0 text-cyan" strokeWidth={3} aria-hidden />
+                  <Check className="size-3.5 shrink-0 text-primary" strokeWidth={3} aria-hidden />
                   {plan.minutes}
                   {plan.approxCalls && (
                     <span className="font-normal text-muted-foreground">({plan.approxCalls})</span>
@@ -210,7 +212,7 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
                 </li>
                 {plan.extras.map((extra) => (
                   <li key={extra} className="flex items-center gap-2">
-                    <Check className="size-3.5 shrink-0 text-cyan/70" strokeWidth={3} aria-hidden />
+                    <Check className="size-3.5 shrink-0 text-primary/70" strokeWidth={3} aria-hidden />
                     {extra}
                   </li>
                 ))}
@@ -225,7 +227,7 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
                   "mt-5 inline-flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm font-semibold transition-all",
                   plan.popular
                     ? "bg-primary text-primary-foreground hover:brightness-110"
-                    : "border border-border text-foreground hover:border-cyan/50 hover:text-cyan"
+                    : "border border-border text-foreground hover:border-primary/50 hover:text-primary"
                 )}
               >
                 {plan.monthly == null ? "Talk to us" : "Start free trial"}

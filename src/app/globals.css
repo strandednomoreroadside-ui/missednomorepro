@@ -4,6 +4,15 @@
  * Missed No More Pro — dark-first brand theme.
  * Palette source of truth: brand/missed_no_more_pro_brand_colors.txt
  *   Deep Navy #0A1B3D · Electric Cyan #00E5FF · Midnight #020817 · Bright Blue #006BFF
+ *
+ * Two registers, used deliberately rather than one glow-everywhere look:
+ *   - Dark (navy/cyan/blue): the product/tech sections — the AI itself.
+ *   - Paper (.on-paper — warm ivory/ink/copper): the trust sections — proof,
+ *     comparison, pricing, FAQ. Wrap a section in .on-paper and every
+ *     existing bg-card / text-muted-foreground / border-border / bg-primary
+ *     class inside it repaints for the light register automatically, since
+ *     Tailwind v4 utilities read these as CSS custom properties at paint
+ *     time, not build time.
  */
 :root {
   --background: #020817;
@@ -26,6 +35,32 @@
   --input: #1b2f55;
   --ring: #00e5ff;
   --radius: 0.75rem;
+}
+
+/* Warm "trust" register for proof / comparison / pricing / FAQ. Re-scopes
+   the same semantic tokens shadcn-style components already use, so nothing
+   downstream needs section-specific classes. */
+.on-paper {
+  --background: #f6f1e6;
+  --foreground: #1a1510;
+  --card: #ffffff;
+  --card-foreground: #1a1510;
+  --popover: #ffffff;
+  --popover-foreground: #1a1510;
+  --primary: #c96a3a;
+  --primary-foreground: #1a1510;
+  --secondary: #ece2cd;
+  --secondary-foreground: #1a1510;
+  --muted: #ece2cd;
+  --muted-foreground: #6b6255;
+  --accent: #ece2cd;
+  --accent-foreground: #1a1510;
+  --border: #e2d5bc;
+  --input: #e2d5bc;
+  --ring: #c96a3a;
+
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 @theme inline {
@@ -58,13 +93,21 @@
   --color-success: #21d07a;
   --color-alert: #ffb020;
 
+  /* Warm register shortcuts (paper sections + trust moments anywhere) */
+  --color-paper: #f6f1e6;
+  --color-paper-card: #ffffff;
+  --color-ink: #1a1510;
+  --color-ink-muted: #6b6255;
+  --color-copper: #c96a3a;
+  --color-copper-deep: #a8532a;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
   --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
   --animate-fade-up: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -144,12 +187,21 @@ body {
 
 /* ── Atmosphere helpers ──────────────────────────────────────── */
 
-/* Soft signal-glow used behind hero and CTA sections */
+/* Soft signal-glow — reserved for the hero only now (previously reused on
+   every major section, which is a large part of why the whole page read as
+   one undifferentiated "AI glow" block). */
 .glow-field {
   background:
     radial-gradient(42rem 26rem at 18% 8%, rgba(0, 107, 255, 0.16), transparent 60%),
     radial-gradient(36rem 24rem at 85% 18%, rgba(0, 229, 255, 0.1), transparent 65%),
     radial-gradient(50rem 32rem at 50% 110%, rgba(0, 107, 255, 0.08), transparent 70%);
+}
+
+/* Warm counterpart glow for the copper finale band. */
+.glow-field-copper {
+  background:
+    radial-gradient(46rem 28rem at 20% 10%, rgba(201, 106, 58, 0.22), transparent 62%),
+    radial-gradient(40rem 26rem at 88% 20%, rgba(255, 176, 32, 0.12), transparent 65%);
 }
 
 /* Faint dispatch-board grid lines */
@@ -161,7 +213,8 @@ body {
   mask-image: radial-gradient(60rem 40rem at 50% 0%, black 30%, transparent 75%);
 }
 
-/* Brand gradient text (bright blue → electric cyan, like the logo M) */
+/* Brand gradient text (bright blue → electric cyan, like the logo M).
+   Used once, in the hero — not as a page-wide decoration. */
 .text-gradient {
   background: linear-gradient(100deg, #006bff 0%, #00e5ff 70%);
   -webkit-background-clip: text;
@@ -169,7 +222,18 @@ body {
   color: transparent;
 }
 
-/* Gradient hairline border for premium cards */
+/* Warm counterpart, used once in the closing CTA so the finale reads as a
+   distinct beat rather than a rerun of the hero's cyan glow. */
+.text-gradient-copper {
+  background: linear-gradient(100deg, #f2b25c 0%, #c96a3a 75%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Gradient hairline border — reserved for a single hero card, not every
+   card on the page (that repetition was the biggest "generic AI SaaS"
+   tell: glowing gradient borders on every panel). */
 .border-glow {
   position: relative;
   background:
