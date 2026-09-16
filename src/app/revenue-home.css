@@ -53,3 +53,7 @@
 .revenue-home .journey-step{border-color:#006bff55}
 .revenue-home .final-cta{background:radial-gradient(ellipse at 90% 100%,#d946ef33,transparent 60%),#111c28}
 .revenue-home .final-cta h2 span{color:#d946ef}
+
+/* Early feedback / testimonials section. */
+.testimonial-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}.testimonial{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:26px;display:flex;flex-direction:column}.testimonial .stars{color:var(--yellow);letter-spacing:3px;font-size:14px;margin-bottom:16px}.testimonial .quote{color:#c4ccd7;font-size:15px;line-height:1.75;flex:1}.testimonial-who{border-top:1px solid var(--line);margin-top:20px;padding-top:14px;font-size:13px}.testimonial-who b{display:block;font-size:15px;margin-bottom:3px}.testimonial-who span{color:var(--muted);font-size:12px}
+@media(max-width:760px){.testimonial-grid{grid-template-columns:1fr;gap:20px}}
