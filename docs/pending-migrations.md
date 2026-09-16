@@ -33,7 +33,9 @@ with expected(migration, kind, marker) as (values
   ('20260723090000_founder_slots_10',               'slots10',  'subscriptions_founder_slot_check'),
   ('20260724090000_transfer_target',                'column',   'businesses.transfer_enabled'),
   ('20260813090000_voice_handoffs_and_pronunciations','table',  'voice_handoffs'),
-  ('20260821090000_business_ai_notes',              'column',   'businesses.ai_notes')
+  ('20260821090000_business_ai_notes',              'column',   'businesses.ai_notes'),
+  ('20260915090000_plan_retier_3tier',              'planflag', 'outbound_assistant'),
+  ('20260916090000_setup_wizard_phone_step',        'phonegate','app.setup_complete')
 )
 select
   case when present then 'applied' else '>>> MISSING <<<' end as status,
@@ -66,6 +68,12 @@ from (
       when 'slots10' then exists (
         select 1 from pg_constraint
         where conname = e.marker and pg_get_constraintdef(oid) like '%10%')
+      -- Adds a phone_numbers check to the launch gate — presence, not
+      -- absence, since this one only ever ADDS a clause to the function.
+      when 'phonegate' then exists (
+        select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = split_part(e.marker, '.', 1) and p.proname = split_part(e.marker, '.', 2)
+          and pg_get_functiondef(p.oid) like '%phone_numbers%')
     end as present
   from expected e
 ) t
