@@ -7,10 +7,10 @@
 .art-stage{background-image:url('/images/ai-receptionist-signal-blue.webp')}.eyebrow,.visual-head,.ticket-top,.job-ticket p,.call-label,.visual-caption,.service-strip>span,.date-block small,.date-block>span,.panel-bar,.panel-bar small,.panel-greeting,.panel-message>span,.panel-answer>span,.industry-grid span,.popular,.footer-links b,.footer-bottom,.brand small{font-size:12px}.pillar>p,.industry-grid p,.support-feature p,.faq-list p,.operator>div>p,.demo p{font-size:16px}.pillar li,.price-grid li,.price-grid article>p:not(.plan-name),.footer-links>div,.control label{font-size:14px}.pillar-visual{height:226px}.visual-state{font-size:12px}.price-grid article{padding-left:18px;padding-right:18px}.price-grid li{line-height:1.5}.panel-bar{flex-wrap:wrap}.panel-bar small{font-size:10px}.wave{height:125px;animation:none}.wave i{animation-iteration-count:4}.demo .eyebrow,.demo .fine,.operator .eyebrow,.operator .fine,.final-cta .eyebrow,.footer-main>a:last-child,.footer-main p{font-size:12px}.brand small{letter-spacing:3px;font-size:10px}.hero-visual .job-ticket{width:246px}.ticket-top{font-size:10px}.job-ticket p{font-size:12px}.pillar>p{min-height:140px}.calc-result small,.billing-note,.enterprise p,.pricing-details p{font-size:13px}.footer-bottom{font-size:12px}.hero-visual .call-label{font-size:12px}.visual-caption{font-size:10px}.demo-number{white-space:nowrap}.button{background:#2865d5}.button:hover{background:#3470df}
 @media(max-width:760px){.pillar>p{min-height:0}.hero .eyebrow{font-size:12px}.pillar-visual{height:225px}.price-grid{grid-template-columns:1fr}.price-grid article{padding:27px}.price-grid li{font-size:14px}.price-grid .button{font-size:14px}.price strong{font-size:56px}.footer-links>div{font-size:13px}.footer-bottom{font-size:11px}.hero-visual .call-label{font-size:10px}.hero-visual .job-ticket{width:240px}.call-label .mono{margin-left:0}.demo-number{font-size:36px}.industry-grid p,.support-feature p,.faq-list p{font-size:16px}}
 }
-.revenue-home .existing-pricing { --primary:#4edbb5; --primary-foreground:#091720; --card:#121b27; --foreground:#f7f7f1; --muted-foreground:#b2bfd0; --background:#0b1018; --border:#293a50; --success:#4edbb5; --font-display:var(--font-revenue-display); color:var(--foreground); }
+.revenue-home .existing-pricing { --primary:#006bff; --primary-foreground:#ffffff; --card:#121b27; --foreground:#f7f7f1; --muted-foreground:#b2bfd0; --background:#0b1018; --border:#293a50; --success:#006bff; --font-display:var(--font-revenue-display); color:var(--foreground); }
 .revenue-home .existing-pricing h2{font-family:var(--font-revenue-display),sans-serif}
 .revenue-home .existing-pricing a{color:inherit}
-.revenue-home .existing-pricing a.bg-primary{color:#091720}
+.revenue-home .existing-pricing a.bg-primary{color:#ffffff}
 .revenue-home .existing-pricing section{max-width:1320px}
 .revenue-home{overflow-x:clip}
 .revenue-home header .nav-actions{flex-shrink:0}
@@ -28,3 +28,28 @@
 @media(max-width:1100px){.revenue-home header .official-logo{width:230px}.revenue-home header nav{gap:14px}.revenue-home header{gap:17px;padding-left:24px;padding-right:24px}}
 @media(max-width:760px){.revenue-home header .official-logo{width:190px}.revenue-home header{padding-left:17px;padding-right:17px;gap:12px}.revenue-home header .button.small{font-size:12px;padding:12px 10px}.revenue-home header .button.small span{display:none}}
 @media(max-width:370px){.revenue-home header .official-logo{width:163px}}
+
+/* Final palette pass: logo cobalt is the anchor; magenta is reserved for
+   selective emphasis. This override also retires legacy mint values from the
+   original command-center composition without changing its information flow. */
+.revenue-home{
+  --blue:#006bff;
+  --magenta:#d946ef;
+  --yellow:#006bff;
+}
+.revenue-home .signal{box-shadow:0 0 0 4px #006bff1f}
+.revenue-home .date-block{border-color:#006bff50}
+.revenue-home .date-block small{background:#006bff14}
+.revenue-home .button{background:#006bff;color:#fff}
+.revenue-home .button:hover{background:#287cff;color:#fff}
+.revenue-home .brandmark,.revenue-home .mini-mark{background:#006bff}
+.revenue-home .number,.revenue-home .featured .popular{color:#006bff}
+.revenue-home .featured .popular{background:#d946ef;color:#fff}
+.revenue-home .pillar:nth-child(2) .number,.revenue-home .quote-total b{color:#5f8fff}
+.revenue-home .pillar:nth-child(3) .number,.revenue-home .calendar-preview .booked{color:#d946ef}
+.revenue-home .pillar:nth-child(3) .date-block{color:#d946ef;border-color:#d946ef55}
+.revenue-home .pillar:nth-child(3) .date-block small{background:#d946ef11}
+.revenue-home .ticket-check,.revenue-home .ticket-row b{color:#1666d9}
+.revenue-home .journey-step{border-color:#006bff55}
+.revenue-home .final-cta{background:radial-gradient(ellipse at 90% 100%,#d946ef33,transparent 60%),#111c28}
+.revenue-home .final-cta h2 span{color:#d946ef}
