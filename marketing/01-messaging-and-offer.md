@@ -76,7 +76,7 @@ document instead of typed.
 >   too, as long as you stay subscribed.
 >
 > **Try the whole thing free for 7 days** (card required, ~30 min of talk time included). No contract,
-> cancel anytime, hard cap so you're never surprised. **Plans start at $99/mo — less than one job
+> cancel anytime, hard cap so you're never surprised. **Plans start at $79/mo — less than one job
 > you're losing to voicemail right now.**
 >
 > **Before you decide anything: call the number below and talk to the AI yourself.**

@@ -91,7 +91,7 @@ For a receptionist product, "just call it and hear it" beats any sales pitch. **
 
 ## 7. Pricing (be accurate; never fudge)
 
-- **Starter $99/mo · Growth $199 · Professional $349 · Elite $599** (annual is cheaper). Enterprise = custom.
+- **Starter $79/mo · Growth $159 · Professional $279 · Elite $479** (annual is cheaper). Enterprise = custom.
 - Each plan includes a monthly pool of voice minutes; **pricing is a HARD CAP — no metered overage,
   no surprise bills.** At the cap, calls forward to the owner.
 - **7-day FREE trial, credit card required, ~30-min voice cap during the trial.** The trial + self-serve
