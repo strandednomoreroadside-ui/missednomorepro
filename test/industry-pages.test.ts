@@ -52,6 +52,11 @@ describe("industry page content", () => {
     }
   });
 
+  it("publishes every marketed niche as a page or a section", () => {
+    const unpublished = NICHE_CATALOG.filter((n) => !n.setupOnly && !nicheHref(n)).map((n) => n.slug);
+    expect(unpublished).toEqual([]);
+  });
+
   it("links every generated page and uses plain punctuation", () => {
     for (const n of generatedNiches()) {
       expect(nicheHref(n)).toBe(`/industries/${n.category}/${n.slug}`);

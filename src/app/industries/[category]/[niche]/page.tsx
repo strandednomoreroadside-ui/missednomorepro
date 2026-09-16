@@ -29,13 +29,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const h1 = nicheH1(found.niche);
   const branded = `${h1} | Missed No More Pro`;
   const lead = `AI receptionist for ${inSentence(found.niche.name)}. `;
-  const firstSentence = found.content.hook.split(/(?<=\.)\s/)[0];
+  const full = lead + found.content.hook;
+  const cut = full.slice(0, 157);
   const description =
-    (lead + found.content.hook).length <= 160
-      ? lead + found.content.hook
-      : (lead + firstSentence).length <= 160
-        ? lead + firstSentence
-        : firstSentence;
+    full.length <= 160
+      ? full
+      : found.content.hook.length <= 160
+        ? found.content.hook
+        : `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,.;:]$/, "")}...`;
   return pageMetadata({
     title: branded.length <= 60 ? branded : h1,
     description,

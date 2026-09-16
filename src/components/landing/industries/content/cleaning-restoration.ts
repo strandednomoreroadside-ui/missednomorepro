@@ -255,8 +255,144 @@ export const cleaningRestoration: CategoryFile = {
         },
       ],
     },
+    "mold-remediation": {
+      hook: "Mold calls come from worried homeowners, buyers with an inspection report, and landlords. Answer every one, capture the situation, and book the inspection.",
+      why: "Mold remediation leads start with a musty smell, visible growth after a leak, or a home inspection that flagged mold before closing. Callers are often anxious and have questions about testing, health, and cost. The AI answers calmly in your company's name, captures what the caller is seeing, answers process questions from your FAQs, and books the inspection without giving health advice.",
+      calls: [
+        "Visible mold after leaks or flooding",
+        "Musty smells in basements and attics",
+        "Mold flagged in a home inspection",
+        "Landlords and tenants with mold concerns",
+        "Air testing and post-remediation clearance",
+        "Crawlspace and attic mold",
+      ],
+      quotes: "mold inspections and air testing visits",
+      estimates: "remediation projects you price after the inspection",
+      booking: "inspections",
+      faqs: [
+        {
+          q: "Will the AI tell callers whether mold is dangerous?",
+          a: "No. It never gives health advice. It answers only from the guidance you approve in your FAQs and books an inspection with your team.",
+        },
+        {
+          q: "Can it book an inspection before a home closing?",
+          a: "Yes. It captures the property address and the closing date the caller mentions, quotes your inspection, and books the earliest open time.",
+        },
+      ],
+    },
+    "biohazard-cleanup": {
+      hook: "Biohazard cleanup calls come at the hardest moments. Answer with care, day or night, and get your team there quickly and discreetly.",
+      why: "Biohazard cleanup companies are called after unattended deaths, traumatic incidents, and other situations families, property managers, and police need handled quickly and discreetly. Callers are often in shock and need a calm voice and a clear next step. The AI answers every call gently in your company's name, captures the address and the essentials, treats the call as urgent, and can warm-transfer the caller to your on-call team.",
+      calls: [
+        "Unattended death and decomposition cleanup",
+        "Trauma and accident scene cleanup",
+        "Calls from families, landlords, and police",
+        "Hoarding and sharps cleanup",
+        "Insurance and payment questions",
+        "Discretion and unmarked vehicle questions",
+      ],
+      estimates: "cleanups you assess on site",
+      urgent: "a biohazard scene that needs to be cleaned",
+      booking: "assessments",
+      faqs: [
+        {
+          q: "How does the AI handle such sensitive calls?",
+          a: "It speaks gently, asks only for what your team needs, never pushes, and can warm-transfer the caller to your on-call person. It texts your team right away and logs the call privately in your CRM.",
+        },
+        {
+          q: "Can it explain how payment and insurance work?",
+          a: "It answers from the FAQs you write, like whether insurance may cover the cleanup, in your words. It never makes promises about coverage.",
+        },
+      ],
+    },
+    "commercial-cleaning": {
+      hook: "Commercial cleaning contracts start with one phone call. Answer every inquiry, capture the facility, and book the walkthrough.",
+      why: "Commercial cleaning companies hear from office managers, property managers, medical and daycare facilities, and retail owners looking for a new cleaning service, often because their current one isn't working out. They want to know your schedule options, what's included, and how soon you can start. The AI answers in your company's name, captures the facility type and size the caller describes, answers questions from your FAQs, and books the walkthrough.",
+      calls: [
+        "Office and building cleaning contracts",
+        "Nightly, weekly, and after-hours schedules",
+        "Retail, gym, and facility cleaning",
+        "Post-construction cleaning",
+        "Floor care, carpet, and window add-ons",
+        "Existing clients with service requests",
+      ],
+      estimates: "cleaning contracts you price after a walkthrough",
+      booking: "walkthroughs",
+      faqs: [
+        {
+          q: "Can the AI qualify a commercial cleaning lead?",
+          a: "It captures the facility type, approximate size, cleaning frequency, and start date the caller mentions in the call summary, and books a walkthrough into an open slot.",
+        },
+        {
+          q: "Can existing clients report an issue?",
+          a: "Yes. Returning clients are recognized by name, and the AI takes their request and texts your team, logging it in the CRM with a transcript.",
+        },
+      ],
+    },
+    "window-cleaning": {
+      hook: "Window cleaning customers want a price and a date before spring or the holidays. Answer every call, quote your packages, and book the job.",
+      why: "Window cleaning calls come from homeowners who want spring or pre-holiday cleanings, storefront businesses on a regular route, and property managers. Residential jobs are easy to price by home size or window count and book on the first call. The AI answers in your company's name, quotes your packages, and books the cleaning.",
+      calls: [
+        "Interior and exterior window cleaning",
+        "Screen and track cleaning add-ons",
+        "Storefront window routes",
+        "Hard water stain removal",
+        "Post-construction window cleaning",
+        "Gutter and pressure washing add-ons",
+      ],
+      quotes: "window cleaning packages by home size, screens, and tracks",
+      estimates: "multi-story commercial buildings",
+      booking: "cleanings",
+      faqs: [
+        {
+          q: "Can the AI quote inside and outside window cleaning?",
+          a: "Yes. Set up packages for exterior only or inside and out, by home size, and the AI reads back one exact total including any add-ons.",
+        },
+        {
+          q: "Can storefront customers get on a regular route?",
+          a: "The AI captures the business and how often they want service and books the first cleaning. Your team sets up the ongoing schedule.",
+        },
+      ],
+    },
+    "home-organizing": {
+      hook: "Organizing clients call when they're overwhelmed. Answer every call warmly, explain how you work, and book the consultation.",
+      why: "Professional organizers hear from people preparing for a move, parents drowning in kids' stuff, downsizers, and busy professionals who want a garage, pantry, or closet finally under control. Callers want to know how sessions work and what it costs. The AI answers in your business's name, answers process questions from your FAQs, quotes session packages you price up front, and books the consultation.",
+      calls: [
+        "Closet, pantry, and garage organizing",
+        "Move-in unpacking and move-out packing",
+        "Downsizing and decluttering sessions",
+        "Home office and paperwork organizing",
+        "Questions about how sessions work",
+        "Donation drop-off and haul-away questions",
+      ],
+      quotes: "single-room and closet organizing sessions",
+      estimates: "whole-home and move projects",
+      booking: "consultations",
+      faqs: [
+        {
+          q: "Can the AI explain how our sessions work?",
+          a: "Yes, from your FAQs. Add how sessions run, what clients should prepare, and whether you haul donations, and the AI answers in your words.",
+        },
+        {
+          q: "Can it quote a closet organizing session?",
+          a: "Yes, for sessions you price up front, with travel zones added. Bigger projects are captured for a consultation.",
+        },
+      ],
+    },
   },
   variants: {
+    "crime-scene-cleanup": {
+      title: "Crime scene cleanup",
+      body: "Crime scene cleanup calls often come from families, landlords, and law enforcement. The AI answers gently, captures the address and who is calling, treats the call as urgent, texts your on-call team, and can warm-transfer the caller to a person right away.",
+    },
+    "janitorial": {
+      title: "Janitorial companies",
+      body: "For janitorial services, the AI captures the building, the schedule the client needs, and the services they want, answers staffing and insurance questions from your FAQs, and books the walkthrough.",
+    },
+    "office-cleaning": {
+      title: "Office cleaning companies",
+      body: "Office managers looking for cleaning usually want after-hours service on a set schedule. The AI captures the office size and schedule they describe, answers what's included from your FAQs, and books a walkthrough.",
+    },
     "dryer-vent-cleaning": {
       title: "Dryer vent cleaning",
       body: "Dryer vent cleaning is often booked on its own when a dryer takes too long or runs hot. The AI quotes your dryer vent cleaning exactly, gives any safety guidance you've approved in your FAQs, and books the visit, or prices it together with a duct cleaning in one total.",

@@ -101,8 +101,172 @@ export const towingTransportationDispatch: CategoryFile = {
         },
       ],
     },
+    "courier-delivery": {
+      hook: "Same-day delivery customers need an answer now. Pick up every call, capture the pickup and drop-off, and get a driver moving.",
+      why: "Courier and delivery companies hear from law firms, medical offices, print shops, retailers, and individuals who need something delivered today, often within the hour. Business customers also call to set up regular routes. The AI answers in your company's name, captures the pickup, drop-off, item, and deadline, texts your dispatcher right away for rush jobs, and books scheduled pickups.",
+      calls: [
+        "Same-day and rush deliveries",
+        "Legal document and court filing runs",
+        "Medical and lab specimen deliveries",
+        "Retail and e-commerce local deliveries",
+        "Recurring route setups for businesses",
+        "Delivery status questions",
+      ],
+      estimates: "deliveries you price by distance, size, and urgency",
+      urgent: "a delivery that has to go out right now",
+      booking: "scheduled pickups",
+      faqs: [
+        {
+          q: "Can the AI dispatch a rush delivery?",
+          a: "It captures the pickup, drop-off, item, and deadline, treats the call as urgent, and texts your dispatcher right away. The caller can get a confirmation text with an estimated arrival time for the pickup.",
+        },
+        {
+          q: "Can it give delivery status updates?",
+          a: "No. It doesn't connect to your dispatch system. It takes the caller's details and texts your team to follow up.",
+        },
+      ],
+    },
+    "freight-brokers": {
+      hook: "Shippers and carriers call brokers all day. Answer every call, capture the load or lane, and route it to the right person.",
+      why: "Freight brokerages field calls from shippers looking for capacity, carriers calling about posted loads, and existing customers checking on shipments. Brokers are often on another call, and a missed shipper call can be a lost load. The AI answers in your company's name, captures what the caller shares about the load, lane, dates, and equipment, answers standard questions from your FAQs, and texts your team.",
+      calls: [
+        "Shippers requesting quotes for loads",
+        "Carriers asking about posted loads",
+        "Equipment, lane, and pickup date details",
+        "New shipper account inquiries",
+        "Existing customers checking on a shipment",
+        "Carrier setup and onboarding questions",
+      ],
+      estimates: "load quotes your brokers price",
+      booking: "calls with your team",
+      faqs: [
+        {
+          q: "Can the AI quote freight rates?",
+          a: "No. It never quotes rates. It captures the origin, destination, dates, weight, and equipment the shipper describes, and texts your broker to follow up.",
+        },
+        {
+          q: "Can carriers get load information?",
+          a: "It doesn't connect to your load board. It captures the carrier's details and the load they're asking about and texts your team.",
+        },
+      ],
+    },
+    "local-trucking": {
+      hook: "Local hauling customers need a truck on a certain day. Answer every call, capture the job, and get it on the schedule.",
+      why: "Local trucking companies take calls for material hauling, gravel and dirt deliveries, construction debris, and contract hauling for builders and landscapers. Callers want to know if you have a truck available and what you can haul. The AI answers in your company's name, captures the material, pickup, delivery location, and date, answers capability questions from your FAQs, and books the haul.",
+      calls: [
+        "Gravel, dirt, and mulch deliveries",
+        "Construction material hauling",
+        "Debris hauling from job sites",
+        "Contractors scheduling regular hauls",
+        "Dump truck availability questions",
+        "Load size and capacity questions",
+      ],
+      estimates: "hauls you price by material, distance, and load",
+      booking: "hauls",
+      faqs: [
+        {
+          q: "Can the AI quote a load of gravel?",
+          a: "Only if you set a price for it. Most hauls depend on the material and distance, so the AI captures the details and your team follows up with the price.",
+        },
+        {
+          q: "Can contractors book recurring hauls?",
+          a: "The AI books each haul into an open slot on your calendar and recognizes returning contractors by name in the CRM.",
+        },
+      ],
+    },
+    "chauffeur-services": {
+      hook: "Car service clients book whoever answers and confirms the ride. Pick up every call, quote your transfers, and book the reservation.",
+      why: "Private transportation and chauffeur services hear from executives, travelers, event guests, and corporate assistants booking rides, often with a flight time or event schedule attached. They want a confirmed price and pickup time. The AI answers in your company's name, captures the pickup location, destination, date, and passenger count, quotes the flat-rate trips you set, and books the reservation.",
+      calls: [
+        "Airport pickups and drop-offs",
+        "Corporate and executive car service",
+        "Hourly as-directed service",
+        "Event and night-out transportation",
+        "Corporate accounts booking for travelers",
+        "Changes to existing reservations",
+      ],
+      quotes: "airport transfers and flat-rate trips from your base",
+      estimates: "multi-stop, hourly, and out-of-town trips",
+      booking: "reservations",
+      faqs: [
+        {
+          q: "How does the AI quote an airport transfer?",
+          a: "Set flat prices for your airport transfers and travel zones measured from your base to the pickup, and the AI reads back one exact total. Longer or multi-stop trips are captured for your team to price.",
+        },
+        {
+          q: "Can it capture flight details?",
+          a: "It notes the flight number and arrival time the caller gives in the booking details and call summary for your dispatcher. It doesn't track flights.",
+        },
+      ],
+    },
+    "limousine-companies": {
+      hook: "Prom, wedding, and night-out bookings go to the first limo company that answers. Pick up every call and lock in the date.",
+      why: "Limousine companies take calls for weddings, proms, birthdays, concerts, and corporate events. Callers want to know which vehicles are available, how many people fit, and what the package costs for their date. The AI answers in your company's name, captures the event date, passenger count, and pickup details, quotes the packages you price up front, and books the reservation.",
+      calls: [
+        "Wedding day transportation",
+        "Prom and homecoming bookings",
+        "Birthdays, concerts, and nights out",
+        "Corporate events and roadshows",
+        "Vehicle size and passenger capacity questions",
+        "Deposit and cancellation policy questions",
+      ],
+      quotes: "event packages by vehicle and number of hours",
+      estimates: "multi-vehicle weddings and custom events",
+      booking: "reservations",
+      faqs: [
+        {
+          q: "Can the AI quote a limo package?",
+          a: "Yes. Set packages by vehicle and hours, plus travel zones from your base, and the AI reads back one exact total. Custom or multi-vehicle events are captured for your team.",
+        },
+        {
+          q: "Can it answer deposit and cancellation questions?",
+          a: "Yes, from your FAQs, in your words. It never makes up policies.",
+        },
+      ],
+    },
+    "party-bus-companies": {
+      hook: "Party bus groups book fast and book the company that answers. Pick up every call, quote your packages, and hold the date.",
+      why: "Party bus calls come from groups planning bachelor and bachelorette parties, birthdays, brewery and winery tours, and game days. The organizer wants to know capacity, what's allowed on board, and the price for their date. The AI answers in your company's name, captures the date, group size, and plans, quotes your packages, answers policy questions from your FAQs, and books the reservation.",
+      calls: [
+        "Bachelor and bachelorette parties",
+        "Birthday and night-out bookings",
+        "Brewery, winery, and bar tours",
+        "Sports games and concerts",
+        "Capacity and on-board policy questions",
+        "Deposit and damage policy questions",
+      ],
+      quotes: "party packages by bus size and number of hours",
+      estimates: "multi-day and out-of-town trips",
+      booking: "reservations",
+      faqs: [
+        {
+          q: "Can the AI tell groups what's allowed on the bus?",
+          a: "Yes, from your FAQs. Add your policies on drinks, music, and decorations, and the AI answers in your words.",
+        },
+        {
+          q: "Can it quote a four-hour package?",
+          a: "Yes. Set packages by bus size and hours, plus travel zones from your base, and the AI reads back one exact total.",
+        },
+      ],
+    },
   },
   variants: {
+    "last-mile-delivery": {
+      title: "Last-mile delivery companies",
+      body: "For last-mile delivery, the AI answers calls from retailers setting up delivery service and from recipients with questions, captures account and route details, answers standard questions from your FAQs, and texts your team.",
+    },
+    "black-car-services": {
+      title: "Black car services",
+      body: "Black car clients expect a polished, immediate answer. The AI answers in your company's name, captures the pickup, destination, and time, quotes your flat-rate trips, and books the reservation with a confirmation text.",
+    },
+    "airport-transportation": {
+      title: "Airport transportation",
+      body: "For airport shuttles and transfers, the AI captures the pickup address, flight time, and passenger count, quotes your flat airport rates with travel zones from your base, and books the ride with a reminder text.",
+    },
+    "wedding-transportation": {
+      title: "Wedding transportation",
+      body: "Wedding transportation calls come months ahead. The AI captures the wedding date, venues, and number of guests, quotes your wedding packages, and books the reservation so the date is held.",
+    },
     "pool-table-movers": {
       title: "Pool table movers",
       body: "Pool table moves need disassembly, slate handling, and releveling. The AI captures the table size and both locations, quotes the moves you price by table size, and books the date.",

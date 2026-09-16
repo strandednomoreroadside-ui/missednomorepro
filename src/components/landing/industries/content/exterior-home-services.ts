@@ -201,8 +201,62 @@ export const exteriorHomeServices: CategoryFile = {
         },
       ],
     },
+    "siding-contractors": {
+      hook: "Siding leads call after a storm or when the house finally needs a new look. Answer every call, capture the project, and book the estimate.",
+      why: "Siding contractors get calls about storm and hail damage, cracked or warped panels, rotted trim, and full replacements to update a home's exterior, often alongside windows, gutters, or trim. Most jobs need a measure before pricing. The AI answers in your company's name, captures what the homeowner describes, answers material and insurance-process questions from your FAQs, and books the estimate.",
+      calls: [
+        "Full vinyl, fiber cement, and wood siding replacements",
+        "Storm and hail damaged siding",
+        "Cracked, loose, or warped panels",
+        "Rotted trim, soffit, and fascia",
+        "Color and material questions",
+        "Exterior remodels combining siding, windows, and gutters",
+      ],
+      quotes: "siding repair service calls",
+      estimates: "full siding replacements and exterior remodels",
+      booking: "estimates",
+      faqs: [
+        {
+          q: "Can homeowners send photos of the damage?",
+          a: "Yes. Photos texted to your Missed No More Pro number are saved to the customer's record in the CRM next to the call summary.",
+        },
+        {
+          q: "Can the AI quote a full siding job?",
+          a: "No. Full replacements depend on measurements and materials, so the AI books an estimate and captures what the homeowner wants. It quotes only services you've priced, like a repair service call.",
+        },
+      ],
+    },
+    "asphalt-paving": {
+      hook: "Driveway sealcoating and paving leads come in all at once when the weather warms up. Answer every call, quote your sealcoating, and book estimates.",
+      why: "Asphalt and paving companies take calls for driveway sealcoating, crack filling, patching, new driveways, and commercial parking lots. Sealcoating is easy to price by driveway size and book on the first call, while new paving and lots need a site visit. The AI answers in your company's name, quotes the services you price by phone, and books estimates for the rest.",
+      calls: [
+        "Driveway sealcoating",
+        "Crack filling and pothole patching",
+        "New asphalt driveways",
+        "Commercial parking lot paving and striping",
+        "Driveway replacement and resurfacing",
+        "HOA and property manager inquiries",
+      ],
+      quotes: "sealcoating by driveway size, crack filling, and small patches",
+      estimates: "new driveways, resurfacing, and commercial lots",
+      booking: "estimates",
+      faqs: [
+        {
+          q: "Can the AI quote driveway sealcoating?",
+          a: "Yes. Set sealcoating prices by driveway size plus travel zones, and the AI reads back one exact total for what the caller describes.",
+        },
+        {
+          q: "Can it handle commercial parking lot inquiries?",
+          a: "It captures the property, the lot size the caller describes, and their timeline, logs the lead in the CRM, and books a site visit.",
+        },
+      ],
+    },
   },
   variants: {
+    "exterior-remodeling": {
+      title: "Exterior remodeling companies",
+      body: "For full exterior remodels that combine siding, windows, doors, and trim, the AI captures everything the homeowner wants to change, answers questions about your process from your FAQs, and books one design consultation for the whole project.",
+    },
     "fence-repair": {
       title: "Fence repair",
       body: "For fence repair calls, like a section blown down in a storm, a leaning post, or a gate that won't close, the AI captures the address and damage, quotes the repair services you price up front, and books the visit. Homeowners can text a photo of the damage to your Missed No More Pro number so your crew arrives with the right materials.",

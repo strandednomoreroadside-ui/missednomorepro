@@ -152,8 +152,187 @@ export const constructionRemodeling: CategoryFile = {
         },
       ],
     },
+    "kitchen-bath-remodelers": {
+      hook: "Kitchen and bath remodels are big decisions that start with a phone call. Answer every one, capture the vision, and book the design consultation.",
+      why: "Kitchen and bathroom remodel leads call with a project in mind: a dated kitchen, a tub-to-shower conversion, a primary bath upgrade, or accessibility changes for aging in place. They ask about timelines, design help, and financing, and many are talking to several remodelers. The AI answers in your company's name, captures the project the homeowner describes, answers questions from your FAQs, and books the consultation.",
+      calls: [
+        "Full kitchen remodels",
+        "Bathroom remodels and tub-to-shower conversions",
+        "Accessibility and aging-in-place updates",
+        "Cabinet, countertop, and tile questions",
+        "Design, timeline, and financing questions",
+        "Past clients with warranty questions",
+      ],
+      estimates: "remodels you design and price after a consultation",
+      booking: "design consultations",
+      faqs: [
+        {
+          q: "Can the AI qualify remodeling leads?",
+          a: "It captures the room, the scope, the timeline, and any budget the homeowner mentions in the call summary, checks the address against your service radius, and books a consultation.",
+        },
+        {
+          q: "Will it quote a kitchen remodel?",
+          a: "No. Remodels are priced after a consultation, so the AI books one. When a caller asks for a price, it takes their details so your team can follow up.",
+        },
+      ],
+    },
+    "epoxy-flooring": {
+      hook: "Epoxy garage floor leads want a price and an install date. Answer every call, quote your garage packages, and book the job.",
+      why: "Epoxy and floor coating companies take calls for garage floors, basements, patios, and commercial spaces. Garage floors are easy to price by bay count and book quickly, while basements and commercial floors need a look first. The AI answers in your company's name, quotes the packages you price by phone, answers questions about durability and cure time from your FAQs, and books the install or estimate.",
+      calls: [
+        "One-, two-, and three-car garage floor coatings",
+        "Flake, metallic, and solid color options",
+        "Basement and patio floor coatings",
+        "Commercial, shop, and warehouse floors",
+        "Cure time and durability questions",
+        "Crack repair and surface prep questions",
+      ],
+      quotes: "garage floor coating packages by number of car bays",
+      estimates: "basements, patios, and commercial floors",
+      booking: "installs and estimates",
+      faqs: [
+        {
+          q: "Can the AI quote a two-car garage floor?",
+          a: "Yes. Set up packages by bay count, plus travel zones, and the AI reads back one exact total. Charges that depend on the floor, like major crack repair, are mentioned up front.",
+        },
+        {
+          q: "Can it explain cure times and warranties?",
+          a: "Yes, from the FAQs you write. The AI answers in your words and never makes up warranty terms.",
+        },
+      ],
+    },
+    "cabinet-companies": {
+      hook: "Cabinet buyers want a design consultation, not a voicemail. Answer every call, capture the project, and book the visit.",
+      why: "Cabinet companies hear from homeowners planning a kitchen update, remodelers sourcing cabinets, and people interested in refacing or refinishing instead of replacing. Callers want to see options and get a design started. The AI answers in your company's name, captures the project and style the caller describes, answers product questions from your FAQs, and books the design consultation or showroom visit.",
+      calls: [
+        "New kitchen cabinets and design",
+        "Cabinet refacing and refinishing",
+        "Bathroom vanities and built-ins",
+        "Countertop installs with new cabinets",
+        "Contractor and builder orders",
+        "Hardware and style questions",
+      ],
+      estimates: "cabinet projects you design and price after a measure",
+      booking: "design consultations",
+      faqs: [
+        {
+          q: "Can the AI book showroom visits?",
+          a: "Yes. Connect Google Calendar and it books consultations or showroom visits into open times inside your hours, with a confirmation and reminder text.",
+        },
+        {
+          q: "Can it answer questions about materials and lead times?",
+          a: "Yes, from your FAQs. Add your product lines and typical lead times, and the AI answers in your words.",
+        },
+      ],
+    },
+    "closet-installation": {
+      hook: "Custom closet clients want a designer to come measure. Answer every call, capture the space, and book the design consultation.",
+      why: "Closet companies get calls about walk-in closets, reach-ins, pantries, garages, and home offices. Homeowners want to know about materials, styles, and how the design process works before committing. The AI answers in your company's name, captures the spaces the caller wants to organize, answers questions from your FAQs, and books the in-home design consultation.",
+      calls: [
+        "Walk-in and reach-in closet systems",
+        "Pantry and laundry room storage",
+        "Garage storage systems",
+        "Home office built-ins",
+        "Material, finish, and accessory questions",
+        "Design and install timeline questions",
+      ],
+      estimates: "custom closet systems you design and measure in the home",
+      booking: "design consultations",
+      faqs: [
+        {
+          q: "Can the AI book in-home design consultations?",
+          a: "Yes. It checks the address against your service radius and books the consultation into an open slot, then texts a confirmation and a reminder.",
+        },
+        {
+          q: "Will it quote a closet system?",
+          a: "Custom systems depend on the design, so the AI books a consultation. When a caller asks about price, it takes their details so your designer can follow up.",
+        },
+      ],
+    },
+    "excavation-contractors": {
+      hook: "Excavation leads come from builders, homeowners, and farms with a project date in mind. Answer every call and capture the job while you're on the machine.",
+      why: "Excavation contractors take calls for site prep, foundations, drainage, septic and utility trenching, land clearing, and driveways. Callers range from homeowners building a garage to general contractors scheduling subcontractors. The AI answers in your company's name, captures the project, site location, and timeline the caller describes, and books the site visit.",
+      calls: [
+        "Site prep and foundation digs",
+        "Drainage, grading, and erosion control",
+        "Utility and septic trenching",
+        "Land clearing and stump removal",
+        "Driveway and gravel work",
+        "General contractors scheduling subcontract work",
+      ],
+      estimates: "excavation and site work you price after a site visit",
+      booking: "site visits",
+      faqs: [
+        {
+          q: "What if the site doesn't have an address yet?",
+          a: "The AI asks for the nearest road, cross streets, or a landmark, reads back what it understood, and captures the project details for your team.",
+        },
+        {
+          q: "Can general contractors reach us about bids?",
+          a: "Yes. The AI captures the company, the project, and the timeline, logs it in the CRM, and texts your team or books a site visit.",
+        },
+      ],
+    },
+    drywall: {
+      hook: "Drywall repairs and new hangs are quick decisions for homeowners and contractors. Answer every call, quote your patches, and book the job.",
+      why: "Drywall contractors hear from homeowners with holes, cracks, and water damage, remodelers who need rooms hung and finished, and contractors scheduling drywall on a new build. Small patches are easy to price and book on the first call, while larger jobs need a look. The AI answers in your company's name, quotes the repairs you price by phone, and books estimates for the rest.",
+      calls: [
+        "Holes, cracks, and dents in walls",
+        "Water-damaged drywall and ceilings",
+        "Basement finishing and new rooms",
+        "Texture matching and popcorn ceiling removal",
+        "Contractors scheduling hang and finish work",
+        "Painting after repairs",
+      ],
+      quotes: "patch repairs by size and small repair service calls",
+      estimates: "full hang and finish projects",
+      booking: "repairs and estimates",
+      faqs: [
+        {
+          q: "Can the AI quote a drywall patch?",
+          a: "Yes. Set patch prices by size, plus travel zones, and the AI reads back one exact total. Larger jobs are booked as estimates.",
+        },
+        {
+          q: "Can homeowners send a photo of the damage?",
+          a: "Yes. Photos texted to your Missed No More Pro number are saved to the customer's record in the CRM.",
+        },
+      ],
+    },
+    "welding-fabrication": {
+      hook: "Welding customers need a repair or a custom piece done right. Answer every call, capture the job, and book the site visit or quote.",
+      why: "Welding and fabrication shops take calls for mobile repairs on equipment and trailers, railings and gates, custom fabrication, and structural work for contractors. Callers want to know if you can handle the material and the job and when you can do it. The AI answers in your company's name, captures what needs to be welded or built, answers capability questions from your FAQs, and books the visit.",
+      calls: [
+        "Mobile welding repairs on site",
+        "Trailer and equipment repairs",
+        "Railings, gates, and custom metalwork",
+        "Structural steel for contractors",
+        "Aluminum and stainless jobs",
+        "Custom fabrication quotes",
+      ],
+      quotes: "mobile welding service calls",
+      estimates: "custom fabrication and structural jobs",
+      booking: "site visits",
+      faqs: [
+        {
+          q: "Can the AI tell callers what materials we work with?",
+          a: "Yes, from your FAQs. Add the materials, processes, and job types you take on, and the AI answers from that list.",
+        },
+        {
+          q: "Can customers send photos of the part?",
+          a: "Yes. Photos texted to your Missed No More Pro number are saved to the customer's record in the CRM next to the call summary.",
+        },
+      ],
+    },
   },
   variants: {
+    "garage-floor-coating": {
+      title: "Garage floor coating companies",
+      body: "For garage floor coating, the AI quotes your packages by the number of car bays, mentions surface prep or crack repair as possible extras, and books the install, with each service's appointment length so the whole job fits.",
+    },
+    "countertop-installers": {
+      title: "Countertop installers",
+      body: "Countertop calls cover quartz, granite, and laminate replacements, often with new sinks and backsplashes. The AI captures the kitchen or bath and the material the caller wants, answers fabrication and install questions from your FAQs, and books the template or measure visit.",
+    },
     "insulation-removal": {
       title: "Insulation removal",
       body: "Insulation removal calls often follow rodent infestations, water damage, or a remodel. The AI captures what the homeowner describes, answers questions about your removal process from your FAQs, and books the assessment into an open slot.",
