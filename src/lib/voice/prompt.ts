@@ -16,12 +16,12 @@ import { capturesVehicle, travelsToCustomer } from "./industry";
 import { VOICE_TOOLS } from "./tools/registry";
 import type { VoiceAgentConfig } from "./types";
 
-/** Retell voice id — "Maya", a custom ElevenLabs voice imported via Retell's
+/** Retell voice id — "Hazel", a custom ElevenLabs voice imported via Retell's
  *  community-voice workflow (operator's chosen voice, Sept 2026; replaces
- *  "Grace"). Stored per-agent on agents.voice_id; this is the fallback for
+ *  "Maya"). Stored per-agent on agents.voice_id; this is the fallback for
  *  new agents only — existing agent rows need their voice_id updated
  *  directly (see scripts/register-elevenlabs-voice.mjs history). */
-const DEFAULT_VOICE_ID = "custom_voice_dcbd8d9363ac966e0a3b904496";
+const DEFAULT_VOICE_ID = "custom_voice_bbfcb712305820a83da0257650";
 const DEFAULT_LANGUAGE = "en-US";
 const DEFAULT_MAX_CALL_SECONDS = 600;
 /** Bump to force a one-time re-sync of all agents when we change voice tuning
