@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 const COLS = ["Missed No More Pro", "Rosie"];
 const ROWS: ComparisonRow[] = [
-  { label: "Entry price", values: ["from $79/mo", "from $49/mo"] },
+  { label: "Entry price", values: ["from $50/mo", "from $49/mo"] },
   {
     label: "Computes an exact price from your rates + real driving distance",
     values: [true, "Not publicly advertised"],
@@ -31,8 +31,8 @@ const ROWS: ComparisonRow[] = [
 
 const SECTIONS = [
   {
-    title: "Rosie starts cheaper — for a narrower job",
-    body: "Rosie's entry tier is priced lower than ours, and it's built to do one thing well: answer the phone. Missed No More Pro costs more starting out because it's not just an answering line — it's a computed quoting engine, a booking calendar, and a CRM built into the same subscription, so a caller doesn't just get answered, they get quoted the exact price and booked.",
+    title: "About the same price, a lot more included",
+    body: "Rosie's entry tier and ours are now within a dollar of each other. The difference isn't price anymore — it's what's included. Missed No More Pro bundles a computed quoting engine, calendar booking, and a full CRM into that same entry price, so a caller doesn't just get answered, they get quoted the exact price and booked.",
   },
   {
     title: "The one thing we haven't found any receptionist tool claim",
@@ -40,7 +40,7 @@ const SECTIONS = [
   },
   {
     title: "Where Rosie may have the edge",
-    body: "Rosie has been in market longer than we have, and if all you need is a lower-cost line that answers and takes a message, its lighter entry price may fit better. We're not able to independently verify every detail of Rosie's current plans as we write this — pricing and features change, so confirm directly with Rosie before deciding.",
+    body: "Rosie has been in market longer than we have. If all you need is a line that answers and takes a message, it may still be the simpler tool for that narrower job. We're not able to independently verify every detail of Rosie's current plans as we write this — pricing and features change, so confirm directly with Rosie before deciding.",
   },
 ];
 
@@ -51,7 +51,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "Is Missed No More Pro cheaper than Rosie?",
-    a: "No — Rosie's stated entry price is lower than ours. We cost more starting out because the plan includes a quoting engine, booking, and CRM built in, not just call answering. If you only need calls answered, compare both directly against what you need.",
+    a: "Almost identical — Rosie's stated entry price is $49/mo, ours is $50/mo. At that near-parity, the real comparison is what's included: our entry price bundles a computed quoting engine, calendar booking, and a full CRM, not just call answering.",
   },
   {
     q: "Can I switch from Rosie to Missed No More Pro?",

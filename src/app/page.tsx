@@ -112,10 +112,10 @@ export default async function LandingPage() {
           "An AI phone assistant, receptionist, and CRM that answers calls, quotes prices from approved rates, books jobs, texts customers, and tracks leads for local service businesses.",
         offers: {
           "@type": "AggregateOffer",
-          lowPrice: "79",
-          highPrice: "479",
+          lowPrice: "50",
+          highPrice: "200",
           priceCurrency: "USD",
-          offerCount: "4",
+          offerCount: "3",
         },
       },
     ],
@@ -248,7 +248,7 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
             Missed No More Pro gives local service businesses a 24/7 AI phone answering
             service, a smart CRM, and the only openly advertised AI price quoting engine we
-            know of. New prices start at $79/mo, and founding customers get paid add-ons free.
+            know of. Plans start at $50/mo, all inclusive — no add-ons to buy.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -805,7 +805,7 @@ function Comparison() {
     { label: "Logs every lead in a CRM", values: [true, false, false, "Maybe"] },
     { label: "Follows up by text", values: [true, false, false, "Maybe"] },
     { label: "Never calls in sick", values: [true, true, true, false] },
-    { label: "Monthly cost", values: ["from $79", "$0", "$300+", "$3,000+"] },
+    { label: "Monthly cost", values: ["from $50", "$0", "$300+", "$3,000+"] },
   ];
   return (
     <section className="mx-auto max-w-5xl px-6 py-20 lg:py-28">

@@ -142,6 +142,9 @@ export async function startCheckout(formData: FormData) {
 export async function addAddon(formData: FormData) {
   const key = String(formData.get("addon_key") ?? "");
   if (!isAddonKey(key)) billingError("Unknown add-on.");
+  if (!PURCHASABLE_ADDON_ORDER.includes(key)) {
+    billingError("This add-on is already included free on every plan.");
+  }
 
   const { user, active } = await requireActiveOrg();
   if (active.role !== "owner" && active.role !== "admin") {

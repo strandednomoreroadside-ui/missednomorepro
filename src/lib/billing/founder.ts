@@ -16,6 +16,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *
  * Bumped 5 -> 10 (July 23 2026, operator decision) — see migration
  * 20260723090000_founder_slots_10.sql for the matching DB constraint widen.
+ *
+ * Sept 2026: every add-on is now free for every customer (see addons.ts),
+ * so the add-on grant below is currently a no-op — it stays wired for any
+ * *future* paid add-on. The benefit customers actually feel today is the
+ * price lock: founders never move off the price they signed up at, even if
+ * list prices go up later (a marketing promise honored by simply never
+ * migrating their subscription — Stripe doesn't reprice an existing
+ * subscription on its own).
  */
 export const FOUNDER_SLOTS = 10;
 

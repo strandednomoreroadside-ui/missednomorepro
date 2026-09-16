@@ -19,8 +19,8 @@ function failTo(path: string, message: string): never {
 
 /**
  * Membership actions manage customer recurring billing (create plans, enroll,
- * send renewal charges) — owner/admin only, AND Elite-tier (the `membership`
- * plan flag).
+ * send renewal charges) — owner/admin only, AND Enterprise-tier (the
+ * `membership` plan flag).
  */
 async function requireMembership(active: { organization_id: string; role: string }, back: string) {
   if (!isOrgManager(active.role)) {
@@ -28,7 +28,7 @@ async function requireMembership(active: { organization_id: string; role: string
   }
   const ent = await getEntitlements(active.organization_id);
   if (!ent.has("membership")) {
-    failTo(back, "Membership plans are on the Elite plan.");
+    failTo(back, "Membership plans are on the Enterprise plan.");
   }
 }
 

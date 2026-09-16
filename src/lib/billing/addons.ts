@@ -3,17 +3,20 @@
  *  entitlements live in tenant_addons and are mirrored from Stripe by the
  *  webhook. Add-ons are LLM/text based → high margin.
  *
- *  July 2026 simplification: four of the six add-ons (omnichannel_chat,
- *  business_assistant, reputation_manager, call_intelligence) cost pennies
- *  to run — no reason to nickel-and-dime them. They're now included free on
- *  every plan via plan_limits.feature_flags_json (see the migration this
- *  landed with), and growth_suite_bundle (which only ever repackaged three
- *  of them) no longer makes sense as a bundle. All five are marked
- *  `retired: true` here — kept in the catalog (not deleted) purely so an
- *  existing paid subscriber can still see and remove that Stripe
- *  subscription item; `retired` addons are never offered to new buyers.
- *  outbound_assistant is the one add-on with real usage-scaling cost (it
- *  sends actual SMS/voice campaigns), so it stays the sole paid add-on. */
+ *  July 2026: four of the six add-ons (omnichannel_chat, business_assistant,
+ *  reputation_manager, call_intelligence) cost pennies to run, so they were
+ *  folded in free on every plan via plan_limits.feature_flags_json.
+ *
+ *  Sept 2026: outbound_assistant — the one add-on with real usage-scaling
+ *  cost (it sends actual SMS/voice campaigns, bounded by MAX_SENDS_PER_RUN /
+ *  MAX_SENDS_PER_BUSINESS in outbound-engine.ts) — was folded in free too,
+ *  as part of an "all inclusive, no upsells" 3-tier repricing (see
+ *  plans.ts). Every add-on in ADDON_META is now `retired: true`, so
+ *  PURCHASABLE_ADDON_ORDER is empty. Nothing here is deleted — a subscriber
+ *  from before either change can still see and remove an old Stripe
+ *  subscription item for any of these, and the founder mechanic
+ *  (founder.ts) still auto-grants any *future* paid add-on to founders even
+ *  though there's nothing left to grant today. */
 
 export const ADDON_ORDER = [
   "outbound_assistant",
@@ -45,7 +48,7 @@ export const ADDON_META: Record<AddonKey, AddonMeta> = {
   outbound_assistant: {
     name: "AI Outbound Assistant",
     monthly: 49,
-    blurb: "Proactive texts that bring work back in",
+    blurb: "Proactive texts that bring work back in — now included free on every plan.",
     highlights: [
       "Estimate & quote follow-ups",
       "Win-back + re-engagement",
@@ -53,6 +56,7 @@ export const ADDON_META: Record<AddonKey, AddonMeta> = {
       "AI texting campaigns",
     ],
     grantsFeatures: ["outbound_assistant"],
+    retired: true,
   },
   omnichannel_chat: {
     name: "Omnichannel AI Chat",

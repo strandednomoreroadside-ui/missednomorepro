@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Gauge } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PLAN_META, PLAN_ORDER, type EffectivePlan, type PlanId } from "@/lib/billing/plans";
+import { PLAN_META, SELF_SERVE_PLAN_ORDER, type EffectivePlan, type PlanId } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
 
 /** Show an upgrade nudge once a plan's voice minutes drop to this many left. */
@@ -77,10 +77,12 @@ export function UsageMeter({
       ? "near"
       : "ok";
 
-  // The next self-serve tier up (Elite → Enterprise = contact sales).
-  const idx = PLAN_ORDER.indexOf(planId as PlanId);
+  // The next self-serve tier up (Professional → Enterprise = contact sales).
+  const idx = SELF_SERVE_PLAN_ORDER.indexOf(planId as PlanId);
   const nextPlan =
-    idx >= 0 && idx < PLAN_ORDER.length - 1 ? PLAN_META[PLAN_ORDER[idx + 1]] : null;
+    idx >= 0 && idx < SELF_SERVE_PLAN_ORDER.length - 1
+      ? PLAN_META[SELF_SERVE_PLAN_ORDER[idx + 1]]
+      : null;
 
   return (
     <Card className={cn("bg-card/60", className)}>
