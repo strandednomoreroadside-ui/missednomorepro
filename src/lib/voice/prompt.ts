@@ -107,8 +107,15 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  placeholder names are now banned, and the voice route ignores them when
  *  building the opening line. (4) A caller who said "reschedule" but had
  *  nothing booked sent the agent into a failed reschedule_appointment and an
- *  awkward recovery; it now books new instead. */
-const TUNING_VERSION = 16;
+ *  awkward recovery; it now books new instead.
+ *  v17 (Sept 2026): voice-naturalness pass. enable_backchannel turned on
+ *  (retell.ts) so the agent interjects "mm-hmm"/"right" instead of just
+ *  waiting its turn, and a low-volume "call-center" ambient sound added so
+ *  the line doesn't sound like a synthetic void. Both are pure Retell
+ *  agent-level tuning with no prompt-text change, so this version bump is
+ *  what actually pushes them to already-provisioned agents on their next
+ *  call — see syncAgent's promptHash short-circuit in retell.ts. */
+const TUNING_VERSION = 17;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 
