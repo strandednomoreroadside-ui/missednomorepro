@@ -6,12 +6,13 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAN_META } from "@/lib/billing/plans";
 
-import { EARLY_ACCESS_MAILTO, SectionHeading } from "./primitives";
+import { SectionHeading } from "./primitives";
 
 type Plan = {
   id: keyof typeof PLAN_META;
   name: string;
   monthly: number | null; // null = custom
+  previousMonthly?: number;
   blurb: string;
   minutes: string;
   approxCalls?: string;
@@ -50,7 +51,6 @@ const PLANS: Plan[] = [
     minutes: "400 AI minutes",
     approxCalls: approxCalls(400),
     extras: ["Lead pipeline + timeline", "AI follow-ups & reminders", "Payment requests + analytics", "3 users"],
-    popular: true,
   },
   {
     id: "professional",
@@ -60,14 +60,7 @@ const PLANS: Plan[] = [
     minutes: "800 AI minutes",
     approxCalls: approxCalls(800),
     extras: ["Dispatch board + team calendar", "Make & Zapier integrations", "10 users"],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    monthly: null,
-    blurb: "Organizations needing custom volume and support",
-    minutes: "Custom minutes",
-    extras: ["Dedicated onboarding", "Custom integrations", "Priority support"],
+    popular: true,
   },
 ];
 
@@ -78,17 +71,18 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
     <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
       <SectionHeading
         eyebrow="Pricing"
-        title="Simple pricing, everything included"
-        sub="Three plans, no add-ons to shop for — every AI feature we ship is included on every plan. Start with a 7-day free trial; annual billing saves another 20%."
+        title="Simple pricing for small service teams"
+        sub="Choose the call volume that fits your business. Start with a 7-day free trial; annual billing saves 20%."
       />
 
       <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-success/35 bg-success/10 px-6 py-5 text-center">
         <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-success">
-          All inclusive
+          Straightforward pricing. No surprise overages.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Every plan already includes every AI add-on we sell — no upsells, nothing to add
-          later.
+          Plans now begin at <span className="font-semibold text-foreground">$50/mo for 200 AI minutes</span>.{" "}
+          The founder offer stacks on top: founding customers get paid add-ons included for the
+          lifetime of an active subscription.
         </p>
       </div>
 
@@ -103,12 +97,13 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
             )}
           </p>
           <p className="mt-1 font-display text-xl font-semibold text-foreground">
-            Founding customers lock in their price for life
+            Founding customers get every add-on free
           </p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             No discount code, no special price — pick any plan below. The first 10 businesses
-            to become paying customers keep their price for the lifetime of their subscription,
-            as long as it stays continuously active, even if we raise prices later.
+            to become paying customers get every paid add-on — right now, that&rsquo;s AI Outbound
+            Assistant, plus anything we add later — free for the lifetime of their subscription,
+            as long as it stays continuously active.
           </p>
         </div>
         <a
@@ -156,7 +151,7 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
         average call.
       </p>
 
-      <div id="plans" className="mt-10 scroll-mt-24 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <div id="plans" className="mx-auto mt-10 max-w-5xl scroll-mt-24 grid gap-5 md:grid-cols-3">
         {PLANS.map((plan) => {
           const price =
             plan.monthly == null ? "Custom" : `$${annual ? Math.round(plan.monthly * 0.8) : plan.monthly}`;
@@ -177,6 +172,11 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               )}
               <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
               <div className="mt-2 flex items-baseline gap-1">
+                {plan.previousMonthly && !annual && (
+                  <span className="mr-1 text-sm text-muted-foreground line-through">
+                    ${plan.previousMonthly}
+                  </span>
+                )}
                 <span className="font-display text-3xl font-bold">{price}</span>
                 {plan.monthly != null && <span className="text-sm text-muted-foreground">/mo</span>}
               </div>
@@ -199,7 +199,7 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               <a
                 href={
                   plan.monthly == null
-                    ? EARLY_ACCESS_MAILTO
+                    ? "mailto:hello@missednomorepro.com"
                     : `/signup?plan=${plan.name.toLowerCase()}`
                 }
                 className={cn(

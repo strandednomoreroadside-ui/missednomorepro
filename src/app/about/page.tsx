@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, PhoneCall, Route, ShieldCheck } from "lucide-react";
+import { ArrowRight, Linkedin, PhoneCall, Route, ShieldCheck } from "lucide-react";
 
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import { ButtonLink } from "@/components/landing/primitives";
@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/landing/primitives";
 const TITLE = "Why We Built an AI Receptionist for Service Businesses";
 const DESCRIPTION =
   "Missed No More Pro was built by an operator who got tired of missing calls on the job. Here's why it exists and where it stands today.";
+const LINKEDIN_URL = "https://www.linkedin.com/in/josh-millsaps-bb6415396/";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -25,9 +26,27 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "Josh Millsaps",
+    jobTitle: "Founder of Missed No More Pro",
+    url: "https://missednomorepro.com/about",
+    sameAs: [LINKEDIN_URL],
+    worksFor: {
+      "@type": "Organization",
+      name: "Missed No More Pro",
+      url: "https://missednomorepro.com",
+    },
+  };
+
   return (
     <MarketingShell>
-      <section className="mx-auto max-w-3xl px-6 py-16 lg:py-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c") }}
+      />
+      <section className="mx-auto max-w-5xl px-6 py-16 lg:py-24">
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
           About
         </p>
@@ -39,10 +58,27 @@ export default function AboutPage() {
           while both hands were on a job, and no way to get to it in time.
         </p>
 
-        {/* Founder photo/name/LinkedIn intentionally omitted — real identifying
-            details (name, headshot, LinkedIn link) need to come from the
-            operator; this section is written to slot them in without a
-            rewrite once supplied. */}
+        <aside className="founder-card mt-10 flex flex-col justify-between gap-6 border border-border bg-card/70 p-6 sm:flex-row sm:items-center">
+          <div>
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan">
+              Founder / operator
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-bold text-foreground">Josh Millsaps</h2>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Small-business operator building the front office he needed on the road: one that
+              answers, quotes, and books while the work is getting done.
+            </p>
+          </div>
+          <a
+            href={LINKEDIN_URL}
+            target="_blank"
+            rel="me noopener noreferrer"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-5 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+          >
+            <Linkedin className="size-4" aria-hidden />
+            Connect on LinkedIn
+          </a>
+        </aside>
         <div className="mt-10 space-y-6 text-[15px] leading-relaxed text-muted-foreground">
           <h2 className="font-display text-xl font-semibold text-foreground">
             Where this started

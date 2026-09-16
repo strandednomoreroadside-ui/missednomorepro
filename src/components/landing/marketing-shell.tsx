@@ -12,9 +12,9 @@ import { ButtonLink } from "./primitives";
  */
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-night/75 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+    <div className="command-marketing min-h-dvh">
+      <header className="command-marketing-header sticky top-0 z-50 border-b border-border/60 backdrop-blur-md">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
           <Link href="/" aria-label="Missed No More Pro — home">
             <Logo />
           </Link>
@@ -33,7 +33,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main>{children}</main>
-      <footer className="border-t border-border/60 bg-night">
+      <footer className="command-marketing-footer border-t border-border/60">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-10 text-xs text-steel">
           <span className="flex items-center gap-2">
             <Logo className="scale-90" />
