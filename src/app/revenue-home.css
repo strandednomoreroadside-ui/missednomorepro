@@ -15,6 +15,13 @@
 .revenue-home{overflow-x:clip}
 .revenue-home header .nav-actions{flex-shrink:0}
 .revenue-home .hero-copy,.revenue-home .hero-visual{min-width:0}
+.revenue-home .trust-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#0e1723,#111d2d 50%,#0e1723)}
+.revenue-home .trust-strip>div{padding:29px 34px 30px;border-left:1px solid var(--line)}
+.revenue-home .trust-strip>div:first-child{border-left:0}
+.revenue-home .trust-kicker{display:block;margin-bottom:8px;color:#75a8ff;font-family:var(--body);font-size:11px;font-weight:700;letter-spacing:.13em}
+.revenue-home .trust-strip strong{display:block;max-width:300px;font-size:17px;line-height:1.28;letter-spacing:-.25px}
+.revenue-home .trust-strip p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+@media(max-width:760px){.revenue-home .trust-strip{grid-template-columns:1fr;padding-left:0;padding-right:0}.revenue-home .trust-strip>div{padding:23px;border-left:0;border-top:1px solid var(--line)}.revenue-home .trust-strip>div:first-child{border-top:0}.revenue-home .trust-strip strong{font-size:16px}}
 .revenue-home .art-stage{inset:-25px 0 -5px 0;background-size:auto 100%;background-position:64% center}
 .revenue-home .job-ticket{right:2px}
 @media(min-width:761px) and (max-width:1050px){.revenue-home h1{font-size:74px}.revenue-home .hero{grid-template-columns:1fr 1fr}.revenue-home .hero-copy .actions{gap:18px}.revenue-home .hero-visual{min-height:500px}}

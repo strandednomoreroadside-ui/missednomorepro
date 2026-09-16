@@ -50,14 +50,14 @@ export default async function ReputationPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display text-base text-amber-500">
               <TriangleAlert className="size-4" aria-hidden />
-              Add-on required
+                Plan access required
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            <strong>AI Reputation Manager</strong> is a +$29/mo add-on — it texts customers for a
-            rating after a job, sends happy ones to your public review page, and routes unhappy ones
-            to private feedback so a bad day doesn&rsquo;t become a public 1-star. Turn it on from
-            the{" "}
+            <strong>AI Reputation Manager</strong> is included on every active plan. It texts customers
+              for a rating after a job, sends happy ones to your public review page, and routes unhappy
+              ones to private feedback so a bad day doesn&rsquo;t become a public 1-star. Choose a plan from
+              the{" "}
             <Link href="/dashboard/billing" className="text-cyan hover:underline">
               billing page
             </Link>

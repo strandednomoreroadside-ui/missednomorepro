@@ -93,6 +93,7 @@ export default function AiPhoneAssistantPage() {
         description: DESCRIPTION,
         isPartOf: { "@id": `${base}/#website` },
         about: { "@id": `${base}/#software` },
+        dateModified: "2026-09-16",
       },
       {
         "@type": "Service",
@@ -109,6 +110,14 @@ export default function AiPhoneAssistantPage() {
           priceCurrency: "USD",
           offerCount: "3",
         },
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: FAQS.map(({ q, a }) => ({
+          "@type": "Question",
+          name: q,
+          acceptedAnswer: { "@type": "Answer", text: a },
+        })),
       },
       breadcrumbJsonLd([{ name: "AI Phone Assistant", path: "/ai-phone-assistant" }]),
     ],

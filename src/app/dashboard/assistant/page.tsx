@@ -33,16 +33,16 @@ export default async function AssistantPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display text-base text-amber-500">
               <TriangleAlert className="size-4" aria-hidden />
-              Add-on required
+                Plan access required
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            The <strong>AI Business Assistant</strong> is a +$39/mo add-on (also
-            in the Growth Suite bundle). Turn it on from the{" "}
+            The <strong>AI Business Assistant</strong> is included on every active plan.
+            Choose a plan from the{" "}
             <Link href="/dashboard/billing" className="text-cyan hover:underline">
               billing page
             </Link>{" "}
-            to start asking questions.
+              to start asking questions.
           </CardContent>
         </Card>
       )}

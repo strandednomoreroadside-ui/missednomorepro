@@ -26,6 +26,7 @@ Local service businesses where a missed call means a lost job. Businesses that g
 - Enterprise: custom
 - Annual billing saves 20%. 7-day free trial on every plan (card required).
 - Hard usage caps with no overage charges: at the limit, calls forward to the owner's phone.
+- No paid add-ons today: every current AI capability is included in the plan structure above.
 - First 10 paying businesses lock in their price for life while their subscription stays active.
 
 ## Setup

@@ -79,13 +79,12 @@ export default async function InboxPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display text-base text-amber-500">
               <TriangleAlert className="size-4" aria-hidden />
-              Add-on required
+                Plan access required
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            <strong>Omnichannel AI Chat</strong> is a +$29/mo add-on (also in the Growth Suite
-            bundle). It adds a website chat widget and two-way AI texting, all in this shared inbox.
-            Turn it on from the{" "}
+            <strong>Omnichannel AI Chat</strong> is included on every active plan. It adds a website
+              chat widget and two-way AI texting, all in this shared inbox. Choose a plan from the{" "}
             <Link href="/dashboard/billing" className="text-cyan hover:underline">
               billing page
             </Link>

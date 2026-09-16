@@ -33,12 +33,12 @@ export default async function InsightsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display text-base text-amber-500">
               <TriangleAlert className="size-4" aria-hidden />
-              Add-on required
+                Plan access required
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            <strong>AI Call Intelligence</strong> is a +$19/mo add-on — a weekly read on what your
-            calls are telling you, with recommendations. Turn it on from the{" "}
+            <strong>AI Call Intelligence</strong> is included on every active plan — a weekly read
+            on what your calls are telling you, with recommendations. Choose a plan from the{" "}
             <Link href="/dashboard/billing" className="text-cyan hover:underline">
               billing page
             </Link>

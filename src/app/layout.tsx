@@ -78,11 +78,13 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     url: "/",
     locale: "en_US",
+    images: [{ url: "/og-missed-no-more-pro.png", width: 1798, height: 942, alt: "Missed No More Pro turns incoming calls into booked service jobs" }],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
+    images: ["/og-missed-no-more-pro.png"],
   },
   robots: {
     index: true,

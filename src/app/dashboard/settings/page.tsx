@@ -1000,14 +1000,14 @@ export default async function SettingsPage({
         </CardContent>
       </Card>
 
-      {/* ── Omnichannel AI Chat (Phase 10 add-on) ── */}
+      {/* ── Omnichannel AI Chat (included on every active plan) ── */}
       <Card className="mt-4 bg-card/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <Globe className="size-4 text-cyan" aria-hidden />
             Omnichannel AI Chat
             <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
-              Add-on
+                Included
             </span>
           </CardTitle>
           <CardDescription>
@@ -1024,8 +1024,7 @@ export default async function SettingsPage({
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3.5 py-3 text-sm text-muted-foreground">
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
               <span>
-                Omnichannel AI Chat is a +$29/mo add-on (also in the Growth Suite bundle). Enable it
-                on the{" "}
+                 Omnichannel AI Chat is included on every active plan. Choose a plan on the{" "}
                 <Link href="/dashboard/billing" className="text-cyan hover:underline">
                   billing page
                 </Link>{" "}
@@ -1108,14 +1107,14 @@ export default async function SettingsPage({
         </CardContent>
       </Card>
 
-      {/* ── Email channel (part of the Omnichannel add-on) ── */}
+      {/* ── Email channel (included with Omnichannel AI Chat) ── */}
       <Card className="mt-4 bg-card/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <Mail className="size-4 text-cyan" aria-hidden />
             AI Email
             <span className="rounded-full border border-cyan/40 bg-cyan/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-cyan">
-              Add-on
+                Included
             </span>
           </CardTitle>
           <CardDescription>
@@ -1131,8 +1130,7 @@ export default async function SettingsPage({
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3.5 py-3 text-sm text-muted-foreground">
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
               <span>
-                AI Email is part of the Omnichannel AI Chat add-on (+$29/mo, also in the Growth Suite
-                bundle). Enable it on the{" "}
+                 AI Email is included with Omnichannel AI Chat on every active plan. Choose a plan on the{" "}
                 <Link href="/dashboard/billing" className="text-cyan hover:underline">
                   billing page
                 </Link>
