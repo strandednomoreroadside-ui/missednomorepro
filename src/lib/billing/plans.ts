@@ -34,7 +34,6 @@ export function isKnownPlan(value: string | null | undefined): value is Exclude<
 export type PlanMeta = {
   name: string;
   monthly: number; // dollars (0 for custom/enterprise)
-  previousMonthly?: number; // dollars, shown publicly during a price cut
   annualMonthly: number; // effective $/mo when billed annually
   blurb: string;
   minutes: string;
@@ -51,7 +50,6 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   starter: {
     name: "Starter",
     monthly: 50,
-    previousMonthly: 79,
     annualMonthly: 40,
     blurb: "Solo operators who never want to miss a call",
     minutes: "200 AI minutes",
@@ -67,7 +65,6 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   growth: {
     name: "Growth",
     monthly: 100,
-    previousMonthly: 159,
     annualMonthly: 80,
     blurb: "Teams that want more leads converted",
     minutes: "400 AI minutes",
@@ -83,7 +80,6 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   professional: {
     name: "Professional",
     monthly: 200,
-    previousMonthly: 279,
     annualMonthly: 160,
     blurb: "Growing teams that dispatch and need insight",
     minutes: "800 AI minutes",
@@ -97,7 +93,6 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   elite: {
     name: "Elite",
     monthly: 479,
-    previousMonthly: 599,
     annualMonthly: 383.2,
     blurb: "Higher-volume teams ready for advanced automation",
     minutes: "1,500 AI minutes",

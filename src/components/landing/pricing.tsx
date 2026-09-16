@@ -12,7 +12,6 @@ type Plan = {
   id: keyof typeof PLAN_META;
   name: string;
   monthly: number | null; // null = custom
-  previousMonthly?: number;
   blurb: string;
   minutes: string;
   approxCalls?: string;
@@ -32,7 +31,6 @@ const PLANS: Plan[] = [
     id: "starter",
     name: "Starter",
     monthly: PLAN_META.starter.monthly,
-    previousMonthly: PLAN_META.starter.previousMonthly,
     blurb: "Solo operators who never want to miss a call",
     minutes: "200 AI minutes",
     approxCalls: approxCalls(200),
@@ -48,7 +46,6 @@ const PLANS: Plan[] = [
     id: "growth",
     name: "Growth",
     monthly: PLAN_META.growth.monthly,
-    previousMonthly: PLAN_META.growth.previousMonthly,
     blurb: "Teams that want more leads converted",
     minutes: "400 AI minutes",
     approxCalls: approxCalls(400),
@@ -59,7 +56,6 @@ const PLANS: Plan[] = [
     id: "professional",
     name: "Professional",
     monthly: PLAN_META.professional.monthly,
-    previousMonthly: PLAN_META.professional.previousMonthly,
     blurb: "Growing teams that dispatch and need insight",
     minutes: "800 AI minutes",
     approxCalls: approxCalls(800),
@@ -82,18 +78,17 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
     <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
       <SectionHeading
         eyebrow="Pricing"
-        title="Lower pricing, everything included"
+        title="Simple pricing, everything included"
         sub="Three plans, no add-ons to shop for — every AI feature we ship is included on every plan. Start with a 7-day free trial; annual billing saves another 20%."
       />
 
       <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-success/35 bg-success/10 px-6 py-5 text-center">
         <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-success">
-          Lower prices, all inclusive
+          All inclusive
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Starter now begins at <span className="font-semibold text-foreground">$50/mo</span>{" "}
-          instead of $79/mo — and every plan already includes every AI add-on we sell, at no
-          extra charge.
+          Every plan already includes every AI add-on we sell — no upsells, nothing to add
+          later.
         </p>
       </div>
 
@@ -182,11 +177,6 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               )}
               <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
               <div className="mt-2 flex items-baseline gap-1">
-                {plan.previousMonthly && !annual && (
-                  <span className="mr-1 text-sm text-muted-foreground line-through">
-                    ${plan.previousMonthly}
-                  </span>
-                )}
                 <span className="font-display text-3xl font-bold">{price}</span>
                 {plan.monthly != null && <span className="text-sm text-muted-foreground">/mo</span>}
               </div>

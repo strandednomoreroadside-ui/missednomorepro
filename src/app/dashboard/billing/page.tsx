@@ -277,7 +277,7 @@ export default async function BillingPage({
           </span>
         )}
         {interval === "year"
-          ? "Annual billing saves another 20% off the new lower prices."
+          ? "Annual billing saves another 20%."
           : "Switch to annual to save another 20%."}
         {testMode && (
           <>

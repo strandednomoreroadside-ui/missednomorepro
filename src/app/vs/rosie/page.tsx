@@ -32,7 +32,7 @@ const ROWS: ComparisonRow[] = [
 const SECTIONS = [
   {
     title: "About the same price, a lot more included",
-    body: "Rosie's entry tier and ours are now within a dollar of each other. The difference isn't price anymore — it's what's included. Missed No More Pro bundles a computed quoting engine, calendar booking, and a full CRM into that same entry price, so a caller doesn't just get answered, they get quoted the exact price and booked.",
+    body: "Rosie's entry tier and ours are within a dollar of each other. The difference isn't price — it's what's included. Missed No More Pro bundles a computed quoting engine, calendar booking, and a full CRM into that same entry price, so a caller doesn't just get answered, they get quoted the exact price and booked.",
   },
   {
     title: "The one thing we haven't found any receptionist tool claim",

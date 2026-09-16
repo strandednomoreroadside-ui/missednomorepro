@@ -287,7 +287,7 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
           </a>
 
           <p className="mt-5 font-mono text-xs uppercase tracking-wider text-steel">
-            20% lower prices · A2P 10DLC-compliant · STOP/HELP built in · for 1-15 person teams
+            All-inclusive pricing · A2P 10DLC-compliant · STOP/HELP built in · for 1-15 person teams
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             {NICHES.slice(0, 8).map((niche) => (
