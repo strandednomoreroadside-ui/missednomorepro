@@ -81,8 +81,8 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Plans now begin at <span className="font-semibold text-foreground">$50/mo for 200 AI minutes</span>.{" "}
-          The founder offer stacks on top: founding customers get paid add-ons included for the
-          lifetime of an active subscription.
+          The founder offer stacks on top: the first 10 paying customers lock in their price for
+          life, even if we raise prices later.
         </p>
       </div>
 
@@ -97,13 +97,13 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
             )}
           </p>
           <p className="mt-1 font-display text-xl font-semibold text-foreground">
-            Founding customers get every add-on free
+            Founding customers lock in their price for life
           </p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             No discount code, no special price — pick any plan below. The first 10 businesses
-            to become paying customers get every paid add-on — right now, that&rsquo;s AI Outbound
-            Assistant, plus anything we add later — free for the lifetime of their subscription,
-            as long as it stays continuously active.
+            to become paying customers keep that exact price for as long as their subscription
+            stays continuously active, even if we raise prices later. Every paid add-on we ever
+            ship — right now, that&rsquo;s AI Outbound Assistant — is included free too.
           </p>
         </div>
         <a
