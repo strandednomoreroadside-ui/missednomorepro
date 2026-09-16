@@ -133,6 +133,109 @@ export const hvacPlumbingElectrical: CategoryFile = {
         },
       ],
     },
+    "heating-oil-propane-delivery": {
+      hook: "When a tank runs dry in January, customers call until someone picks up. Answer every call, get run-outs to your driver, and book the scheduled deliveries.",
+      why: "Heating oil and propane companies take two kinds of calls: customers scheduling a delivery or joining automatic delivery, and customers who just ran out and have no heat. Run-out calls spike during cold snaps and often come in evenings and weekends. The AI answers every one in your company's name, captures the address and tank details the caller shares, treats a run-out as urgent, and books routine deliveries.",
+      calls: [
+        "Customers out of heating oil or propane with no heat",
+        "Will-call delivery requests",
+        "Automatic delivery sign-ups",
+        "Tank and furnace or boiler service questions",
+        "Payment plan and budget billing questions from your FAQ",
+        "New customers asking about your delivery area",
+      ],
+      quotes: "delivery and emergency delivery fees, with the fuel added on top",
+      estimates: "tank installs and tank swaps",
+      urgent: "run out of heating oil or propane",
+      booking: "deliveries",
+      faqs: [
+        {
+          q: "Can the AI quote a heating oil delivery?",
+          a: "It quotes the fees you set, like a standard or emergency delivery fee with your travel zones, and tells the caller the fuel is added on top. It never guesses a per-gallon price.",
+        },
+        {
+          q: "What happens when a customer has run out?",
+          a: "The AI treats it as urgent: it takes the address and callback number, texts your on-call driver right away, and can text the customer a confirmation with an estimated arrival time.",
+        },
+      ],
+    },
+    "grease-trap-cleaning": {
+      hook: "A backed-up grease trap can shut a kitchen down mid-service. Answer every call, get emergencies to your truck, and keep routine pumpings on schedule.",
+      why: "Grease trap customers are restaurants, cafeterias, and food processors that need regular pumping to stay compliant, plus emergency service when a trap backs up during service. Managers call between rushes and expect a fast answer. The AI answers in your company's name, captures the business, address, and trap details, treats a backup as urgent, and books scheduled pumpings.",
+      calls: [
+        "Grease traps backing up into the kitchen",
+        "Scheduled pumping and cleaning visits",
+        "Grease interceptor service for larger kitchens",
+        "Compliance paperwork and pumping record questions",
+        "New restaurant accounts",
+        "Odor and slow drain complaints",
+      ],
+      quotes: "grease trap pumpings by trap size and emergency service calls",
+      estimates: "large interceptors and multi-location accounts",
+      urgent: "a grease trap backing up into the kitchen",
+      booking: "pumpings",
+      faqs: [
+        {
+          q: "Can the AI book recurring grease trap pumpings?",
+          a: "It books each pumping into an open slot on your Google Calendar and texts the manager a confirmation and a reminder. Returning accounts are recognized by name in the CRM.",
+        },
+        {
+          q: "How does it handle a backup during dinner service?",
+          a: "It treats the call as urgent, captures the restaurant and address, texts your on-call driver right away, and can text the manager an estimated arrival time.",
+        },
+      ],
+    },
+    "solar-installers": {
+      hook: "Solar leads are expensive to generate and easy to lose. Answer every call, capture the homeowner's details, and book the consultation.",
+      why: "Solar inquiries come from homeowners who saw an ad, got a high electric bill, or heard about a neighbor's system. They ask about savings, financing, roof condition, and timelines, and many are comparing installers. Existing customers also call about monitoring alerts and panel issues. The AI answers in your company's name, answers questions from your FAQs, and books the consultation or service visit.",
+      calls: [
+        "New residential solar consultations",
+        "Savings, financing, and incentive questions",
+        "Battery storage add-on inquiries",
+        "Existing systems with monitoring or production alerts",
+        "Panel cleaning and service visits",
+        "Panel removal and reinstall for roof work",
+      ],
+      quotes: "service calls and panel cleanings",
+      estimates: "new system designs that depend on the roof and electric usage",
+      booking: "consultations",
+      faqs: [
+        {
+          q: "Will the AI promise savings or incentives?",
+          a: "No. It answers only from the FAQs you write and never makes up savings figures, tax credits, or financing terms. Questions it can't answer from your information are taken for your team.",
+        },
+        {
+          q: "Can existing customers get service booked?",
+          a: "Yes. Returning customers are recognized in the CRM, and the AI books service visits into open slots and quotes the services you've priced, like a service call.",
+        },
+      ],
+    },
+    "water-treatment-wells": {
+      hook: "No water from the well is an emergency, and water quality questions are ready-to-book leads. Answer every call and handle both the right way.",
+      why: "Well and water treatment companies hear from homeowners with no water pressure, a pump that won't run, or water that smells, stains, or tests poorly. Some calls need a tech today; others are about testing, softeners, and filtration systems. The AI answers in your company's name, treats loss of water as urgent, and books testing and service visits for everything else.",
+      calls: [
+        "No water or low pressure from the well",
+        "Well pump and pressure tank problems",
+        "Water testing for home sales and new owners",
+        "Softener, iron filter, and filtration questions",
+        "Salt delivery and filter change service",
+        "Sulfur smell and staining complaints",
+      ],
+      quotes: "water tests, service calls, and filter change visits",
+      estimates: "new treatment systems and well pump replacements",
+      urgent: "no water coming from the well",
+      booking: "service visits",
+      faqs: [
+        {
+          q: "Can the AI book water testing?",
+          a: "Yes. It books testing visits into open slots on your calendar, quotes the testing you've priced with your travel zones, and texts a confirmation and reminder.",
+        },
+        {
+          q: "What happens when a caller has no water?",
+          a: "The AI treats it as urgent: it takes the address and callback number, texts your on-call tech right away, and can text the homeowner an estimated arrival time.",
+        },
+      ],
+    },
   },
   variants: {
     "emergency-hvac": {

@@ -54,8 +54,232 @@ export const automotive: CategoryFile = {
         },
       ],
     },
+    "mobile-mechanics": {
+      hook: "Drivers with a car that won't start want a mechanic who comes to them. Answer every call, capture the vehicle and location, and get your tech rolling.",
+      why: "Mobile mechanic calls come from drivers stuck in a driveway or parking lot with a dead battery, a no-start, or brakes grinding, plus people who'd rather have routine maintenance done at home or work. They want to know if you can come today and what it will cost. The AI answers in your company's name, captures the year, make, and model and the problem, quotes your service calls, and texts your tech when a car is stranded.",
+      calls: [
+        "Cars that won't start and dead batteries",
+        "Brake pads, rotors, and grinding noises",
+        "Oil changes at home or at work",
+        "Check engine light diagnostics",
+        "Starter, alternator, and belt replacements",
+        "Pre-purchase inspections on used cars",
+      ],
+      quotes: "diagnostic visits, battery installs with the battery added on top, and oil changes",
+      estimates: "repairs that depend on a diagnosis or parts pricing",
+      urgent: "a car that won't start",
+      booking: "service visits",
+      faqs: [
+        {
+          q: "Does the AI capture the vehicle details?",
+          a: "Yes. It asks for the year, make, and model along with the problem and the location, and if the caller can't give an exact address, it asks for cross streets or a landmark and reads it back.",
+        },
+        {
+          q: "Can it quote a battery replacement?",
+          a: "It quotes your installation price with your travel zones and tells the caller the battery itself is added on top, so they hear an honest total without a made-up part price.",
+        },
+      ],
+    },
+    "mobile-tire-services": {
+      hook: "A flat on the road is a call you want to win. Answer every one, capture the tire and location, quote your service, and get a truck moving.",
+      why: "Mobile tire services get calls from drivers with a flat on the shoulder or in a parking lot, people who want new tires installed at home, and fleets that need tires swapped on site. Drivers on the road often don't know the exact address. The AI answers in your company's name, captures the vehicle and location, quotes repairs and installs from your rates, and texts your tech about stranded drivers.",
+      calls: [
+        "Flat tires on the road or in a parking lot",
+        "Tire repairs and plug patches",
+        "New tire installs at home or at work",
+        "Seasonal tire swaps",
+        "Fleet and commercial tire service",
+        "TPMS light and pressure questions",
+      ],
+      quotes: "flat repairs, tire changes, and installs with the tires added on top",
+      estimates: "fleet and multi-vehicle jobs",
+      urgent: "a flat tire on the road",
+      booking: "installs and swaps",
+      faqs: [
+        {
+          q: "What if the driver doesn't know where they are?",
+          a: "The AI asks for the nearest cross streets, exit, mile marker, or a nearby business, reads back what it understood, and captures the vehicle before texting your tech.",
+        },
+        {
+          q: "Does it know what tires we have in stock?",
+          a: "No. It doesn't connect to inventory. It captures the tire size the caller shares and quotes your install price with the tires added on top, and your team confirms availability.",
+        },
+      ],
+    },
+    "windshield-repair-replacement": {
+      hook: "Windshield customers want to know the price and when you can come. Answer every call, capture the vehicle, and book the chip repair or replacement.",
+      why: "Windshield calls come from drivers with a chip that's starting to spread, a crack across the glass, or a broken side window after a break-in. Many ask whether insurance covers it and whether you can come to their home or work. The AI answers in your company's name, captures the year, make, and model and the damage, quotes the services you price by phone, and books the appointment.",
+      calls: [
+        "Rock chips and small crack repairs",
+        "Full windshield replacements",
+        "Broken side and back windows",
+        "Mobile service at home or work",
+        "Insurance and glass coverage questions",
+        "Fleet and commercial vehicle glass",
+      ],
+      quotes: "chip repairs and windshield replacements with the glass added on top",
+      estimates: "specialty glass and calibration questions for your team",
+      booking: "repairs and replacements",
+      faqs: [
+        {
+          q: "Can the AI tell callers whether insurance covers it?",
+          a: "It doesn't give insurance advice. It answers questions about how you work with insurance from your FAQs and notes the caller's carrier in the call summary.",
+        },
+        {
+          q: "Does it capture the vehicle details?",
+          a: "Yes. It asks for the year, make, and model along with the damage, which lands in the call summary for your tech.",
+        },
+      ],
+    },
+    "auto-detailing": {
+      hook: "Detailing customers book the shop that answers and gives a clear price. Pick up every call, quote your packages by vehicle size, and fill your calendar.",
+      why: "Auto detailing calls are ready to book: an interior deep clean, a full detail before selling a car, ceramic coating, or a monthly maintenance wash. Customers want to know package prices for their vehicle and your next opening. The AI answers in your company's name, captures the vehicle, quotes your packages exactly, and books the detail.",
+      calls: [
+        "Interior and exterior detail packages",
+        "Full details before selling a car",
+        "Ceramic coating and paint correction",
+        "Pet hair and odor removal",
+        "Maintenance washes for repeat clients",
+        "Fleet and dealership detailing",
+      ],
+      quotes: "detail packages by vehicle size and add-ons like pet hair removal",
+      estimates: "paint correction and ceramic coating jobs you inspect first",
+      booking: "details",
+      faqs: [
+        {
+          q: "Can the AI quote by vehicle size?",
+          a: "Yes. Set up packages by vehicle size, like a sedan or an SUV, and the AI matches what the caller drives to your prices and reads back one exact total.",
+        },
+        {
+          q: "Can it give each package the right amount of time?",
+          a: "Yes. Give each service its own appointment length, and the AI only offers times where the whole detail fits.",
+        },
+      ],
+    },
+    "commercial-truck-repair": {
+      hook: "When a truck is down, the load is late. Answer every call, capture the unit and problem, and book it into the shop.",
+      why: "Commercial truck shops hear from owner-operators, fleet managers, and dispatchers who need a truck or trailer back on the road. They want to know how soon you can take the unit and whether you work on their make. The AI answers in your shop's name, captures the unit's year, make, and model and the problem, answers questions from your FAQs, and books the appointment.",
+      calls: [
+        "Trucks with engine, brake, or electrical problems",
+        "DOT inspections and preventive maintenance",
+        "Trailer repairs and inspections",
+        "Fleet accounts scheduling units",
+        "Dispatchers asking when a unit will be ready",
+        "Parts and warranty questions",
+      ],
+      estimates: "repairs that depend on a diagnosis",
+      booking: "shop appointments",
+      faqs: [
+        {
+          q: "Does the AI capture truck details?",
+          a: "Yes. It asks for the unit's year, make, and model along with the problem, and it never asks for a street address since the truck is coming to your shop.",
+        },
+        {
+          q: "Can it tell a dispatcher when a truck will be ready?",
+          a: "It doesn't connect to your shop system, so it takes the dispatcher's name and number and texts your team to call back.",
+        },
+      ],
+    },
+    "fleet-maintenance": {
+      hook: "Fleet managers need vehicles serviced without losing a workday. Answer every call, capture the units, and schedule on-site maintenance.",
+      why: "Fleet maintenance providers work with contractors, delivery companies, and municipalities that need preventive maintenance done where the vehicles park, plus quick response when a vehicle goes down. Fleet managers call to schedule batches of units and to report breakdowns. The AI answers in your company's name, captures the vehicles and location, texts your tech about down vehicles, and books on-site service.",
+      calls: [
+        "On-site preventive maintenance for fleets",
+        "Down vehicles blocking a route",
+        "Oil changes and inspections for multiple units",
+        "DOT and annual inspection scheduling",
+        "New fleet account inquiries",
+        "Fleet managers checking on service history",
+      ],
+      quotes: "per-vehicle preventive maintenance visits and mobile service calls",
+      estimates: "fleet-wide service agreements",
+      urgent: "a fleet vehicle down and off the road",
+      booking: "on-site service days",
+      faqs: [
+        {
+          q: "Can the AI handle calls from fleet managers?",
+          a: "Yes. It captures the company, the vehicles, and the location, recognizes returning accounts in the CRM, and books on-site service into open slots on your calendar.",
+        },
+        {
+          q: "How does it handle a vehicle that's down?",
+          a: "It treats the call as urgent, texts your on-call tech right away, and can text the fleet manager a confirmation with an estimated arrival time.",
+        },
+      ],
+    },
+    "rv-repair": {
+      hook: "RV owners need repairs where the RV is parked. Answer every call, capture the rig and location, and book the mobile service visit.",
+      why: "RV repair calls come from owners with slide-outs that won't move, roof leaks, generators and appliances that quit, and campers stuck at a campground mid-trip. Mobile RV techs are usually on another site when the phone rings. The AI answers in your company's name, captures the RV's year, make, and model and where it's parked, quotes your service calls, and books the visit or flags an urgent breakdown.",
+      calls: [
+        "Slide-outs, awnings, and jacks not working",
+        "Roof leaks and water damage",
+        "Generators, furnaces, and AC units",
+        "Pre-trip and winterization service",
+        "Campers broken down at a campground",
+        "Warranty and extended service contract questions",
+      ],
+      quotes: "mobile service calls, inspections, and winterizations",
+      estimates: "roof replacements and major repairs",
+      urgent: "an RV breakdown in the middle of a trip",
+      booking: "service visits",
+      faqs: [
+        {
+          q: "Can the AI find the RV at a campground?",
+          a: "It captures the campground name, site number, or nearest landmark the caller gives, reads it back, and checks it against your service radius before booking.",
+        },
+        {
+          q: "Can it quote a winterization?",
+          a: "Yes. Set your winterization price with travel zones, and the AI reads back one exact total and books the visit.",
+        },
+      ],
+    },
+    "heavy-equipment-repair": {
+      hook: "A machine down on a job site stops the whole crew. Answer every call, capture the equipment and site, and get your field tech moving.",
+      why: "Heavy equipment repair calls come from contractors, farms, and quarries with an excavator, loader, dozer, or tractor that quit on site. Every hour of downtime costs them, so they call whoever answers first. The AI answers in your company's name, captures the machine's make and model, the problem, and the site location, texts your on-call field tech, and books scheduled service.",
+      calls: [
+        "Excavators, loaders, and dozers down on site",
+        "Hydraulic leaks and failures",
+        "Engine and electrical problems",
+        "Preventive maintenance on equipment fleets",
+        "Farm equipment and tractor repairs",
+        "Undercarriage and track work inquiries",
+      ],
+      quotes: "field service calls and preventive maintenance visits",
+      estimates: "major component repairs and rebuilds",
+      urgent: "a machine down on a job site",
+      booking: "service visits",
+      faqs: [
+        {
+          q: "What if the job site doesn't have an address?",
+          a: "The AI asks for the nearest cross streets, road, or landmark, reads back what it understood, and captures the machine details before texting your field tech.",
+        },
+        {
+          q: "Can it quote a field service call?",
+          a: "Yes. Set your field service call rate with travel zones by driving distance and an after-hours fee, and the AI reads back one exact total.",
+        },
+      ],
+    },
   },
   variants: {
+    "mobile-battery-replacement": {
+      title: "Mobile battery replacement",
+      body: "For mobile battery replacement, the AI treats a car that won't start as urgent, captures the vehicle and location, quotes your installation fee with the battery added on top, and texts your tech so the driver gets moving again.",
+    },
+    "mobile-windshield-replacement": {
+      title: "Mobile windshield replacement",
+      body: "For mobile windshield service, the AI captures where the vehicle will be, at home, work, or a parking lot, checks it against your service radius, quotes your replacement with the glass added on top, and books the appointment for the time the job takes.",
+    },
+    "mobile-detailing": {
+      title: "Mobile detailing",
+      body: "For mobile detailers who come to the customer, the AI captures the service address and the vehicle, checks the address against your service radius, quotes your packages with your travel zones, and books the detail.",
+    },
+    "mobile-car-wash": {
+      title: "Mobile car wash",
+      body: "Mobile car wash customers want a quick price and a time. The AI quotes your wash packages by vehicle size with your travel zones, books the wash, and texts a reminder, including for repeat customers on a regular schedule.",
+    },
+    "trailer-repair": {
+      title: "Trailer repair",
+      body: "Trailer repair calls cover lights, brakes, bearings, axles, and inspections for utility, cargo, and semi trailers. The AI captures the trailer details and the problem and books it into the shop.",
+    },
     "tire-shops": {
       title: "Tire shops",
       body: "Tire shop callers want to know if you have their size and how soon they can come in. The AI captures the vehicle and tire details the caller shares, answers questions about brands and services from your FAQs, and books the install or repair appointment. It doesn't check your tire inventory, so stock questions are taken as a message for your team.",

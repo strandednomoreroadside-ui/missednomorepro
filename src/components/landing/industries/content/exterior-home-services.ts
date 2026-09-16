@@ -151,6 +151,56 @@ export const exteriorHomeServices: CategoryFile = {
         },
       ],
     },
+    "gutter-companies": {
+      hook: "Gutter calls come in waves every fall and after every storm. Answer every one, quote your cleanings by home size, and book the visit.",
+      why: "Gutter companies take calls for cleanings, overflowing gutters, sagging sections, guard installs, and new seamless systems. Cleanings are easy to price by home size and book on the first call, while new systems need a measure. The AI answers in your company's name, quotes cleanings and guard installs you price by phone, and books measures for new gutters.",
+      calls: [
+        "Gutter cleaning for one- and two-story homes",
+        "Overflowing and clogged downspouts",
+        "Sagging, leaking, or pulled-away gutters",
+        "Gutter guard installs",
+        "New seamless gutter systems",
+        "Fall cleaning route sign-ups",
+      ],
+      quotes: "gutter cleanings by home size, downspout clearing, and guard installs",
+      estimates: "new seamless gutter systems",
+      booking: "cleanings",
+      faqs: [
+        {
+          q: "How does the AI quote gutter cleaning?",
+          a: "Set up cleaning services by home size, like a one-story or two-story home, plus travel zones. The AI matches what the caller describes and reads back one exact total.",
+        },
+        {
+          q: "Can it handle the fall rush?",
+          a: "It answers every call in your company's name instead of letting them go to voicemail, quotes and books cleanings into open slots, and logs every caller in the CRM so your team can work through the list.",
+        },
+      ],
+    },
+    "chimney-fireplace": {
+      hook: "Chimney calls spike the first cold week of fall. Answer every one, quote your sweeps and inspections, and book the visit.",
+      why: "Chimney and fireplace companies hear from homeowners who want a sweep before using the fireplace, buyers who need an inspection, and people with a smoky fireplace, a leak around the chimney, or animals in the flue. The AI answers in your company's name, quotes sweeps and inspections from your rates, gives your safety guidance from your FAQs, and books the visit.",
+      calls: [
+        "Chimney sweeps before fireplace season",
+        "Chimney inspections for home sales",
+        "Smoke coming back into the room",
+        "Leaks and water damage around the chimney",
+        "Animals or nests in the flue",
+        "Gas fireplace and insert service",
+      ],
+      quotes: "chimney sweeps, inspections, and cap installs",
+      estimates: "masonry repairs, liners, and rebuilds",
+      booking: "sweeps and inspections",
+      faqs: [
+        {
+          q: "Can the AI give fireplace safety advice?",
+          a: "It gives only the guidance you approve in your FAQs, like not using the fireplace until it's inspected. It doesn't improvise safety advice.",
+        },
+        {
+          q: "Can it book inspections for home sales?",
+          a: "Yes. It captures the property address and the date the caller is working against, quotes your inspection fee, and books the earliest open time.",
+        },
+      ],
+    },
   },
   variants: {
     "fence-repair": {

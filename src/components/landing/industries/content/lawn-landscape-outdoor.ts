@@ -80,8 +80,116 @@ export const lawnLandscapeOutdoor: CategoryFile = {
         },
       ],
     },
+    "irrigation-sprinklers": {
+      hook: "Sprinkler startups in spring and blowouts in fall fill up fast. Answer every call, quote your seasonal services exactly, and book the route.",
+      why: "Irrigation companies live by the calendar: spring startups, fall winterizations, and repairs all season when a head breaks or a zone won't turn on. Seasonal services are easy to price and book on the first call, and customers who can't get through before a freeze call someone else. The AI answers in your company's name, quotes startups, winterizations, and service calls, and books them into open slots.",
+      calls: [
+        "Spring system startups",
+        "Fall winterizations and blowouts",
+        "Broken heads, leaks, and zones that won't run",
+        "Controller and timer programming",
+        "New sprinkler system installs",
+        "Drip irrigation and landscape lighting questions",
+      ],
+      quotes: "startups, winterizations, and repair service calls by zone count",
+      estimates: "new irrigation system installs",
+      booking: "service visits",
+      faqs: [
+        {
+          q: "Can the AI book fall winterizations?",
+          a: "Yes. It quotes your winterization price from your rates and books the visit into an open slot, then texts the customer a confirmation and a reminder.",
+        },
+        {
+          q: "How does it price by the number of zones?",
+          a: "Set up services by zone count, like a startup for up to six zones, and the AI matches what the caller tells it to your prices. It never guesses.",
+        },
+      ],
+    },
+    "pool-service-repair": {
+      hook: "Pool owners want their pool open, clear, and working. Answer every call, quote openings and service visits, and fill your route.",
+      why: "Pool service companies take calls for weekly maintenance, spring openings and fall closings, green pool cleanups, and equipment problems like a pump or heater that won't run. Most are ready to book, and the busiest weeks are the ones right before summer. The AI answers in your company's name, quotes the services you price by phone, and books visits into open slots.",
+      calls: [
+        "Weekly and biweekly pool service",
+        "Spring openings and fall closings",
+        "Green pool cleanups",
+        "Pumps, filters, and heaters not working",
+        "Leak detection and repair requests",
+        "Hot tub and spa service",
+      ],
+      quotes: "openings, closings, service visits, and green pool cleanups",
+      estimates: "equipment replacements and leak repairs",
+      booking: "service visits",
+      faqs: [
+        {
+          q: "Can the AI book pool openings?",
+          a: "Yes. It quotes your opening price from your rates, checks the address against your service radius, and books the opening into an open slot with a confirmation text.",
+        },
+        {
+          q: "Can it help with equipment problems?",
+          a: "It captures what the owner describes, like a pump that won't prime or a heater error, books a service visit, and gives any troubleshooting tips you've added to your FAQs.",
+        },
+      ],
+    },
+    "snow-removal": {
+      hook: "When snow is in the forecast, every property owner calls at once. Answer them all, quote your plowing rates, and lock in the season.",
+      why: "Snow removal calls cluster right before and during storms. Homeowners want a driveway plowed or shoveled, and businesses and HOAs want a seasonal contract with salting. Operators are out plowing when the phone rings the most. The AI answers in your company's name, quotes per-visit services you price by phone, captures commercial contract requests, and logs everyone in the CRM.",
+      calls: [
+        "Per-push driveway plowing",
+        "Sidewalk and walkway shoveling",
+        "Salting and ice management",
+        "Seasonal residential contracts",
+        "Commercial lot and HOA contracts",
+        "Customers asking when their driveway will be done",
+      ],
+      quotes: "per-visit driveway plowing, shoveling, and salting",
+      estimates: "seasonal and commercial contracts",
+      booking: "site visits",
+      faqs: [
+        {
+          q: "Can the AI quote a driveway plow?",
+          a: "Yes. Set per-visit prices by driveway size and your travel zones, and the AI reads back one exact total. Commercial contracts are captured for your team.",
+        },
+        {
+          q: "What if customers call asking when we'll get to them?",
+          a: "The AI takes their name and number and texts your team, and logs the call in the CRM. It doesn't promise arrival times it can't know.",
+        },
+      ],
+    },
+    "mosquito-control": {
+      hook: "Mosquito customers want their yard back before the weekend. Answer every call, quote your treatments, and book the first spray.",
+      why: "Mosquito control calls come from homeowners tired of being bitten, families planning a party or graduation, and existing customers on a seasonal program. They want to know what the treatment costs, whether it's safe for kids and pets, and how soon you can come. The AI answers in your company's name, quotes your treatments, answers safety questions from your FAQs, and books the visit.",
+      calls: [
+        "Seasonal mosquito and tick programs",
+        "One-time treatments before events",
+        "Pet and child safety questions",
+        "Natural and organic treatment options",
+        "Existing customers rescheduling after rain",
+        "Tick and flea yard treatments",
+      ],
+      quotes: "one-time event treatments and per-visit program treatments",
+      estimates: "large properties and commercial accounts",
+      booking: "treatments",
+      faqs: [
+        {
+          q: "Can the AI answer pet safety questions?",
+          a: "It answers from the FAQs you write, word for word. Add your guidance about products and re-entry times, and callers hear your approved answer.",
+        },
+        {
+          q: "Can it book a treatment before a party?",
+          a: "Yes. It captures the event date the caller mentions, quotes your event treatment, and books the earliest open time that works.",
+        },
+      ],
+    },
   },
   variants: {
+    "pool-opening-closing": {
+      title: "Pool opening and closing services",
+      body: "For seasonal openings and closings, the AI quotes each service exactly from your rates, books it into an open slot, and sends a reminder before the visit, so your busiest two months fill up without phone tag.",
+    },
+    "hot-tub-service": {
+      title: "Hot tub service and repair",
+      body: "Hot tub calls cover cloudy water, heaters that won't heat, error codes, and drain-and-clean service. The AI captures what the owner describes, quotes the services you've priced, and books the service visit.",
+    },
     hardscaping: {
       title: "Hardscaping",
       body: "For hardscaping projects like paver patios, retaining walls, and outdoor kitchens, the AI captures what the homeowner is planning, answers material and timeline questions from your FAQs, and books a design consultation or estimate into an open slot.",

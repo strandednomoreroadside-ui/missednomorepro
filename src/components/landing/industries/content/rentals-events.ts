@@ -29,6 +29,31 @@ export const rentalsEvents: CategoryFile = {
         },
       ],
     },
+    "portable-storage-rental": {
+      hook: "Portable storage customers are in the middle of a move or a remodel. Answer every call, quote your container rentals with delivery, and book the drop-off.",
+      why: "Portable storage container calls come from people moving, renovating, or clearing out a space, plus contractors and businesses that need storage on site. They want container sizes, the monthly price, delivery details, and a drop-off date. The AI answers in your company's name, quotes your container sizes and rental periods with your travel zones, answers placement questions from your FAQs, and books the delivery.",
+      calls: [
+        "Containers for moving and remodeling",
+        "On-site storage for contractors and businesses",
+        "Container sizes and what fits inside",
+        "Delivery placement and driveway questions",
+        "Rental extensions and pickups",
+        "Long-distance container moves",
+      ],
+      quotes: "container sizes and monthly rental periods",
+      estimates: "long-distance container moves and multi-container orders",
+      booking: "deliveries",
+      faqs: [
+        {
+          q: "Can the AI quote a container rental with delivery?",
+          a: "Yes. Set a price for each container size and rental period plus travel zones, and the AI reads back one exact total for the caller's address.",
+        },
+        {
+          q: "Can it answer placement questions?",
+          a: "Yes, from your FAQs. Add how much space a container needs and your driveway and surface rules, and the AI answers in your words.",
+        },
+      ],
+    },
   },
   variants: {
     "roll-off-dumpster-rental": {

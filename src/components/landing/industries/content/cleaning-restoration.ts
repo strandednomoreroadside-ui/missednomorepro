@@ -105,8 +105,61 @@ export const cleaningRestoration: CategoryFile = {
         },
       ],
     },
+    "air-duct-cleaning": {
+      hook: "Duct cleaning customers want a real price, not a teaser. Answer every call, quote your packages exactly, and book the cleaning.",
+      why: "Air duct cleaning calls come from homeowners after a renovation, new homeowners, allergy sufferers, and people who noticed dust or odors. Many have seen very low advertised prices elsewhere and want to know what the job really costs. The AI answers in your company's name, quotes your packages exactly from your rates, and books the visit.",
+      calls: [
+        "Whole-home air duct cleaning",
+        "Dryer vent cleaning",
+        "Post-renovation dust and debris",
+        "Allergy and odor concerns",
+        "Furnace and coil cleaning add-ons",
+        "Commercial duct cleaning inquiries",
+      ],
+      quotes: "duct cleaning packages by system count, dryer vent cleanings, and add-ons",
+      estimates: "commercial systems and unusually large homes",
+      booking: "cleanings",
+      faqs: [
+        {
+          q: "Can the AI quote duct cleaning and a dryer vent together?",
+          a: "Yes. It prices both in one quote so your travel fee is charged once, and reads back a single exact total from your rates.",
+        },
+        {
+          q: "Will it tell callers how long a cleaning takes?",
+          a: "Yes, if you add it to your FAQs. You can also give each service its own appointment length so the AI only books times where the whole job fits.",
+        },
+      ],
+    },
+    "hoarding-cleanup": {
+      hook: "Hoarding cleanup calls are sensitive, and callers are often family members under stress. Answer with care, capture the situation, and book a discreet walkthrough.",
+      why: "Hoarding cleanup requests often come from adult children, landlords, social workers, and estate representatives, not just the person living in the home. Callers want discretion and a clear sense of the process before anyone visits. The AI answers calmly in your company's name, captures the address and who is calling, answers process questions from your FAQs, and books a private walkthrough.",
+      calls: [
+        "Family members arranging a cleanup",
+        "Landlords and property managers after a move-out",
+        "Social workers and case managers",
+        "Questions about discretion and the process",
+        "Biohazard concerns inside the home",
+        "Estate and probate cleanouts",
+      ],
+      estimates: "cleanups you price after a walkthrough",
+      booking: "walkthroughs",
+      faqs: [
+        {
+          q: "How does the AI handle a sensitive hoarding call?",
+          a: "It speaks calmly, never judges, captures only what the caller shares, and books a walkthrough. Callers who are upset can be warm-transferred to someone on your team.",
+        },
+        {
+          q: "Can it explain our discretion policy?",
+          a: "Yes, from your FAQs. Add how you handle privacy, unmarked vehicles, and what happens to belongings, and the AI answers in your words.",
+        },
+      ],
+    },
   },
   variants: {
+    "dryer-vent-cleaning": {
+      title: "Dryer vent cleaning",
+      body: "Dryer vent cleaning is often booked on its own when a dryer takes too long or runs hot. The AI quotes your dryer vent cleaning exactly, gives any safety guidance you've approved in your FAQs, and books the visit, or prices it together with a duct cleaning in one total.",
+    },
     "flood-cleanup": {
       title: "Flood cleanup",
       body: "After heavy rain or a river flood, the AI answers the surge of calls in your company's name, captures each address and how much water there is, texts your crew about homes with standing water, and logs every caller in the CRM so nobody gets lost while your team works through the list.",

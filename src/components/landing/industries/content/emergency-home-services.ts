@@ -132,8 +132,89 @@ export const emergencyHomeServices: CategoryFile = {
         },
       ],
     },
+    "termite-control": {
+      hook: "Termite calls come from worried homeowners and from buyers racing a closing date. Answer every call and book the inspection before they call someone else.",
+      why: "Termite companies get calls from homeowners who found swarmers or damaged wood, plus real estate agents and buyers who need a wood-destroying insect inspection before closing. Both groups want an inspection quickly. The AI answers in your company's name, captures the address and what the caller found, answers treatment questions from your FAQs, and books the inspection.",
+      calls: [
+        "Termite swarmers and wood damage sightings",
+        "Real estate termite inspections before closing",
+        "Treatment options and warranty questions",
+        "Annual inspection and bond renewal visits",
+        "Carpenter ant and other wood pest calls",
+        "Existing customers with retreatment questions",
+      ],
+      quotes: "termite inspections and real estate inspection letters",
+      estimates: "treatment plans that depend on what the inspection finds",
+      booking: "inspections",
+      faqs: [
+        {
+          q: "Can the AI book real estate termite inspections?",
+          a: "Yes. It captures the property address and the closing date the caller mentions, quotes your inspection fee if you've set one, and books the earliest open time on your calendar.",
+        },
+        {
+          q: "Will it quote a termite treatment?",
+          a: "Treatments usually depend on the inspection, so the AI books the inspection and captures what the caller describes instead of guessing a price.",
+        },
+      ],
+    },
+    "security-alarm-installers": {
+      hook: "Security leads call after a break-in nearby, and existing customers call when an alarm acts up. Answer every call, book consultations, and get urgent service to your tech.",
+      why: "Security and alarm companies hear from new customers who want cameras or an alarm system, often right after a break-in, and from existing customers whose system is beeping, won't arm, or keeps sending false alarms. The AI answers in your company's name, books consultations for new systems, quotes the service you price by phone, and texts your on-call tech when a system is down.",
+      calls: [
+        "New alarm and camera system consultations",
+        "Systems that won't arm or keep beeping",
+        "False alarm and sensor problems",
+        "Doorbell camera and smart lock installs",
+        "Monitoring plan questions from your FAQ",
+        "Business security and access control inquiries",
+      ],
+      quotes: "service calls and camera or doorbell installs you price per device",
+      estimates: "full security system designs",
+      urgent: "an alarm system that won't arm or keeps going off",
+      booking: "consultations",
+      faqs: [
+        {
+          q: "Can the AI help existing customers with a beeping alarm?",
+          a: "It can give the troubleshooting steps you add to your FAQs, like how to silence a low-battery chirp. If that doesn't solve it, it texts your on-call tech and books a service visit. It never guesses at codes or settings.",
+        },
+        {
+          q: "Will it quote monitoring plans?",
+          a: "It answers questions about your monitoring options from your FAQs in your words and quotes installs or service you've priced. It doesn't invent plan terms.",
+        },
+      ],
+    },
+    "glass-repair-replacement": {
+      hook: "A shattered window or glass door can't wait until next week. Answer every call, get urgent replacements moving, and book the rest.",
+      why: "Glass companies field calls about broken windows after a storm or break-in, fogged double-pane units, shower doors, mirrors, and storefront glass. Some need securing or a replacement today; others want an estimate for a custom project. The AI answers in your company's name, captures what broke and where, treats unsecured openings as urgent, and books measure visits for the rest.",
+      calls: [
+        "Broken windows and glass doors",
+        "Fogged or failed double-pane units",
+        "Shower doors and custom mirrors",
+        "Storefront and commercial glass damage",
+        "Table tops and replacement glass pieces",
+        "Emergency securing after break-ins",
+      ],
+      quotes: "service calls, measure visits, and standard pane replacements",
+      estimates: "shower enclosures, mirrors, and storefront systems",
+      urgent: "a shattered window or glass door",
+      booking: "measure visits",
+      faqs: [
+        {
+          q: "Can customers send a photo of the broken glass?",
+          a: "Yes. Photos texted to your Missed No More Pro number are saved to the customer's record in the CRM, next to the call summary, so your tech can prepare before the visit.",
+        },
+        {
+          q: "Can the AI quote custom shower doors?",
+          a: "Custom glass depends on measurements, so the AI books a measure visit and captures what the customer wants. It quotes only services you've priced.",
+        },
+      ],
+    },
   },
   variants: {
+    "gate-access-control": {
+      title: "Gate and access control installers",
+      body: "For gate operators, keypads, and access control, the AI answers calls from HOAs, businesses, and homeowners, treats a gate stuck open or closed as urgent by texting your on-call tech, captures the property and system details, and books installs and service visits.",
+    },
     "commercial-locksmiths": {
       title: "Commercial locksmiths",
       body: "Commercial locksmith calls come from business owners and property managers who need a lock changed after an employee leaves, a master key system updated, or an office lockout handled before opening. The AI captures the business and address, logs each account in the CRM, and texts your on-call locksmith when a business can't get in.",
