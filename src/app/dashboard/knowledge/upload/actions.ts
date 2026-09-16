@@ -283,7 +283,7 @@ async function applySuggestion(
       .maybeSingle();
     if (dupeSvc) return true;
     const isTow = p.pricing_type === "tow";
-    await supabase.from("service_pricing").insert({
+    const row: Record<string, unknown> = {
       tenant_id: tenantId,
       business_id: sug.business_id,
       name,
@@ -293,7 +293,12 @@ async function applySuggestion(
       per_mile_rate: isTow ? p.per_mile_rate : null,
       free_miles: isTow ? p.free_miles : null,
       variable_part: p.variable_part ?? null,
-    });
+    };
+    const { error } = await supabase
+      .from("service_pricing")
+      .insert(p.duration_minutes ? { ...row, duration_minutes: p.duration_minutes } : row);
+    // Still add the service if the duration column isn't migrated yet.
+    if (error && p.duration_minutes) await supabase.from("service_pricing").insert(row);
     return true;
   }
   return false;

@@ -340,6 +340,41 @@ export async function updateReminders(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/** Appointment scheduling: default length, start-time spacing, and the gap
+ *  kept between appointments. Business-wide, so owner/admin only. */
+export async function updateBookingLengths(formData: FormData) {
+  const { active } = await requireActiveOrg();
+  if (!isOrgManager(active.role)) redirect("/dashboard/settings?error=permission");
+  const supabase = await createClient();
+
+  const length = Math.round(Number(formData.get("appointment_minutes")));
+  const interval = Math.round(Number(formData.get("booking_interval_minutes")));
+  const buffer = Math.round(Number(formData.get("booking_buffer_minutes")));
+
+  const patch: Record<string, number> = {};
+  if (Number.isFinite(length) && length >= 15 && length <= 720) patch.appointment_minutes = length;
+  if ([10, 15, 20, 30, 60].includes(interval)) patch.booking_interval_minutes = interval;
+  if (Number.isFinite(buffer) && buffer >= 0 && buffer <= 120) patch.booking_buffer_minutes = buffer;
+  if (Object.keys(patch).length === 0) return;
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("tenant_id", active.organization_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!business) return;
+
+  await supabase
+    .from("businesses")
+    .update(patch)
+    .eq("id", business.id)
+    .eq("tenant_id", active.organization_id);
+
+  revalidatePath("/dashboard/settings");
+}
+
 /**
  * Update the immediate-dispatch confirmation + ETA settings. The ETA the
  * caller is texted = base + per-job × (open jobs on today's board). Members

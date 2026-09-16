@@ -36,6 +36,8 @@ export interface AvailabilityConfig {
   slotMinutes: number;
   /** Appointment length. */
   durationMinutes: number;
+  /** Minutes kept free before and after every appointment. */
+  bufferMinutes: number;
   /** Max slots to return. */
   maxSlots: number;
 }
@@ -45,8 +47,37 @@ export const DEFAULT_AVAILABILITY: AvailabilityConfig = {
   leadMinutes: 60,
   slotMinutes: 30,
   durationMinutes: 60,
+  bufferMinutes: 0,
   maxSlots: 3,
 };
+
+/** Longest single appointment we'll book (matches the DB check). */
+export const MAX_APPOINTMENT_MINUTES = 720;
+
+/**
+ * Appointment length for the requested services: the sum of each service's
+ * duration, with the business default standing in for any service that has
+ * none. No services -> the default.
+ */
+export function appointmentLengthMinutes(
+  durations: (number | null | undefined)[],
+  defaultMinutes: number
+): number {
+  if (durations.length === 0) return defaultMinutes;
+  const total = durations.reduce<number>((sum, d) => sum + (d && d > 0 ? d : defaultMinutes), 0);
+  return Math.min(total, MAX_APPOINTMENT_MINUTES);
+}
+
+/** Does [start, end), padded by bufferMinutes on both sides, clash with busy? */
+export function clashesWithBusy(
+  start: Date,
+  end: Date,
+  busy: BusyInterval[],
+  bufferMinutes = 0
+): boolean {
+  const pad = bufferMinutes * 60_000;
+  return overlapsBusy(new Date(start.getTime() - pad), new Date(end.getTime() + pad), busy);
+}
 
 export interface Slot {
   start: Date;
@@ -115,7 +146,7 @@ function slotsForDay(
     const start = zonedTimeToUtc(date.year, date.month, date.day, hour, minute, input.tz);
     const end = new Date(start.getTime() + cfg.durationMinutes * 60_000);
     if (start < earliest) continue;
-    if (overlapsBusy(start, end, input.busy)) continue;
+    if (clashesWithBusy(start, end, input.busy, cfg.bufferMinutes)) continue;
     out.push({
       start,
       end,

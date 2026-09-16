@@ -65,8 +65,11 @@ export async function loadPricing(
   };
 }
 
-/** Quoting is live only once the owner has approved real, geocoded rules. */
-export function bundleQuotingEnabled(b: PricingBundle): boolean {
+/** Quoting is live only once the owner has approved real, geocoded rules.
+ *  In-shop businesses have no trip to price, so they need only approval and
+ *  at least one active service. */
+export function bundleQuotingEnabled(b: PricingBundle, opts: { inShop?: boolean } = {}): boolean {
+  if (opts.inShop) return Boolean(b.settings?.approved_at && b.services.length > 0);
   return Boolean(
     b.settings?.approved_at &&
       b.settings.base_lat != null &&
@@ -80,7 +83,8 @@ export function bundleQuotingEnabled(b: PricingBundle): boolean {
 export async function isQuotingEnabled(
   admin: SupabaseClient,
   tenantId: string,
-  businessId: string
+  businessId: string,
+  opts: { inShop?: boolean } = {}
 ): Promise<boolean> {
   const { data: settings } = await admin
     .from("pricing_settings")
@@ -88,7 +92,16 @@ export async function isQuotingEnabled(
     .eq("tenant_id", tenantId)
     .eq("business_id", businessId)
     .maybeSingle();
-  if (!settings?.approved_at || settings.base_lat == null || settings.base_lng == null) {
+  if (!settings?.approved_at) return false;
+  if (opts.inShop) {
+    const { count } = await admin
+      .from("service_pricing")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .eq("active", true);
+    return (count ?? 0) > 0;
+  }
+  if (settings.base_lat == null || settings.base_lng == null) {
     return false;
   }
   const [{ count: zoneCount }, { count: svcCount }] = await Promise.all([

@@ -64,7 +64,8 @@ function serviceLine(p: ServiceSuggestion): string {
     return `Tow — ${money(p.hook_fee)} hook + ${money(p.per_mile_rate)}/mi${free}`;
   }
   const part = p.variable_part ? ` + cost of ${p.variable_part}` : "";
-  return `Flat ${money(p.service_fee)}${part}`;
+  const length = p.duration_minutes ? ` · ${p.duration_minutes} min` : "";
+  return `Flat ${money(p.service_fee)}${part}${length}`;
 }
 
 export default async function UploadDocsPage({

@@ -8,7 +8,7 @@ import { pageMetadata } from "@/lib/seo";
 const PATH = "/ai-receptionist-for-salons";
 const TITLE = "AI Receptionist for Hair & Nail Salons | Missed No More Pro";
 const DESCRIPTION =
-  "AI receptionist for hair salons, nail salons, barbershops, and spas. Answers every call while you're with a client, books appointments, and texts reminders.";
+  "AI receptionist for hair salons, nail salons, barbershops, and spas. Answers every call, quotes your prices, books the right length, and texts reminders.";
 
 export const metadata: Metadata = pageMetadata({
   title: TITLE,
@@ -30,14 +30,16 @@ const CALL_TYPES = [
   "Existing clients canceling or rescheduling",
   "Same-day availability checks",
   "Hours, location, and parking questions",
-  "Service, cancellation policy, and deposit questions from your FAQ",
+  "Price questions answered from your service menu",
+  "Cancellation policy and deposit questions from your FAQ",
   "Evening and weekend calls from clients booking ahead",
 ];
 
 const COLS = ["Missed No More Pro", "Answering service", "Voicemail"];
 const ROWS: ComparisonRow[] = [
   { label: "Answers while you're with a client", values: [true, true, false] },
-  { label: "Books into open times on your calendar", values: [true, "Maybe", false] },
+  { label: "Quotes exact prices from your service menu", values: [true, false, false] },
+  { label: "Books each service for the time it takes", values: [true, "Maybe", false] },
   { label: "Handles cancels and reschedules by phone", values: [true, "Maybe", false] },
   { label: "Texts appointment confirmations and reminders", values: [true, false, false] },
   { label: "Answers your policy questions in your words", values: [true, "Maybe", false] },
@@ -51,11 +53,11 @@ const SECTIONS = [
   },
   {
     title: "Booked, confirmed, and reminded",
-    body: "Connect Google Calendar and the AI books clients into open times inside your hours, without double-booking. Clients get a confirmation text right away and a reminder before the appointment. When someone needs to cancel or move their visit, they can call and the AI handles it, which frees that time for someone else.",
+    body: "Connect Google Calendar and the AI books clients into open times inside your hours, without double-booking. Give each service its own length, so a 45-minute manicure and a two-hour color each get the right amount of time, and keep an optional gap between appointments for cleanup. Clients get a confirmation text right away and a reminder before the appointment. When someone needs to cancel or move their visit, they can call and the AI handles it, which frees that time for someone else.",
   },
   {
-    title: "Your policies, in your words",
-    body: "Add answers to the questions clients ask every day, like your cancellation policy, deposits, parking, how long a service takes, or what to do before a lash appointment, and the AI uses your wording. When a caller asks what a service costs, it never guesses: it takes their number so your team can text them the price.",
+    title: "Your prices and policies, in your words",
+    body: "Add your service menu and approve it, and the AI tells callers the exact total for what they want, including more than one service at once, computed straight from your prices. It never guesses a number. Add answers to the questions clients ask every day, like your cancellation policy, deposits, parking, or what to do before a lash appointment, and the AI uses your wording.",
   },
   {
     title: "Know your regulars",
@@ -73,16 +75,16 @@ const FAQS: FaqItem[] = [
     a: "Not directly today. It books on Google Calendar. If your appointment book lives in another system, you can leave booking off: the AI takes the client's request and preferred time, and your team confirms it.",
   },
   {
-    q: "Can it book a specific stylist or longer services?",
-    a: "It books one standard appointment length on your connected calendar. It notes the client's preferred stylist or technician and the service they want, so your team can adjust the time for longer services like color or a full set.",
+    q: "Can it book longer services like color or a full set?",
+    a: "Yes. Give each service its own length and the AI only offers times where the whole appointment fits inside your hours, then books it for that length. You can also keep a gap between appointments. Appointments go on one connected calendar, so if you book by stylist, the AI notes the client's preferred stylist for your team.",
   },
   {
     q: "Will it tell callers my prices?",
-    a: "It never guesses at a price. When a client asks what a service costs, it takes their number and your team texts them the exact price.",
+    a: "Yes, once you add your service menu and approve it. The AI reads back the exact total from your prices and never guesses. Until pricing is approved, it takes the client's number so your team can text them the price.",
   },
   {
     q: "Does it work for nail salons, barbershops, spas, and lash studios?",
-    a: "Yes. In setup, choose Hair salon, Nail salon, Barbershop, Day spa and massage, Lash and brow studio, Tattoo and piercing studio, or Pet grooming salon, and the AI handles calls for a business clients visit, with no address questions.",
+    a: "Yes. In setup, open Beauty & Personal Services and choose Hair salons, Nail salons, Barbershops, Day spas & massage, Lash & brow studios, Tattoo studios, or Permanent makeup businesses. The AI then handles calls for a business clients visit, with no address questions.",
   },
   {
     q: "How much does a salon answering service cost compared to this?",

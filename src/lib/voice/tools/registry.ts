@@ -222,6 +222,13 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
           type: "string",
           description: "Optional preferred time of day as 24-hour HH:MM (e.g. 14:00 for 2 PM).",
         },
+        services: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "The service(s) the caller wants, e.g. [\"Gel Manicure\"]. Pass them whenever you know them so the " +
+            "appointment is booked for the full length those services take.",
+        },
       },
       required: ["date"],
     },
@@ -250,6 +257,13 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         phone: { type: "string", description: "E.164 phone. Defaults to the caller's number." },
         location: { type: "string", description: "Service address or location, if given." },
         notes: { type: "string", description: "Any extra details for the team." },
+        services: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "The service(s) the caller wants, e.g. [\"Gel Manicure\"]. Pass them whenever you know them so the " +
+            "appointment is booked for the full length those services take.",
+        },
       },
       required: ["start", "title"],
     },
@@ -313,8 +327,8 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
       "ONE number to say: the total. If the caller needs MORE THAN ONE service (e.g. a jump start AND a tire " +
       "change), pass ALL of them together in the `services` array in ONE call — do NOT call this tool once " +
       "per service, that would charge the dispatch fee more than once; the dispatch fee is only ever charged " +
-      "one time per visit. Provide the caller's location (for the distance-based dispatch fee); for a tow, " +
-      "also provide the drop-off location. If it returns ok=false, follow the 'say' guidance (e.g. ask for " +
+      "one time per visit. Provide the caller's location (for the distance-based dispatch fee) unless customers " +
+      "come to the business, which needs no location; for a tow, also provide the drop-off location. If it returns ok=false, follow the 'say' guidance (e.g. ask for " +
       "the drop-off, or that they're out of area).",
     parameters: {
       type: "object",
@@ -334,14 +348,15 @@ export const VOICE_TOOLS: VoiceToolDef[] = [
         location: {
           type: "string",
           description:
-            "The caller's current location — a full street address, or nearest cross-street + city.",
+            "The caller's current location — a full street address, or nearest cross-street + city. Omit for a " +
+            "business customers come to.",
         },
         destination: {
           type: "string",
           description: "Drop-off location (TOWS ONLY) — where the vehicle is being towed to.",
         },
       },
-      required: ["location"],
+      required: [],
     },
   },
   {

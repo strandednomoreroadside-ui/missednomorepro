@@ -141,6 +141,9 @@ export interface PromptInput {
   bookingEnabled?: boolean;
   /** True when owner-approved pricing exists — turns on AI quoting. */
   quotingEnabled?: boolean;
+  /** True when at least one service has its own appointment length, so the
+   *  AI must pass services when checking availability and booking. */
+  timedServices?: boolean;
   /** Driving-distance service radius (miles) from the geocoded home base —
    *  the authoritative coverage figure for "what area do you serve?". Null
    *  when no base is geocoded (falls back to the ZIP/city list). */
@@ -293,9 +296,11 @@ export function buildAgentConfig(input: PromptInput): VoiceAgentConfig {
     ? ' For a TOW where the caller has no drop-off in mind (e.g. "just tow it to the nearest mechanic / tire shop"), call find_tow_destination with the kind of place + their pickup location, read back the option(s) it returns, let them choose, THEN call calculate_quote with that place\'s address as the destination.'
     : "";
 
-  const pricingStep = quotingEnabled
-    ? `Pricing — ALWAYS quote proactively: the moment you know the service and the caller's location${towDropOffHint}, call calculate_quote and tell them the exact total it returns. Do NOT wait for them to ask the price — give it to them as you confirm the service and address, before you book or hand off to the team. If the caller needs MORE THAN ONE service in the same visit (e.g. ${multiServiceExample}), pass ALL of them together in ONE calculate_quote call (the services list) — NEVER call it once per service, that charges the dispatch fee more than once when it should only ever apply one time per visit. Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2).${towDestinationStep}`
-    : "Pricing questions → rule 2.";
+  const pricingStep = !quotingEnabled
+    ? "Pricing questions → rule 2."
+    : !mobileService
+    ? "Pricing — ALWAYS quote proactively: the moment you know which service(s) the caller wants, call calculate_quote (no location needed, since customers come to the business) and tell them the exact total it returns. Do NOT wait for them to ask the price. If they want MORE THAN ONE service in the same visit, pass ALL of them together in ONE calculate_quote call (the services list). Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2)."
+    : `Pricing — ALWAYS quote proactively: the moment you know the service and the caller's location${towDropOffHint}, call calculate_quote and tell them the exact total it returns. Do NOT wait for them to ask the price — give it to them as you confirm the service and address, before you book or hand off to the team. If the caller needs MORE THAN ONE service in the same visit (e.g. ${multiServiceExample}), pass ALL of them together in ONE calculate_quote call (the services list) — NEVER call it once per service, that charges the dispatch fee more than once when it should only ever apply one time per visit. Read back ONLY the total calculate_quote returns; never quote from memory (see rule 2).${towDestinationStep}`;
 
   const rule4 = `4. ${bookingRuleBody(bookingEnabled)}`;
 
@@ -334,8 +339,9 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
         'call check_calendar_availability for that day and offer ONLY the open times it returns (say them naturally, e.g. "I have 9 AM or 2 PM"). If they ask for something sooner than the soonest open slot (e.g. "in 5 minutes"), tell them the earliest you can actually schedule and offer it — never just say "nothing available." If a day is full, offer the next day. When they pick a time, call book_appointment with that exact start time; if it comes back unavailable or outside hours, check availability again and offer another. ' +
         'NEVER promise to "call you back if an earlier slot opens" — there is no waitlist; instead offer a genuinely open earlier time, or say you\'ll note that they want the soonest possible and the team will try.' +
         (quotingEnabled
-          ? " Before you confirm a booking, make sure you've quoted the price (calculate_quote with the service + location). Always confirm BOTH the time AND the exact price. The moment book_appointment comes back booked, that confirmation IS your ONE wrap-up line — speak it (time + price + a warm goodbye) and call end_call in that SAME turn. Never go silent or wait for the caller after a successful booking."
-          : " Always confirm the booked time back to them. The moment book_appointment comes back booked, that confirmation IS your ONE wrap-up line — speak it (the booked time + a warm goodbye) and call end_call in that SAME turn. Never go silent or wait for the caller after a successful booking.")
+          ? ` Before you confirm a booking, make sure you've quoted the price (calculate_quote with ${mobileService ? "the service + location" : "the service"}). Always confirm BOTH the time AND the exact price. The moment book_appointment comes back booked, that confirmation IS your ONE wrap-up line — speak it (time + price + a warm goodbye) and call end_call in that SAME turn. Never go silent or wait for the caller after a successful booking.`
+          : " Always confirm the booked time back to them. The moment book_appointment comes back booked, that confirmation IS your ONE wrap-up line — speak it (the booked time + a warm goodbye) and call end_call in that SAME turn. Never go silent or wait for the caller after a successful booking.") +
+        (input.timedServices ? " Services take different amounts of time, so pass the caller's service(s) to both check_calendar_availability and book_appointment (all of them, if they want more than one) so the appointment is booked for the full time." : "")
     );
     steps.push(
       'Cancel / reschedule: ONLY for a caller who ALREADY has an appointment booked — lookup_contact tells you whether they do. If they mention moving or changing a time but have nothing booked, do NOT call reschedule_appointment; just treat it as a brand-new booking and go straight to check_calendar_availability. When they do have one, confirm which (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first call check_calendar_availability for the new day and offer only open times. If the tool still can\'t find their appointment, don\'t dwell on it or apologize at length — say "let\'s get you set up" and book it as a new appointment. A confirmation text is sent automatically (if they\'re opted in).'
@@ -343,7 +349,9 @@ Today is {{current_day}}, {{current_date}} in the business's local time. Use it 
   }
   steps.push(
     quotingEnabled
-      ? "When you have name + number + need and it's a real, in-area lead: FIRST give them their exact price (call calculate_quote with the service + location if you haven't already this call), then call create_contact and notify_staff with a one-line spoken summary so the team can dispatch fast. Don't end on 'the team will call you' without giving the price."
+      ? mobileService
+        ? "When you have name + number + need and it's a real, in-area lead: FIRST give them their exact price (call calculate_quote with the service + location if you haven't already this call), then call create_contact and notify_staff with a one-line spoken summary so the team can dispatch fast. Don't end on 'the team will call you' without giving the price."
+        : "When you have name + number + need and it's a real lead: FIRST give them their exact price (call calculate_quote with the service if you haven't already this call), then call create_contact and notify_staff with a one-line spoken summary so the team can follow up fast. Don't end on 'the team will call you' without giving the price."
       : "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line spoken summary so the team can call back fast."
   );
   steps.push(

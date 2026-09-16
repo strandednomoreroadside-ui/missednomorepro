@@ -14,6 +14,7 @@ import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { ManagerOnlyNote } from "@/components/manager-only-note";
 import { isMapsConfigured } from "@/lib/maps/client";
 import { createClient } from "@/lib/supabase/server";
+import { travelsToCustomer } from "@/lib/voice/industry";
 
 import {
   addService,
@@ -26,6 +27,7 @@ import {
   setHomeBase,
   toggleService,
   unapprovePricing,
+  updateServiceDuration,
   updateServiceRadius,
 } from "./actions";
 
@@ -39,6 +41,7 @@ const BANNERS: Record<string, { ok: boolean; text: string }> = {
     text: "Couldn't locate your home base on the map. Check the address and that the maps key is set, then try again.",
   },
   nobase: { ok: false, text: "Add your home base address first." },
+  noservice: { ok: false, text: "Add at least one active service first." },
   nobiz: { ok: false, text: "Finish the setup wizard first." },
 };
 
@@ -79,6 +82,7 @@ type ServiceRow = {
   available_start: string | null;
   available_end: string | null;
   active: boolean;
+  duration_minutes?: number | null;
 };
 type SurchargeRow = {
   id: string;
@@ -103,14 +107,21 @@ export default async function PricingPage({
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id")
+    .select("id, industry")
     .eq("tenant_id", active.organization_id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  const [{ data: settings }, { data: zones }, { data: services }, { data: surcharges }] =
-    await Promise.all([
+  const inShop = !travelsToCustomer((business?.industry as string | null) ?? null);
+
+  const [
+    { data: settings },
+    { data: zones },
+    { data: services },
+    { data: surcharges },
+    { data: durations },
+  ] = await Promise.all([
       business
         ? supabase
             .from("pricing_settings")
@@ -140,23 +151,42 @@ export default async function PricingPage({
             .eq("business_id", business.id)
             .eq("active", true)
         : Promise.resolve({ data: [] }),
+      // Separate query so the list still loads if duration_minutes is missing.
+      business
+        ? supabase
+            .from("service_pricing")
+            .select("id, duration_minutes")
+            .eq("business_id", business.id)
+        : Promise.resolve({ data: [] }),
     ]);
 
   const zoneRows = (zones ?? []) as ZoneRow[];
-  const serviceRows = (services ?? []) as ServiceRow[];
+  const minutesById = new Map(
+    ((durations ?? []) as { id: string; duration_minutes: number | null }[]).map((d) => [
+      d.id,
+      d.duration_minutes,
+    ])
+  );
+  const serviceRows = ((services ?? []) as ServiceRow[]).map((s) => ({
+    ...s,
+    duration_minutes: minutesById.get(s.id) ?? null,
+  }));
   const surchargeRows = (surcharges ?? []) as SurchargeRow[];
 
-  const hasConfig =
-    Boolean(settings) && zoneRows.length > 0 && serviceRows.some((s) => s.active);
+  // Businesses customers come to have no trip: no home base, radius, or zones.
+  const hasConfig = inShop
+    ? serviceRows.some((s) => s.active)
+    : Boolean(settings) && zoneRows.length > 0 && serviceRows.some((s) => s.active);
   const geocoded = settings?.base_lat != null && settings?.base_lng != null;
-  const quotingOn = Boolean(settings?.approved_at) && geocoded && hasConfig;
+  const quotingOn = Boolean(settings?.approved_at) && (inShop || geocoded) && hasConfig;
 
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="font-display text-2xl font-bold tracking-tight">Prices &amp; Services</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Manage your services, zone fees, and surcharges. When approved, the AI quotes
-        callers exact prices computed from these — it never makes up a number.
+        {inShop
+          ? "Manage your services, how long each takes, and surcharges. When approved, the AI quotes callers exact prices computed from these, and books each appointment for the right length."
+          : "Manage your services, zone fees, and surcharges. When approved, the AI quotes callers exact prices computed from these — it never makes up a number."}
       </p>
 
       {banner && (
@@ -188,10 +218,19 @@ export default async function PricingPage({
           <CardDescription>
             {quotingOn
               ? "Callers get exact, itemized quotes from the rules below."
-              : "Set your home base, add your services, then approve to let the AI quote."}
+              : inShop
+                ? "Add your services, then approve to let the AI quote."
+                : "Set your home base, add your services, then approve to let the AI quote."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {inShop ? (
+            <p className="text-xs text-steel">
+              Customers come to you, so there&rsquo;s no travel fee or service radius. The AI
+              quotes the services and surcharges below.
+            </p>
+          ) : (
+            <>
           <form action={setHomeBase} className="flex flex-wrap items-end gap-2">
             <label className="min-w-0 flex-1 text-xs text-steel">
               <span className="inline-flex items-center gap-1">
@@ -247,6 +286,8 @@ export default async function PricingPage({
               distance.
             </p>
           )}
+            </>
+          )}
 
           {!canManage ? (
             <ManagerOnlyNote>
@@ -266,7 +307,7 @@ export default async function PricingPage({
               </Button>
               {!hasConfig && (
                 <span className="ml-2 text-xs text-steel">
-                  Add at least one zone and one service first.
+                  {inShop ? "Add at least one service first." : "Add at least one zone and one service first."}
                 </span>
               )}
             </form>
@@ -275,6 +316,7 @@ export default async function PricingPage({
       </Card>
 
       {/* Zones */}
+      {!inShop && (
       <Card className="mt-4 bg-card/60">
         <CardHeader className="pb-2">
           <CardTitle className="font-display text-base">Dispatch zones</CardTitle>
@@ -321,11 +363,16 @@ export default async function PricingPage({
         </CardContent>
       </Card>
 
+      )}
+
       {/* Services */}
       <Card className="mt-4 bg-card/60">
         <CardHeader className="pb-2">
           <CardTitle className="font-display text-base">Services</CardTitle>
-          <CardDescription>What you offer and what each costs.</CardDescription>
+          <CardDescription>
+            What you offer, what each costs, and how long each appointment takes. Services
+            without a length use your default appointment length in Settings.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="divide-y divide-border/40 text-sm">
@@ -350,6 +397,23 @@ export default async function PricingPage({
                     {clock(s.available_start)}–{clock(s.available_end)}
                   </span>
                 )}
+                <form action={updateServiceDuration} className="flex items-center gap-1">
+                  <input type="hidden" name="id" value={s.id} />
+                  <Input
+                    type="number"
+                    name="duration_minutes"
+                    defaultValue={s.duration_minutes ?? ""}
+                    placeholder="min"
+                    min={5}
+                    max={720}
+                    step={5}
+                    className="h-7 w-16 px-2 text-xs"
+                    aria-label={`Appointment length for ${s.name} in minutes`}
+                  />
+                  <Button type="submit" variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                    Set length
+                  </Button>
+                </form>
                 <span className="ml-auto font-mono text-cyan">
                   {s.pricing_type === "tow"
                     ? `${money(s.hook_fee ?? 0)} + ${money(s.per_mile_rate ?? 0)}/mi` +
@@ -417,10 +481,16 @@ export default async function PricingPage({
                   Available to (optional)
                   <Input type="time" name="available_end" className="mt-1" aria-label="Available to" />
                 </label>
+                <label className="text-xs text-steel">
+                  Appointment length, minutes (optional)
+                  <Input type="number" name="duration_minutes" min={5} max={720} step={5} className="mt-1" aria-label="Appointment length in minutes" />
+                </label>
               </div>
               <p className="text-xs text-steel">
                 For a flat service, fill <em>Flat price</em>. For a tow, pick Tow and fill
-                the hook fee + per-mile. Times limit when the AI offers a service.
+                the hook fee + per-mile. Times limit when the AI offers a service. The
+                appointment length is how long the AI books when a customer wants this
+                service.
               </p>
               <Button type="submit" size="sm">
                 Add service

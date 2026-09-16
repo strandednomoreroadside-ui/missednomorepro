@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { requireActiveOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { travelsToCustomer } from "@/lib/voice/industry";
 
 export const metadata: Metadata = { title: "Knowledge Hub" };
 
@@ -90,11 +91,17 @@ export default async function KnowledgeHubPage() {
   const radius = settingsRow?.max_service_miles ?? null;
 
   // "Steps to start quoting" — mirrors approvePricing's requirements (home
-  // base geocoded + ≥1 zone + ≥1 active service, then owner approval). Shown
-  // only while quoting is off, so it disappears once the business is live.
+  // base geocoded + ≥1 zone + ≥1 active service, then owner approval; just the
+  // service + approval for businesses customers come to). Shown only while
+  // quoting is off, so it disappears once the business is live.
+  const inShop = !travelsToCustomer((business?.industry as string | null) ?? null);
   const quotingSteps = [
-    { label: "Set your home base address", done: Boolean(settingsRow?.base_address), href: "/dashboard/setup/service-area" },
-    { label: "Add at least one dispatch zone", done: zoneCount > 0, href: "/dashboard/pricing" },
+    ...(inShop
+      ? []
+      : [
+          { label: "Set your home base address", done: Boolean(settingsRow?.base_address), href: "/dashboard/setup/service-area" },
+          { label: "Add at least one dispatch zone", done: zoneCount > 0, href: "/dashboard/pricing" },
+        ]),
     { label: "Add at least one service with a price", done: serviceCount > 0, href: "/dashboard/pricing" },
     { label: "Review & approve pricing", done: quotingOn, href: "/dashboard/pricing" },
   ];

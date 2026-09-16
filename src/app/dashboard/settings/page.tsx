@@ -6,6 +6,7 @@ import {
   Bot,
   CalendarCheck,
   CheckCircle2,
+  Clock,
   Globe,
   Mail,
   MessageSquare,
@@ -42,6 +43,7 @@ import {
   sendTestText,
   updateAiSwitch,
   updateBookingConfirmation,
+  updateBookingLengths,
   updateCallbackIvr,
   updateTransferTarget,
   deletePronunciationOverride,
@@ -123,6 +125,19 @@ export default async function SettingsPage({
   const forwardNumber = (business?.forward_number ?? "") as string;
   const transferEnabled = (business?.transfer_enabled ?? true) as boolean;
   const transferNumber = (business?.transfer_number ?? "") as string;
+
+  // Loaded on its own so the page still renders before the booking-length
+  // migration is applied (the defaults below match the old behavior).
+  const { data: booking } = business
+    ? await supabase
+        .from("businesses")
+        .select("appointment_minutes, booking_interval_minutes, booking_buffer_minutes")
+        .eq("id", business.id)
+        .maybeSingle()
+    : { data: null };
+  const appointmentMinutes = (booking?.appointment_minutes ?? 60) as number;
+  const bookingInterval = (booking?.booking_interval_minutes ?? 30) as number;
+  const bookingBuffer = (booking?.booking_buffer_minutes ?? 0) as number;
   // Business-wide config (AI kill switch, calendar booking) is owner/admin
   // only — matches the server-side gate in actions.ts. Members see status,
   // read-only.
@@ -667,6 +682,75 @@ export default async function SettingsPage({
               <Button type="submit">Connect Google Calendar</Button>
             </form>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 bg-card/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <Clock className="size-4 text-cyan" aria-hidden />
+            Appointment scheduling
+          </CardTitle>
+          <CardDescription>
+            How the AI fits appointments into your calendar. Services can have their own
+            length on{" "}
+            <Link href="/dashboard/pricing" className="text-cyan underline-offset-4 hover:underline">
+              Prices &amp; Services
+            </Link>
+            ; anything without one uses the default below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={updateBookingLengths} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="text-xs text-steel">
+                Default appointment length (minutes)
+                <Input
+                  type="number"
+                  name="appointment_minutes"
+                  defaultValue={appointmentMinutes}
+                  min={15}
+                  max={720}
+                  step={5}
+                  className="mt-1"
+                  disabled={!canManage}
+                />
+              </label>
+              <label className="text-xs text-steel">
+                Offer start times every
+                <select
+                  name="booking_interval_minutes"
+                  defaultValue={String(bookingInterval)}
+                  disabled={!canManage}
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-night/60 px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {[10, 15, 20, 30, 60].map((m) => (
+                    <option key={m} value={m}>
+                      {m} minutes
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs text-steel">
+                Gap between appointments (minutes)
+                <Input
+                  type="number"
+                  name="booking_buffer_minutes"
+                  defaultValue={bookingBuffer}
+                  min={0}
+                  max={120}
+                  step={5}
+                  className="mt-1"
+                  disabled={!canManage}
+                />
+              </label>
+            </div>
+            <p className="text-xs text-steel">
+              The AI only offers times where the whole appointment, plus the gap, fits inside
+              your business hours without overlapping anything on your calendar.
+            </p>
+            {canManage && <Button type="submit">Save</Button>}
+          </form>
         </CardContent>
       </Card>
 

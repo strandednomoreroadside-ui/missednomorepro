@@ -8,6 +8,8 @@ import { advanceLead } from "@/lib/crm/pipeline";
 import { enqueueFollowup } from "@/lib/sms/outbound-engine";
 import { emitWebhookEvent } from "@/lib/webhooks";
 import {
+  appointmentLengthMinutes,
+  clashesWithBusy,
   computeAvailableSlots,
   isWithinBusinessHours,
   DEFAULT_AVAILABILITY,
@@ -737,6 +739,130 @@ async function dbBusy(
   }));
 }
 
+type BookingProfile = {
+  /** Customers come to the business (salon, shop): no trip to price. */
+  inShop: boolean;
+  appointmentMinutes: number;
+  intervalMinutes: number;
+  bufferMinutes: number;
+};
+
+/** A business's booking settings. The defaults reproduce the behavior from
+ *  before these settings existed, and a query error (for example the
+ *  migration not applied yet) falls back to them rather than failing a call. */
+async function loadBookingProfile(ctx: ToolContext, businessId: string): Promise<BookingProfile> {
+  const defaults = {
+    appointmentMinutes: DEFAULT_AVAILABILITY.durationMinutes,
+    intervalMinutes: DEFAULT_AVAILABILITY.slotMinutes,
+    bufferMinutes: DEFAULT_AVAILABILITY.bufferMinutes,
+  };
+  const { data, error } = await ctx.admin
+    .from("businesses")
+    .select("industry, appointment_minutes, booking_interval_minutes, booking_buffer_minutes")
+    .eq("id", businessId)
+    .eq("tenant_id", ctx.tenantId)
+    .maybeSingle();
+  if (error) {
+    const { data: fallback } = await ctx.admin
+      .from("businesses")
+      .select("industry")
+      .eq("id", businessId)
+      .eq("tenant_id", ctx.tenantId)
+      .maybeSingle();
+    return { inShop: !travelsToCustomer(fallback?.industry as string | null), ...defaults };
+  }
+  return {
+    inShop: !travelsToCustomer(data?.industry as string | null),
+    appointmentMinutes: (data?.appointment_minutes as number | null) ?? defaults.appointmentMinutes,
+    intervalMinutes: (data?.booking_interval_minutes as number | null) ?? defaults.intervalMinutes,
+    bufferMinutes: (data?.booking_buffer_minutes as number | null) ?? defaults.bufferMinutes,
+  };
+}
+
+/**
+ * Appointment length (minutes) for the caller's services, from each service's
+ * duration in the price list. With no service names, the longest service name
+ * found inside `fallbackText` (the booking title) is used. Unknown services,
+ * services without a duration, and query errors use the business default.
+ */
+async function appointmentMinutesFor(
+  ctx: ToolContext,
+  businessId: string,
+  names: string[],
+  defaultMinutes: number,
+  fallbackText?: string
+): Promise<number> {
+  const { data, error } = await ctx.admin
+    .from("service_pricing")
+    .select("name, duration_minutes")
+    .eq("business_id", businessId)
+    .eq("active", true);
+  if (error || !data) return defaultMinutes;
+  const rows = data as { name: string; duration_minutes: number | null }[];
+
+  const wanted = names.map((n) => n.trim().toLowerCase()).filter(Boolean);
+  if (wanted.length === 0) {
+    const text = (fallbackText ?? "").toLowerCase();
+    const hit = rows
+      .filter((r) => text && text.includes(r.name.toLowerCase()))
+      .sort((a, b) => b.name.length - a.name.length)[0];
+    return hit ? appointmentLengthMinutes([hit.duration_minutes], defaultMinutes) : defaultMinutes;
+  }
+
+  const durations: (number | null)[] = [];
+  for (const n of wanted) {
+    const hit =
+      rows.find((r) => r.name.toLowerCase() === n) ??
+      rows.find((r) => r.name.toLowerCase().includes(n) || n.includes(r.name.toLowerCase()));
+    durations.push(hit ? hit.duration_minutes : null);
+  }
+  return appointmentLengthMinutes(durations, defaultMinutes);
+}
+
+/** Google busy blocks clashing with [start, end), padded by the buffer. */
+async function googleClash(
+  accessToken: string,
+  calendarId: string,
+  start: Date,
+  end: Date,
+  bufferMinutes: number,
+  ignoreStartIso?: string
+): Promise<boolean> {
+  const pad = bufferMinutes * 60_000;
+  const gb = await freeBusy(
+    accessToken,
+    calendarId,
+    new Date(start.getTime() - pad).toISOString(),
+    new Date(end.getTime() + pad).toISOString()
+  );
+  const busy = gb
+    .filter((b) => !(ignoreStartIso && new Date(b.start).toISOString() === ignoreStartIso))
+    .map((b) => ({ start: new Date(b.start), end: new Date(b.end) }));
+  return clashesWithBusy(start, end, busy, bufferMinutes);
+}
+
+/** Do our own confirmed appointments leave the buffer clear around [start, end)? */
+async function bufferClash(
+  ctx: ToolContext,
+  businessId: string,
+  start: Date,
+  end: Date,
+  bufferMinutes: number,
+  ignoreStartIso?: string
+): Promise<boolean> {
+  if (bufferMinutes <= 0) return false;
+  const pad = bufferMinutes * 60_000;
+  const busy = (
+    await dbBusy(
+      ctx,
+      businessId,
+      new Date(start.getTime() - pad).toISOString(),
+      new Date(end.getTime() + pad).toISOString()
+    )
+  ).filter((b) => !(ignoreStartIso && b.start.toISOString() === ignoreStartIso));
+  return clashesWithBusy(start, end, busy, bufferMinutes);
+}
+
 /** Use the linked contact, else find/create by phone (for booking). */
 async function ensureContactForBooking(
   ctx: ToolContext,
@@ -822,6 +948,8 @@ const checkCalendarAvailability = defineTool(
   z.object({
     date: z.string().min(1).max(20),
     preferred_time: z.string().max(10).optional(),
+    service: z.string().min(1).max(160).optional(),
+    services: z.array(z.string().min(1).max(160)).max(4).optional(),
   }),
   async (ctx, args) => {
     const business = await resolveBusiness(ctx);
@@ -845,7 +973,22 @@ const checkCalendarAvailability = defineTool(
     }
 
     const preferredTime = args.preferred_time ? parseTimeString(args.preferred_time) : null;
-    const hours = await loadHours(ctx, business.id);
+    const requested = args.services?.length ? args.services : args.service ? [args.service] : [];
+    const [hours, profile] = await Promise.all([
+      loadHours(ctx, business.id),
+      loadBookingProfile(ctx, business.id),
+    ]);
+    const appointmentMinutes = await appointmentMinutesFor(
+      ctx,
+      business.id,
+      requested,
+      profile.appointmentMinutes
+    );
+    const config = {
+      durationMinutes: appointmentMinutes,
+      slotMinutes: profile.intervalMinutes,
+      bufferMinutes: profile.bufferMinutes,
+    };
 
     // Fetch busy across the whole horizon (not just the requested day) so we can
     // roll forward to the next open day when the requested one is full or already
@@ -883,16 +1026,22 @@ const checkCalendarAvailability = defineTool(
     });
 
     // 1) The day the caller asked for.
-    const daySlots = computeAvailableSlots({ tz, hours, busy, now, targetDate: target, preferredTime });
+    const daySlots = computeAvailableSlots({ tz, hours, busy, now, config, targetDate: target, preferredTime });
     if (daySlots.length > 0) {
       return {
         status: "ok",
-        data: { date: ymd(target), count: daySlots.length, rolled_forward: false, slots: daySlots.map(slotFields) },
+        data: {
+          date: ymd(target),
+          count: daySlots.length,
+          rolled_forward: false,
+          appointment_minutes: appointmentMinutes,
+          slots: daySlots.map(slotFields),
+        },
       };
     }
 
     // 2) Requested day is full/past — roll forward to the soonest open times.
-    const nextSlots = computeAvailableSlots({ tz, hours, busy, now, targetDate: null });
+    const nextSlots = computeAvailableSlots({ tz, hours, busy, now, config, targetDate: null });
     if (nextSlots.length > 0) {
       return {
         status: "ok",
@@ -900,6 +1049,7 @@ const checkCalendarAvailability = defineTool(
           date: ymd(target),
           count: nextSlots.length,
           rolled_forward: true,
+          appointment_minutes: appointmentMinutes,
           slots: nextSlots.map(slotFields),
           note: `No openings on ${ymd(target)} (that day is full or already past). These are the NEXT available times — offer them and say the DAY for each, e.g. "${nextSlots[0].label}".`,
         },
@@ -928,6 +1078,8 @@ const bookAppointment = defineTool(
     phone: z.string().optional(),
     location: z.string().max(500).optional(),
     notes: z.string().max(2000).optional(),
+    service: z.string().min(1).max(160).optional(),
+    services: z.array(z.string().min(1).max(160)).max(4).optional(),
   }),
   async (ctx, args) => {
     const business = await resolveBusiness(ctx);
@@ -938,7 +1090,16 @@ const bookAppointment = defineTool(
     if (Number.isNaN(start.getTime())) {
       return { status: "blocked", data: {}, error: "invalid start time" };
     }
-    const end = new Date(start.getTime() + DEFAULT_AVAILABILITY.durationMinutes * 60_000);
+    const profile = await loadBookingProfile(ctx, business.id);
+    const requested = args.services?.length ? args.services : args.service ? [args.service] : [];
+    const appointmentMinutes = await appointmentMinutesFor(
+      ctx,
+      business.id,
+      requested,
+      profile.appointmentMinutes,
+      args.title
+    );
+    const end = new Date(start.getTime() + appointmentMinutes * 60_000);
 
     if (start.getTime() <= Date.now() + 60_000) {
       return { status: "blocked", data: {}, error: "that time is in the past — offer a future time" };
@@ -954,6 +1115,16 @@ const bookAppointment = defineTool(
       };
     }
 
+    // The DB exclusion constraint blocks direct overlaps; the buffer gap is
+    // checked here.
+    if (await bufferClash(ctx, business.id, start, end, profile.bufferMinutes)) {
+      return {
+        status: "blocked",
+        data: { slot_unavailable: true },
+        error: "that time is too close to another appointment — offer another time",
+      };
+    }
+
     // Google free/busy guard (catches events created outside our app).
     const conn = await getConnection(ctx.admin, ctx.tenantId, business.id);
     const hasCal = !!conn && isConnected(conn);
@@ -962,13 +1133,13 @@ const bookAppointment = defineTool(
       accessToken = await getValidAccessToken(ctx.admin, conn);
       if (accessToken) {
         try {
-          const gb = await freeBusy(
+          const clash = await googleClash(
             accessToken,
             conn.google_calendar_id,
-            start.toISOString(),
-            end.toISOString()
+            start,
+            end,
+            profile.bufferMinutes
           );
-          const clash = gb.some((b) => start < new Date(b.end) && end > new Date(b.start));
           if (clash) {
             return {
               status: "blocked",
@@ -1383,6 +1554,16 @@ const rescheduleAppointment = defineTool(
       };
     }
 
+    const ownStartIso = new Date(appt.starts_at).toISOString();
+    const profile = await loadBookingProfile(ctx, business.id);
+    if (await bufferClash(ctx, business.id, newStart, newEnd, profile.bufferMinutes, ownStartIso)) {
+      return {
+        status: "blocked",
+        data: { slot_unavailable: true },
+        error: "that time is too close to another appointment — offer another time",
+      };
+    }
+
     // Google free/busy guard (the appointment's own event will be removed, so
     // a clash here means a *different* event holds the new slot).
     const conn = await getConnection(ctx.admin, ctx.tenantId, business.id);
@@ -1392,18 +1573,14 @@ const rescheduleAppointment = defineTool(
       accessToken = await getValidAccessToken(ctx.admin, conn);
       if (accessToken) {
         try {
-          const gb = await freeBusy(
+          // ignore the busy block created by this very appointment
+          const clash = await googleClash(
             accessToken,
             conn.google_calendar_id,
-            newStart.toISOString(),
-            newEnd.toISOString()
-          );
-          const clash = gb.some(
-            (b) =>
-              newStart < new Date(b.end) &&
-              newEnd > new Date(b.start) &&
-              // ignore the busy block created by this very appointment
-              !(appt.starts_at === new Date(b.start).toISOString())
+            newStart,
+            newEnd,
+            profile.bufferMinutes,
+            ownStartIso
           );
           if (clash) {
             return {
@@ -1620,15 +1797,19 @@ const calculateQuoteTool = defineTool(
   z.object({
     service: z.string().min(1).max(160).optional(),
     services: z.array(z.string().min(1).max(160)).max(4).optional(),
-    location: z.string().min(1).max(300),
+    location: z.string().min(1).max(300).optional(),
     destination: z.string().max(300).optional(),
   }),
   async (ctx, args) => {
     const business = await resolveBusiness(ctx);
     if (!business) return { status: "error", data: {}, error: "no business configured" };
 
-    const bundle = await loadPricing(ctx.admin, ctx.tenantId, business.id);
-    if (!bundleQuotingEnabled(bundle) || !bundle.settings) {
+    const [bundle, profile] = await Promise.all([
+      loadPricing(ctx.admin, ctx.tenantId, business.id),
+      loadBookingProfile(ctx, business.id),
+    ]);
+    const inShop = profile.inShop;
+    if (!bundleQuotingEnabled(bundle, { inShop }) || !bundle.settings) {
       return {
         status: "blocked",
         data: { ok: false, reason: "not_configured" },
@@ -1687,28 +1868,43 @@ const calculateQuoteTool = defineTool(
       seenNames.has(s.name) ? false : (seenNames.add(s.name), true)
     );
 
-    const base = {
-      lat: bundle.settings.base_lat as number,
-      lng: bundle.settings.base_lng as number,
-      formatted: bundle.settings.base_address ?? "",
-    };
-    const distanceMiles = await drivingDistanceMiles(base, args.location);
-    if (distanceMiles == null) {
-      return {
-        status: "ok",
-        data: {
-          ok: false,
-          reason: "location_unclear",
-          say: "I couldn't pin down that location — what's the street address or nearest cross-street and city?",
-        },
-      };
-    }
-
-    // A tow's drop-off distance is shared by any tow in the request.
+    // In-shop businesses have no trip, so there's no distance to look up.
+    let distanceMiles = 0;
     let towMiles: number | null = null;
-    const towService = services.find((s) => s.pricing_type === "tow");
-    if (towService && args.destination) {
-      towMiles = await drivingDistanceMiles(args.location, args.destination);
+    if (!inShop) {
+      if (!args.location) {
+        return {
+          status: "ok",
+          data: {
+            ok: false,
+            reason: "need_location",
+            say: "What's the address where you need the service?",
+          },
+        };
+      }
+      const base = {
+        lat: bundle.settings.base_lat as number,
+        lng: bundle.settings.base_lng as number,
+        formatted: bundle.settings.base_address ?? "",
+      };
+      const miles = await drivingDistanceMiles(base, args.location);
+      if (miles == null) {
+        return {
+          status: "ok",
+          data: {
+            ok: false,
+            reason: "location_unclear",
+            say: "I couldn't pin down that location — what's the street address or nearest cross-street and city?",
+          },
+        };
+      }
+      distanceMiles = miles;
+
+      // A tow's drop-off distance is shared by any tow in the request.
+      const towService = services.find((s) => s.pricing_type === "tow");
+      if (towService && args.destination) {
+        towMiles = await drivingDistanceMiles(args.location, args.destination);
+      }
     }
 
     const parts = getZonedParts(new Date(), business.timezone);
@@ -1718,6 +1914,7 @@ const calculateQuoteTool = defineTool(
       surcharges: bundle.surcharges,
       distanceMiles,
       towMiles,
+      inShop,
       maxServiceMiles: bundle.settings.max_service_miles,
       localTime: { hour: parts.hour, minute: parts.minute },
       currency: bundle.settings.currency,

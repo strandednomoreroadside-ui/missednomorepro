@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { isOrgManager, requireActiveOrg } from "@/lib/auth";
 import { geocodeAddress } from "@/lib/maps/client";
 import { createClient } from "@/lib/supabase/server";
+import { travelsToCustomer } from "@/lib/voice/industry";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 async function firstBusinessId(
@@ -25,7 +26,8 @@ async function firstBusinessId(
 /**
  * Approve pricing → turns AI quoting on. Geocodes the home base first (the
  * engine needs coordinates); if that can't happen, it bounces back with a
- * reason instead of enabling a half-configured engine.
+ * reason instead of enabling a half-configured engine. Businesses customers
+ * come to have no trip to price, so they only need one active service.
  */
 export async function approvePricing() {
   const { active } = await requireActiveOrg();
@@ -34,6 +36,29 @@ export async function approvePricing() {
   const supabase = await createClient();
   const businessId = await firstBusinessId(supabase, active.organization_id);
   if (!businessId) redirect("/dashboard/pricing?pricing=nobiz");
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("industry")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!travelsToCustomer(business?.industry as string | null)) {
+    const { count } = await supabase
+      .from("service_pricing")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .eq("active", true);
+    if (!count) redirect("/dashboard/pricing?pricing=noservice");
+    await supabase.from("pricing_settings").upsert(
+      {
+        tenant_id: active.organization_id,
+        business_id: businessId,
+        approved_at: new Date().toISOString(),
+      },
+      { onConflict: "business_id" }
+    );
+    redirect("/dashboard/pricing?pricing=approved");
+  }
 
   const { data: settings } = await supabase
     .from("pricing_settings")
@@ -105,6 +130,14 @@ function num(formData: FormData, key: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+/** Appointment length in whole minutes (5–720), or null when blank/invalid. */
+function durationMinutes(formData: FormData): number | null {
+  const n = num(formData, "duration_minutes");
+  if (n == null) return null;
+  const rounded = Math.round(n);
+  return rounded >= 5 && rounded <= 720 ? rounded : null;
+}
+
 async function ctx() {
   const { active } = await requireActiveOrg();
   const supabase = await createClient();
@@ -151,8 +184,9 @@ export async function addService(formData: FormData) {
   const variablePart = String(formData.get("variable_part") ?? "").trim() || null;
   const start = String(formData.get("available_start") ?? "").trim() || null;
   const end = String(formData.get("available_end") ?? "").trim() || null;
+  const duration = durationMinutes(formData);
 
-  await supabase.from("service_pricing").insert({
+  const row: Record<string, unknown> = {
     tenant_id: tenantId,
     business_id: businessId,
     name,
@@ -164,7 +198,25 @@ export async function addService(formData: FormData) {
     variable_part: variablePart,
     available_start: start,
     available_end: end,
-  });
+  };
+  const { error } = await supabase
+    .from("service_pricing")
+    .insert(duration ? { ...row, duration_minutes: duration } : row);
+  // Still save the service if the duration column isn't migrated yet.
+  if (error && duration) await supabase.from("service_pricing").insert(row);
+  revalidatePath("/dashboard/pricing");
+}
+
+/** Set or clear how long a service's appointment takes. */
+export async function updateServiceDuration(formData: FormData) {
+  const { tenantId, supabase } = await ctx();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await supabase
+    .from("service_pricing")
+    .update({ duration_minutes: durationMinutes(formData), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   revalidatePath("/dashboard/pricing");
 }
 

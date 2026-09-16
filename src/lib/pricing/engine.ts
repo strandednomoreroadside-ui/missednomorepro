@@ -13,6 +13,9 @@
  * Charging the dispatch/trip fee per service would over-bill a caller who asks
  * for two things at one stop, so it is added a single time for the visit.
  * Conditional surcharges are returned for the AI to MENTION, never added.
+ *
+ * In-shop businesses (customers come to them) have no trip: no distance, no
+ * service area, no dispatch fee. Total = service fees + auto surcharges.
  */
 
 export interface PricingZone {
@@ -54,8 +57,11 @@ export interface QuoteInput {
   services: ServicePrice[];
   zones: PricingZone[];
   surcharges: Surcharge[];
-  /** Driving miles from home base to the customer (tow: to the pickup). */
+  /** Driving miles from home base to the customer (tow: to the pickup).
+   *  Ignored when inShop. */
   distanceMiles: number;
+  /** The customer comes to the business: skip distance, area, and dispatch. */
+  inShop?: boolean;
   /** Tow only: pickup → drop-off driving miles. */
   towMiles?: number | null;
   maxServiceMiles: number;
@@ -128,7 +134,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     total: 0,
     variableParts: [],
     possibleSurcharges: [],
-    miles: money(input.distanceMiles),
+    miles: input.inShop ? 0 : money(input.distanceMiles),
     towMiles: input.towMiles ?? null,
     currency,
   };
@@ -137,13 +143,13 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   if (input.services.length === 0) return { ...base, reason: "no_service" };
 
   // 1. Out of service area (one location for the whole visit).
-  if (input.distanceMiles > input.maxServiceMiles) {
+  if (!input.inShop && input.distanceMiles > input.maxServiceMiles) {
     return { ...base, reason: "out_of_area" };
   }
 
   // 2. Zone dispatch fee — charged once for the trip.
-  const zone = resolveZone(input.zones, input.distanceMiles);
-  if (!zone) return { ...base, reason: "no_zone" };
+  const zone = input.inShop ? null : resolveZone(input.zones, input.distanceMiles);
+  if (!input.inShop && !zone) return { ...base, reason: "no_zone" };
 
   // 3. A tow missing its drop-off can't be priced — pause the whole quote and
   //    ask for the destination, then re-quote every service together.
@@ -156,9 +162,9 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
 
   // 4. One dispatch line, then a fee line per AVAILABLE service. Services
   //    outside their window are surfaced (to mention) but never charged.
-  const lines: QuoteLine[] = [
-    { label: `Dispatch (Zone ${zone.zone_number})`, amount: money(zone.dispatch_fee) },
-  ];
+  const lines: QuoteLine[] = zone
+    ? [{ label: `Dispatch (Zone ${zone.zone_number})`, amount: money(zone.dispatch_fee) }]
+    : [];
   const priced: string[] = [];
   const unavailable: QuoteResult["unavailableServices"] = [];
   const variableParts: string[] = [];
@@ -221,7 +227,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   return {
     ...base,
     ok: true,
-    zoneNumber: zone.zone_number,
+    zoneNumber: zone?.zone_number,
     services: priced,
     unavailableServices: unavailable,
     lines,

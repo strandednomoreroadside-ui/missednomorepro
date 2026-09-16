@@ -33,6 +33,8 @@ export type ServiceSuggestion = {
   free_miles: number | null;
   /** "+ cost of <part>" services (tire/battery/fuel) — the part name. */
   variable_part: string | null;
+  /** How long the service takes, in minutes, when the document says. */
+  duration_minutes: number | null;
 };
 
 export type ExtractionResult = {
@@ -54,6 +56,7 @@ Return TWO things, only from what is EXPLICITLY written in the document:
    - per_mile_rate: tow only — dollars per mile. Otherwise null.
    - free_miles: tow only — miles included before per-mile applies (0 if none stated). Otherwise null.
    - variable_part: for "+ cost of the part" services (tire/battery/fuel), the part name (e.g. "tire", "battery", "fuel"). Otherwise null.
+   - duration_minutes: how long the service or appointment takes, in minutes, ONLY if the document states it (e.g. "45 min" = 45, "1 hr" = 60, "1.5 hours" = 90). Otherwise null.
 
 Rules:
 - NEVER invent or estimate a price. If a price is not clearly stated, do not include that service.
@@ -91,6 +94,7 @@ const RESPONSE_SCHEMA = {
           per_mile_rate: { type: ["number", "null"] },
           free_miles: { type: ["number", "null"] },
           variable_part: { type: ["string", "null"] },
+          duration_minutes: { type: ["number", "null"] },
         },
         required: [
           "name",
@@ -100,6 +104,7 @@ const RESPONSE_SCHEMA = {
           "per_mile_rate",
           "free_miles",
           "variable_part",
+          "duration_minutes",
         ],
       },
     },
@@ -298,6 +303,10 @@ function sanitize(result: ExtractionResult): ExtractionResult {
         variable_part: s.variable_part
           ? String(s.variable_part).trim().slice(0, 60)
           : null,
+        duration_minutes: (() => {
+          const d = num(s.duration_minutes);
+          return d != null && d >= 5 && d <= 720 ? Math.round(d) : null;
+        })(),
       } satisfies ServiceSuggestion;
     })
     .filter((s) => s.name);

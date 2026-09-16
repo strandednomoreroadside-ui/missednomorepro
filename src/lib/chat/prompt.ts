@@ -57,9 +57,11 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
       })} in the business's local time. Use it to work out any date the customer mentions (e.g. "next Tuesday").\n`
     : "";
 
-  const pricingStep = quotingEnabled
-    ? 'Pricing — quote proactively: as soon as you know the service and the customer\'s location (for a tow, also the drop-off), call calculate_quote and give them the exact total it returns. Don\'t wait for them to ask — give the price as you confirm the service and address, before booking or handing off. If they need MORE THAN ONE service in the same visit, pass ALL of them together in ONE calculate_quote call (the services list) — never call it once per service, that would charge the dispatch fee more than once when it should only ever apply one time per visit. Never quote from memory — see rule 2. For a TOW with no drop-off in mind ("tow it to the nearest mechanic/tire shop"), call find_tow_destination with the kind of place + their pickup, share the option(s), let them pick, THEN calculate_quote with that address as the destination.'
-    : "Pricing questions → rule 2.";
+  const pricingStep = !quotingEnabled
+    ? "Pricing questions → rule 2."
+    : !mobileService
+    ? "Pricing — quote proactively: as soon as you know which service(s) the customer wants, call calculate_quote (no location needed, since customers come to the business) and give them the exact total it returns. Don't wait for them to ask. If they want MORE THAN ONE service in the same visit, pass ALL of them together in ONE calculate_quote call (the services list). Never quote from memory — see rule 2."
+    : 'Pricing — quote proactively: as soon as you know the service and the customer\'s location (for a tow, also the drop-off), call calculate_quote and give them the exact total it returns. Don\'t wait for them to ask — give the price as you confirm the service and address, before booking or handing off. If they need MORE THAN ONE service in the same visit, pass ALL of them together in ONE calculate_quote call (the services list) — never call it once per service, that would charge the dispatch fee more than once when it should only ever apply one time per visit. Never quote from memory — see rule 2. For a TOW with no drop-off in mind ("tow it to the nearest mechanic/tire shop"), call find_tow_destination with the kind of place + their pickup, share the option(s), let them pick, THEN calculate_quote with that address as the destination.';
 
   const steps: string[] = [
     "Identify the customer: if you don't know who they are, ask their name, then call lookup_contact (by phone if you have it) to recall any history.",
@@ -80,7 +82,10 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
           'call create_contact + notify_staff (urgency high) so the team responds fast; tell them help is on the way ASAP and they\'ll get an ETA by text, without promising a specific time. For a SCHEDULED time, '
         : 'Booking: this business does not dispatch anyone to the customer, so no one is "on the way". If they want to come in or meet today, check today first and offer the soonest open times; never promise a walk-in spot. To book, ') +
         'call check_calendar_availability for that day and offer only the open times it returns. If they ask for something sooner than the soonest slot, tell them the earliest you can actually schedule and offer it — don\'t just say "nothing available"; if a day is full, offer the next day. When they pick one, call book_appointment with that exact start time; if unavailable, check again and offer another. NEVER promise to "message you if an earlier slot opens" — there\'s no waitlist; offer a genuinely open time or note they want the soonest. Confirm the booked time' +
-        (quotingEnabled ? " and the exact price." : " back to them.")
+        (quotingEnabled ? " and the exact price." : " back to them.") +
+        (input.timedServices
+          ? " Services take different amounts of time, so pass the customer's service(s) to both check_calendar_availability and book_appointment."
+          : "")
     );
     steps.push(
       "Cancel / reschedule: confirm which appointment (read back the day and time), then call cancel_appointment or reschedule_appointment. To reschedule, first check availability for the new day and offer only open times."
@@ -88,7 +93,9 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
   }
   steps.push(
     quotingEnabled
-      ? "When you have name + number + need and it's a real, in-area lead: FIRST give them their exact price (call calculate_quote with the service + location if you haven't already), then call create_contact and notify_staff with a one-line summary so the team can follow up fast."
+      ? mobileService
+        ? "When you have name + number + need and it's a real, in-area lead: FIRST give them their exact price (call calculate_quote with the service + location if you haven't already), then call create_contact and notify_staff with a one-line summary so the team can follow up fast."
+        : "When you have name + number + need and it's a real lead: FIRST give them their exact price (call calculate_quote with the service if you haven't already), then call create_contact and notify_staff with a one-line summary so the team can follow up fast."
       : "When you have name + number + need and it's a real, in-area lead: call create_contact, then notify_staff with a one-line summary so the team can follow up fast."
   );
   steps.push(

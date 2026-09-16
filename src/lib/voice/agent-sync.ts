@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isQuotingEnabled } from "@/lib/pricing/loader";
 
 import { getVoiceProvider } from "./index";
+import { travelsToCustomer } from "./industry";
 import { buildAgentConfig, type PromptInput } from "./prompt";
 import type { ProviderAgentRef } from "./types";
 
@@ -49,6 +50,7 @@ export async function loadPromptInput(
     transfer,
     settings,
     pronunciation,
+    durations,
   ] = await Promise.all([
     admin
       .from("services")
@@ -88,7 +90,9 @@ export async function loadPromptInput(
       .eq("tenant_id", business.tenant_id)
       .eq("business_id", business.id)
       .maybeSingle(),
-    isQuotingEnabled(admin, business.tenant_id, business.id),
+    isQuotingEnabled(admin, business.tenant_id, business.id, {
+      inShop: !travelsToCustomer(business.industry),
+    }),
     admin
       .from("service_pricing")
       .select("name")
@@ -114,6 +118,15 @@ export async function loadPromptInput(
       .eq("business_id", business.id)
       .eq("active", true)
       .order("created_at", { ascending: true }),
+    // Separate from the service_pricing name query above so a missing
+    // duration_minutes column (migration not yet applied) can't empty the
+    // service list and change a live agent's prompt.
+    admin
+      .from("service_pricing")
+      .select("name, duration_minutes")
+      .eq("business_id", business.id)
+      .eq("active", true)
+      .not("duration_minutes", "is", null),
   ]);
 
   // The service radius is authoritative for coverage ONLY when the home base is
@@ -164,13 +177,29 @@ export async function loadPromptInput(
     }
   }
 
+  // Tell the AI how long each timed service takes. Businesses with no
+  // durations set get exactly the same service list (and prompt) as before.
+  const minutesByName = new Map<string, number>();
+  if (!durations.error) {
+    for (const row of (durations.data ?? []) as { name: string; duration_minutes: number }[]) {
+      minutesByName.set(row.name.toLowerCase(), row.duration_minutes);
+    }
+  }
+  const servicesWithLength = mergedServices.map((svc) => {
+    const minutes = minutesByName.get(svc.name.toLowerCase());
+    if (!minutes) return svc;
+    const length = `takes about ${minutes} min`;
+    return { ...svc, description: svc.description ? `${svc.description} (${length})` : length };
+  });
+
   return {
     business: {
       name: business.name,
       industry: business.industry,
       timezone: business.timezone,
     },
-    services: mergedServices,
+    services: servicesWithLength,
+    timedServices: minutesByName.size > 0,
     hours: (hours.data ?? []) as PromptInput["hours"],
     areas: (areas.data ?? []) as PromptInput["areas"],
     faqs: (faqs.data ?? []) as PromptInput["faqs"],
