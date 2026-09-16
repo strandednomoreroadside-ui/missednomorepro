@@ -1,76 +1,60 @@
 # Pricing - Missed No More Pro
 
-Last updated: August 23, 2026
+Last updated: September 16, 2026
 
-Missed No More Pro is an AI phone assistant, AI receptionist, and built-in CRM for local service businesses. Every plan includes a 7-day free trial with a card required, hard usage caps, no surprise overage charges, missed-call text-back, call summaries, transcripts, SMS compliance, and access to the core CRM.
+Missed No More Pro is an AI receptionist, AI answering service, and built-in CRM for small local service businesses. Human-readable version: https://missednomorepro.com/pricing
 
-## Starter
+Every plan includes:
 
-- Price: $79/month, previously $99/month
-- Annual price: $63.20/month equivalent, billed annually at $758/year
-- AI phone minutes: 250/month
-- Estimated calls: about 85 calls/month at a 3-minute average
+- A 7-day free trial (card required, one trial per business, trial AI minutes are capped)
+- 24/7 AI call answering, missed-call text-back, call summaries, and transcripts
+- Exact price quotes computed from the business's approved rates (the AI never invents a price)
+- SMS compliance (A2P 10DLC registered, STOP/HELP handled automatically)
+- A hard usage cap: no overage charges, ever. Owners are warned as minutes run low; at the limit, calls forward to the owner's phone.
+- No long contract. Annual billing saves 20%.
+- No paid add-ons. Features are included in each plan as listed below.
+
+An "AI minute" is one minute the AI receptionist is actually on the phone with a caller. Call estimates assume a ~3-minute average call.
+
+## Starter - $50/month
+
+- Annual: $40/month equivalent, billed $480/year
+- AI minutes: 200/month (about 65 calls)
 - Users: 1
 - Best for: solo operators who never want to miss a call
-- Includes: AI receptionist, basic CRM, appointment booking, cancel and reschedule, human transfer, Google Calendar, website chat, AI business insights, review requests, missed-call recovery
+- Includes: AI receptionist and basic CRM, appointment booking with cancel and reschedule, warm transfer to a human, Google Calendar, website chat, AI business insights, review requests, missed-call recovery
 
-## Growth
+## Growth - $100/month
 
-- Price: $159/month, previously $199/month
-- Annual price: $127.20/month equivalent, billed annually at $1,526/year
-- AI phone minutes: 500/month
-- Estimated calls: about 165 calls/month at a 3-minute average
+- Annual: $80/month equivalent, billed $960/year
+- AI minutes: 400/month (about 135 calls)
 - Users: 3
 - Best for: small teams that want more leads converted
-- Includes: everything in Starter, lead pipeline, customer timeline, AI follow-ups, reminders, quote intake, payment requests, analytics dashboard
+- Includes: everything in Starter, plus lead pipeline, customer timeline, AI follow-ups and reminders, quote intake, payment requests, analytics dashboard
 
-## Professional
+## Professional - $200/month
 
-- Price: $279/month, previously $349/month
-- Annual price: $223.20/month equivalent, billed annually at $2,678/year
-- AI phone minutes: 900/month
-- Estimated calls: about 300 calls/month at a 3-minute average
+- Annual: $160/month equivalent, billed $1,920/year
+- AI minutes: 800/month (about 265 calls)
 - Users: 10
 - Best for: growing service teams that dispatch work and need insight
-- Includes: everything in Growth, dispatch board, team calendar, Make integrations, Zapier integrations
+- Includes: everything in Growth, plus dispatch board, team calendar, Make and Zapier integrations
 
-## Elite
+## Enterprise - custom
 
-- Price: $479/month, previously $599/month
-- Annual price: $383.20/month equivalent, billed annually at $4,598/year
-- AI phone minutes: 1,500/month
-- Estimated calls: about 500 calls/month at a 3-minute average
-- Users: 25
-- Best for: higher-volume teams ready for advanced automation
-- Includes: everything in Professional, additional business phone numbers, membership management, API access, advanced automations
-
-## Enterprise
-
-- Price: custom
-- AI phone minutes: custom
-- Users: custom
+- AI minutes and users: custom
 - Best for: organizations needing custom volume and support
 - Includes: custom pricing, dedicated onboarding, custom integrations, priority support
+- Contact: hello@missednomorepro.com
 
-## Founder Offer
+## Founder offer
 
-The first 10 paying businesses become founding customers. Founding customers get paid add-ons included free for the lifetime of their subscription, as long as the subscription stays continuously active.
+The first 10 businesses to become paying customers lock in their plan price for life, as long as the subscription stays continuously active, even if prices rise later. Any paid add-on released in the future is included free for them too.
 
-## Current Paid Add-On
+## Try before buying
 
-- AI Outbound Assistant: $49/month
-- Included free for active founding customers
-- Use cases: quote follow-ups, win-backs, reminders, and proactive text campaigns
+Call the live AI receptionist demo at (440) 644-2423 (no signup). It answers as a sample home-services business, quotes prices, and answers questions.
 
-## Product Category
+## Product category
 
-Missed No More Pro competes in these categories:
-
-- AI phone assistant
-- AI phone answering service
-- AI receptionist
-- AI virtual receptionist
-- AI answering service for small business
-- AI receptionist for local service businesses
-- AI receptionist with CRM
-- AI receptionist with price quoting
+AI receptionist; AI answering service; AI phone answering service; AI virtual receptionist; AI phone assistant; AI receptionist for small business; AI receptionist with CRM; AI receptionist with price quoting.

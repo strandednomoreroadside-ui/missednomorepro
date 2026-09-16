@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 
 import { LegalShell } from "@/components/legal-shell";
 import { GOVERNING_LAW_STATE, SUPPORT_EMAIL } from "@/lib/constants";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms of Service",
+export const metadata: Metadata = pageMetadata({
+  title: "Terms of Service | Missed No More Pro",
   description:
-    "The terms that govern use of the Missed No More Pro platform.",
-  alternates: { canonical: "/terms" },
-};
+    "The terms that govern use of Missed No More Pro, the AI receptionist and CRM platform for small service businesses, including billing, trials, and AI limits.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (

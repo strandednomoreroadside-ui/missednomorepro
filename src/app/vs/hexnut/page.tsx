@@ -3,18 +3,13 @@ import type { Metadata } from "next";
 import { ComparisonPage } from "@/components/landing/comparison-page";
 import type { ComparisonRow } from "@/components/landing/comparison-table";
 import type { FaqItem } from "@/components/landing/faq";
+import { pageMetadata } from "@/lib/seo";
 
-const TITLE = "Missed No More Pro vs. Hexnut";
+const TITLE = "Hexnut Alternative: Missed No More Pro vs. Hexnut";
 const DESCRIPTION =
-  "How Missed No More Pro compares to Hexnut for home-service AI receptionists: pricing, deterministic quoting, and what each product actually claims.";
+  "Comparing Missed No More Pro and Hexnut as AI receptionists for home-service businesses: entry price, free trial, exact price quoting, and onboarding.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/vs/hexnut" },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: "/vs/hexnut" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/vs/hexnut" });
 
 const COLS = ["Missed No More Pro", "Hexnut"];
 const ROWS: ComparisonRow[] = [
@@ -62,6 +57,8 @@ const NOTE =
 export default function VsHexnutPage() {
   return (
     <ComparisonPage
+      path="/vs/hexnut"
+      breadcrumb="vs. Hexnut"
       kicker="Missed No More Pro vs. Hexnut"
       h1="Missed No More Pro vs. Hexnut"
       subhead="Both answer calls 24/7 for home-service trades and book appointments. Here's where they're actually different — including the one claim neither Hexnut nor most AI receptionists make: a computed, never-invented price."

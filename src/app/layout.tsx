@@ -32,16 +32,16 @@ const mono = IBM_Plex_Mono({
 reportEnvStatus();
 
 const SITE_NAME = "Missed No More Pro";
-const SITE_TITLE = "Missed No More Pro — AI Receptionist for Local Service Businesses";
+const SITE_TITLE = "Missed No More Pro | AI Receptionist for Small Business";
 const SITE_DESCRIPTION =
-  "AI phone assistant and AI receptionist for local service businesses. Missed No More Pro answers calls 24/7, quotes exact prices, books jobs, follows up by text, and logs every lead in a built-in CRM.";
+  "AI receptionist and answering service for small service businesses. Answers calls 24/7, quotes exact prices, books jobs, texts back, and logs every lead.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
   applicationName: SITE_NAME,
   title: {
     default: SITE_TITLE,
-    template: "%s · Missed No More Pro",
+    template: "%s | Missed No More Pro",
   },
   description: SITE_DESCRIPTION,
   manifest: "/manifest.webmanifest",
@@ -54,21 +54,23 @@ export const metadata: Metadata = {
   },
   keywords: [
     "AI receptionist",
-    "AI phone assistant",
+    "AI receptionist for small business",
+    "AI answering service",
     "AI phone answering service",
-    "AI answering service for small business",
+    "AI phone assistant",
+    "AI virtual receptionist",
+    "virtual receptionist for small business",
+    "24/7 answering service",
+    "after-hours answering service",
     "AI receptionist with CRM",
     "AI receptionist with price quoting",
+    "AI receptionist for HVAC",
+    "AI receptionist for plumbers",
+    "AI receptionist for towing",
     "missed call text back",
-    "24/7 answering service",
-    "appointment booking software",
-    "field service software",
-    "small business CRM",
-    "roadside assistance software",
-    "HVAC plumber electrician answering service",
-    "AI virtual receptionist",
   ],
-  alternates: { canonical: "/" },
+  // No site-wide canonical: a canonical here is inherited by every page that
+  // doesn't set its own, pointing auth/app pages at the homepage.
   openGraph: {
     type: "website",
     siteName: SITE_NAME,

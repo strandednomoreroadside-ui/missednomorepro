@@ -3,18 +3,13 @@ import type { Metadata } from "next";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import { ButtonLink } from "@/components/landing/primitives";
 import { ArrowRight } from "lucide-react";
+import { JsonLd, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
-const TITLE = "Changelog";
+const TITLE = "Changelog: What's New in Missed No More Pro";
 const DESCRIPTION =
-  "What's shipped in Missed No More Pro, dated, in the founder's own words — the AI receptionist, CRM, and business assistant as it's actually being built.";
+  "Dated release notes for Missed No More Pro, the AI receptionist and CRM for small service businesses: new features, fixes, and what shipped when.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/changelog" },
-  openGraph: { title: `${TITLE} · Missed No More Pro`, description: DESCRIPTION, url: "/changelog" },
-  twitter: { card: "summary_large_image", title: `${TITLE} · Missed No More Pro`, description: DESCRIPTION },
-};
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/changelog" });
 
 type Entry = { date: string; title: string; body: string };
 
@@ -81,6 +76,7 @@ const ENTRIES: Entry[] = [
 export default function ChangelogPage() {
   return (
     <MarketingShell>
+      <JsonLd data={breadcrumbJsonLd([{ name: "Changelog", path: "/changelog" }])} />
       <section className="mx-auto max-w-3xl px-6 py-16 lg:py-24">
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
           Changelog

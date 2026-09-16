@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 
 import { LegalShell } from "@/components/legal-shell";
 import { SUPPORT_EMAIL } from "@/lib/constants";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "SMS Terms & Conditions",
+export const metadata: Metadata = pageMetadata({
+  title: "SMS Terms & Conditions | Missed No More Pro",
   description:
-    "SMS messaging terms for Missed No More Pro — program description, opt-in, opt-out (STOP), help (HELP), frequency, and carrier disclosures.",
-  alternates: { canonical: "/sms-terms" },
-};
+    "SMS messaging terms for Missed No More Pro: program description, opt-in, opt-out (STOP), help (HELP), message frequency, and carrier disclosures.",
+  path: "/sms-terms",
+});
 
 export default function SmsTermsPage() {
   return (

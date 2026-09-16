@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { FormBanner } from "@/components/form-banner";
 import { PLAN_META, SELF_SERVE_PLAN_ORDER } from "@/lib/billing/plans";
 import { signUp } from "../actions";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Create your account",
+export const metadata: Metadata = pageMetadata({
+  title: "Start Your Free Trial | Missed No More Pro",
   description:
-    "Start your 7-day free trial of Missed No More Pro — the AI receptionist that answers calls, quotes exact prices, and books jobs for local service businesses.",
-  alternates: { canonical: "/signup" },
-};
+    "Start your 7-day free trial of Missed No More Pro, the AI receptionist that answers calls 24/7, quotes exact prices, and books jobs for service businesses.",
+  path: "/signup",
+});
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

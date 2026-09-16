@@ -31,6 +31,17 @@ const nextConfig: NextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
+      {
+        // Plain-text pricing for AI agents; the canonical header keeps search
+        // engines from indexing it as a duplicate of the /pricing page.
+        source: "/pricing.md",
+        headers: [
+          {
+            key: "Link",
+            value: `<${(process.env.NEXT_PUBLIC_APP_URL ?? "https://missednomorepro.com").replace(/\/$/, "")}/pricing>; rel="canonical"`,
+          },
+        ],
+      },
       { source: "/:path*", headers: SECURITY_HEADERS },
     ];
   },

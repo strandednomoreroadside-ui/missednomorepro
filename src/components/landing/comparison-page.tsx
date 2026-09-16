@@ -4,6 +4,7 @@ import { ComparisonTable, type ComparisonRow } from "./comparison-table";
 import { Faq, type FaqItem } from "./faq";
 import { MarketingShell } from "./marketing-shell";
 import { ButtonLink } from "./primitives";
+import { JsonLd, SITE_URL, breadcrumbJsonLd } from "@/lib/seo";
 import { Reveal } from "./reveal";
 
 export type ComparisonSection = { title: string; body: string };
@@ -14,6 +15,8 @@ export type ComparisonSection = { title: string; body: string };
  * supplies its own real, sourced content; nothing here is generic filler.
  */
 export function ComparisonPage({
+  path,
+  breadcrumb,
   kicker,
   h1,
   subhead,
@@ -24,6 +27,9 @@ export function ComparisonPage({
   faqItems,
   faqTitle,
 }: {
+  /** Canonical path and short breadcrumb label, for WebPage + BreadcrumbList schema. */
+  path: string;
+  breadcrumb: string;
   kicker: string;
   h1: string;
   subhead: string;
@@ -36,6 +42,22 @@ export function ComparisonPage({
 }) {
   return (
     <MarketingShell>
+      <JsonLd
+        data={{
+          "@graph": [
+            {
+              "@type": "WebPage",
+              "@id": `${SITE_URL}${path}#webpage`,
+              url: `${SITE_URL}${path}`,
+              name: h1,
+              description: subhead,
+              isPartOf: { "@id": `${SITE_URL}/#website` },
+              about: { "@id": `${SITE_URL}/#software` },
+            },
+            breadcrumbJsonLd([{ name: breadcrumb, path }]),
+          ],
+        }}
+      />
       <section className="mx-auto max-w-4xl px-6 py-16 lg:py-24">
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
           {kicker}

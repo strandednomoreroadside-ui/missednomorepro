@@ -10,7 +10,10 @@ import { createClient } from "@/lib/supabase/server";
 
 import { acceptInvite } from "./actions";
 
-export const metadata: Metadata = { title: "Join a team" };
+export const metadata: Metadata = {
+  title: "Join a team",
+  robots: { index: false, follow: false },
+};
 
 export default async function InvitePage({
   params,

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
@@ -5,6 +6,8 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { LegalFooter } from "@/components/legal-footer";
 import { isPlatformAdmin } from "@/lib/auth";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Platform-admin area (you, the operator — not your customers).

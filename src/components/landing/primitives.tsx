@@ -42,18 +42,20 @@ export function SectionHeading({
   title,
   sub,
   align = "center",
+  as: Heading = "h2",
 }: {
   eyebrow: string;
   title: React.ReactNode;
   sub?: string;
   align?: "center" | "left";
+  as?: "h1" | "h2";
 }) {
   return (
     <div className={cn("max-w-2xl", align === "center" ? "mx-auto text-center" : "text-left")}>
       <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">
         {eyebrow}
       </p>
-      <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
+      <Heading className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">{title}</Heading>
       {sub && <p className="mt-4 text-base leading-relaxed text-muted-foreground">{sub}</p>}
     </div>
   );

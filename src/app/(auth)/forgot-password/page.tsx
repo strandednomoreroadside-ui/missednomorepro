@@ -7,7 +7,10 @@ import { Label } from "@/components/ui/label";
 import { FormBanner } from "@/components/form-banner";
 import { requestPasswordReset } from "../actions";
 
-export const metadata: Metadata = { title: "Reset your password" };
+export const metadata: Metadata = {
+  title: "Reset your password",
+  robots: { index: false, follow: false },
+};
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

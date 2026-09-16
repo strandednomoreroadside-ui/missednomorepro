@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -34,6 +35,8 @@ import { isPlatformAdmin, requireActiveOrg } from "@/lib/auth";
 import { signOut } from "@/app/(auth)/actions";
 
 import { switchOrganization } from "./actions";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function DashboardLayout({
   children,

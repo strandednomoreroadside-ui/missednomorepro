@@ -1,19 +1,65 @@
 # Missed No More Pro
 
-> AI receptionist and smart CRM for local service businesses (1–15 employees) — towing, roadside assistance, locksmiths, HVAC, plumbing, electrical, roofing, garage doors, pest control, landscaping, cleaning, mobile mechanics, appliance repair, and handyman trades.
+> Missed No More Pro is an AI receptionist and AI answering service for small local service businesses (roughly 1-15 employees). It answers business calls 24/7, quotes exact prices computed from the owner's approved rates, books jobs on the calendar, texts customers, and logs every lead in a built-in CRM. Plans start at $50/month with a 7-day free trial.
 
-Missed No More Pro answers a service business's phone 24/7, qualifies the caller, computes an exact price from the owner's own rates and real driving distance (never an invented price), books the job on the calendar inside owner-approved hours, and follows up by text. It warm-transfers complicated or upset callers to a real person on the team instead of guessing. Every call becomes a tracked lead in a built-in CRM with a transcript, summary, and dollar value attributed to the revenue it saved.
+## What it does
 
-Pricing is usage-capped (AI minutes) with hard caps and no surprise overage — plans run from $50/mo (Starter, 200 AI minutes, 1 user) to $200/mo (Professional, 800 AI minutes, 10 users), plus a custom Enterprise tier. Every AI add-on is included free on every plan. Every plan includes a 7-day free trial (card required). Annual billing saves another 20%.
+- Answers every call 24/7 in the business's name, in a natural voice. It never claims to be human and says it is an AI assistant if asked.
+- Qualifies the caller one question at a time and screens spam calls.
+- Quotes exact prices. Every number is computed server-side from the owner's approved rates, service zones, and real driving distance; the AI never invents a price. Requests outside the rules are captured and flagged for the team.
+- Books, cancels, and reschedules appointments on Google Calendar, only inside owner-approved hours, and sends text confirmations and reminders.
+- Warm-transfers upset, complex, or "get me a person" calls to a real team member, briefing them first so the caller never repeats themselves; otherwise it takes a detailed message and alerts the team by text.
+- Sends missed-call text-backs and follow-ups. A2P 10DLC registered; STOP/HELP handled automatically.
+- Built-in CRM: contacts, lead pipeline, customer timeline, call transcripts and summaries, payment requests, dispatch board, and an AI business assistant that answers questions about the business.
+- Website chat widget and two-way AI texting from the same AI.
+- Towing and roadside: quotes tows by dispatch zone, hook fee, and per-mile rate, and can find nearby shops when the caller has no drop-off in mind.
+
+## Who it is for
+
+Local service businesses where a missed call means a lost job: towing and roadside assistance, locksmiths, HVAC, plumbing, electrical, roofing, garage doors, pest control, landscaping, cleaning, mobile mechanics, appliance repair, and handyman services.
+
+## Pricing
+
+- Starter: $50/month, 200 AI minutes, 1 user
+- Growth: $100/month, 400 AI minutes, 3 users
+- Professional: $200/month, 800 AI minutes, 10 users, dispatch board and Zapier/Make
+- Enterprise: custom
+- Annual billing saves 20%. 7-day free trial on every plan (card required).
+- Hard usage caps with no overage charges: at the limit, calls forward to the owner's phone.
+- First 10 paying businesses lock in their price for life while their subscription stays active.
+
+## Setup
+
+- Guided setup takes about 15 minutes: services, hours, service area, greeting. Owners can upload a price sheet or FAQ document instead of typing it in, and approve everything before going live.
+- Keep an existing business number by forwarding calls (all calls, or only unanswered ones), or claim a new local number from the dashboard.
+
+## Try it
+
+- Live demo line: (440) 644-2423. Call or text to hear the AI receptionist answer as a sample home-services business. No signup needed.
+- Free trial: https://missednomorepro.com/signup
+
+## Company
+
+- Founded by Josh Millsaps, who runs a roadside-assistance business and built the system to stop missing calls on the job. It still answers that business's phone today.
+- Early-stage and onboarding founding customers. Based in Ohio, serving businesses in the United States.
+- Sales: hello@missednomorepro.com. Support: support@missednomorepro.com
 
 ## Pages
 
-- [Home](/): Product overview, live-call demo, ROI calculator, comparison table, pricing, FAQ.
-- [Pricing](/pricing): Full plan breakdown and what's included at each tier.
-- [Machine-readable pricing](/pricing.md): Plain-text plan limits, prices, and included features for AI agents.
-- [AI Phone Assistant](/ai-phone-assistant): Long-form guide to AI phone assistants, AI receptionists, and AI phone answering for local service businesses.
-- [About](/about): The founder story and why the product exists.
-- [Sign up](/signup): Start a free trial.
-- [Privacy Policy](/privacy)
-- [Terms of Service](/terms)
-- [SMS Terms](/sms-terms)
+- [Home](https://missednomorepro.com/): Product overview, live demo line, missed-call revenue calculator, pricing, FAQ
+- [Pricing](https://missednomorepro.com/pricing): Plans, what each includes, and the founder offer
+- [Pricing for AI agents](https://missednomorepro.com/pricing.md): Plain-text plan limits, prices, and features
+- [AI Phone Assistant guide](https://missednomorepro.com/ai-phone-assistant): What an AI phone assistant does and how it compares to an answering service and voicemail
+- [AI Receptionist for Towing](https://missednomorepro.com/ai-receptionist-for-towing): Tow quoting by hook fee and per-mile rate, 24/7 dispatch intake
+- [AI receptionist vs. answering service](https://missednomorepro.com/vs/answering-service): Compared with a human answering service
+- [vs. Hexnut](https://missednomorepro.com/vs/hexnut): Hexnut alternative comparison
+- [vs. Rosie](https://missednomorepro.com/vs/rosie): Rosie alternative comparison
+- [vs. Sameday AI](https://missednomorepro.com/vs/sameday): Sameday AI alternative comparison
+- [About](https://missednomorepro.com/about): Founder story and company stage
+- [Changelog](https://missednomorepro.com/changelog): Dated release notes
+
+## Optional
+
+- [Privacy Policy](https://missednomorepro.com/privacy)
+- [Terms of Service](https://missednomorepro.com/terms)
+- [SMS Terms](https://missednomorepro.com/sms-terms)

@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import { FormBanner } from "@/components/form-banner";
 import { updatePassword } from "../actions";
 
-export const metadata: Metadata = { title: "Choose a new password" };
+export const metadata: Metadata = {
+  title: "Choose a new password",
+  robots: { index: false, follow: false },
+};
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

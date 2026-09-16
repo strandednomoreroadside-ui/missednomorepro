@@ -64,14 +64,23 @@ const PLANS: Plan[] = [
   },
 ];
 
-export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
+export function Pricing({
+  founderSlotsTaken,
+  title = "Simple pricing for small service teams",
+  headingAs,
+}: {
+  founderSlotsTaken?: number;
+  title?: string;
+  headingAs?: "h1" | "h2";
+}) {
   const [annual, setAnnual] = useState(false);
 
   return (
     <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
       <SectionHeading
         eyebrow="Pricing"
-        title="Simple pricing for small service teams"
+        title={title}
+        as={headingAs}
         sub="Choose the call volume that fits your business. Start with a 7-day free trial; annual billing saves 20%."
       />
 
@@ -102,8 +111,8 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             No discount code, no special price — pick any plan below. The first 10 businesses
             to become paying customers keep that exact price for as long as their subscription
-            stays continuously active, even if we raise prices later. Every paid add-on we ever
-            ship — right now, that&rsquo;s AI Outbound Assistant — is included free too.
+            stays continuously active, even if we raise prices later. Any paid add-on we ship in
+            the future is included free too.
           </p>
         </div>
         <a

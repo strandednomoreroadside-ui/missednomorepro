@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormBanner } from "@/components/form-banner";
 import { signIn } from "../actions";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to your Missed No More Pro dashboard.",
-  alternates: { canonical: "/login" },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Sign In | Missed No More Pro",
+  description:
+    "Sign in to your Missed No More Pro dashboard to review calls, leads, bookings, messages, and your AI receptionist settings.",
+  path: "/login",
+});
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

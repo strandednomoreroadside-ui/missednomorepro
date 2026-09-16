@@ -5,10 +5,11 @@ import { ArrowRight, PhoneCall, Route, ShieldCheck } from "lucide-react";
 import { SocialIcon } from "@/components/brand/social-icon";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import { ButtonLink } from "@/components/landing/primitives";
+import { JsonLd, SITE_NAME, SITE_URL, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
-const TITLE = "Why We Built an AI Receptionist for Service Businesses";
+const TITLE = "About Missed No More Pro | Founder Josh Millsaps";
 const DESCRIPTION =
-  "Missed No More Pro was built by an operator who got tired of missing calls on the job. Here's why it exists and where it stands today.";
+  "The AI receptionist built by Josh Millsaps, a roadside-assistance operator tired of missing calls on the job. Why Missed No More Pro exists and where it stands.";
 const SOCIALS = [
   { name: "facebook", label: "Facebook", href: "https://missednomorepro.com/f" },
   { name: "instagram", label: "Instagram", href: "https://missednomorepro.com/i" },
@@ -18,44 +19,41 @@ const SOCIALS = [
   { name: "youtube", label: "YouTube", href: "https://missednomorepro.com/y" },
 ] as const;
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/about" },
-  openGraph: {
-    title: `${TITLE} · Missed No More Pro`,
-    description: DESCRIPTION,
-    url: "/about",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${TITLE} · Missed No More Pro`,
-    description: DESCRIPTION,
-  },
-};
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/about" });
 
 export default function AboutPage() {
-  const personJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: "Josh Millsaps",
-    jobTitle: "Founder of Missed No More Pro",
-    url: "https://missednomorepro.com/about",
-    image: "https://missednomorepro.com/images/josh-millsaps-founder.jpg",
-    sameAs: SOCIALS.map((social) => social.href),
-    worksFor: {
-      "@type": "Organization",
-      name: "Missed No More Pro",
-      url: "https://missednomorepro.com",
-    },
+  const jsonLd = {
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": `${SITE_URL}/about#webpage`,
+        url: `${SITE_URL}/about`,
+        name: TITLE,
+        description: DESCRIPTION,
+        isPartOf: { "@id": `${SITE_URL}/#website` },
+        about: { "@id": `${SITE_URL}/#org` },
+        mainEntity: { "@id": `${SITE_URL}/about#founder` },
+      },
+      {
+        "@type": "Person",
+        "@id": `${SITE_URL}/about#founder`,
+        name: "Josh Millsaps",
+        jobTitle: "Founder",
+        description:
+          "Roadside-assistance business operator and founder of Missed No More Pro, an AI receptionist for small service businesses.",
+        url: `${SITE_URL}/about`,
+        image: `${SITE_URL}/images/josh-millsaps-founder.jpg`,
+        sameAs: SOCIALS.map((social) => social.href),
+        knowsAbout: ["AI receptionists", "Roadside assistance", "Small service business operations"],
+        worksFor: { "@id": `${SITE_URL}/#org`, "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+      },
+      breadcrumbJsonLd([{ name: "About", path: "/about" }]),
+    ],
   };
 
   return (
     <MarketingShell>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
       <section className="mx-auto max-w-5xl px-6 py-16 lg:py-24">
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
           About

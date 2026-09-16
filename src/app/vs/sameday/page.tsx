@@ -3,18 +3,13 @@ import type { Metadata } from "next";
 import { ComparisonPage } from "@/components/landing/comparison-page";
 import type { ComparisonRow } from "@/components/landing/comparison-table";
 import type { FaqItem } from "@/components/landing/faq";
+import { pageMetadata } from "@/lib/seo";
 
-const TITLE = "Missed No More Pro vs. Sameday AI";
+const TITLE = "Sameday AI Alternative: Missed No More Pro vs. Sameday";
 const DESCRIPTION =
-  "How Missed No More Pro compares to Sameday AI for home-service AI receptionists: pricing, computed quoting, CRM, and what each product actually claims.";
+  "Comparing Missed No More Pro and Sameday AI as AI receptionists for home-service trades: pricing, free trial, built-in CRM, and hard-cap billing.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/vs/sameday" },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: "/vs/sameday" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/vs/sameday" });
 
 const COLS = ["Missed No More Pro", "Sameday AI"];
 const ROWS: ComparisonRow[] = [
@@ -61,6 +56,8 @@ const NOTE =
 export default function VsSamedayPage() {
   return (
     <ComparisonPage
+      path="/vs/sameday"
+      breadcrumb="vs. Sameday AI"
       kicker="Missed No More Pro vs. Sameday AI"
       h1="Missed No More Pro vs. Sameday AI"
       subhead="Sameday AI is built for home-service trades at an enterprise-leaning price. Missed No More Pro is the same idea — answer, quote, book — sized and priced for a 1–15 person crew."

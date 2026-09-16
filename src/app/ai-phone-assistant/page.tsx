@@ -5,16 +5,16 @@ import { ComparisonTable, type ComparisonRow } from "@/components/landing/compar
 import { Faq, type FaqItem } from "@/components/landing/faq";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import { ButtonLink, SectionHeading } from "@/components/landing/primitives";
-import { env } from "@/lib/env";
+import { JsonLd, SITE_URL, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
-const TITLE = "AI Phone Assistant for Small Business Calls";
+const TITLE = "AI Phone Assistant for Small Business | Missed No More Pro";
 const DESCRIPTION =
-  "A practical guide to AI phone assistants for local service businesses. Learn how Missed No More Pro answers calls, quotes exact prices, books jobs, texts customers, and tracks leads in a CRM.";
+  "What an AI phone assistant does, how it compares to an answering service and voicemail, and how Missed No More Pro answers, quotes, and books calls 24/7.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: "/ai-phone-assistant" },
+  path: "/ai-phone-assistant",
   keywords: [
     "AI phone assistant",
     "AI phone assistant for small business",
@@ -27,9 +27,7 @@ export const metadata: Metadata = {
     "AI receptionist with CRM",
     "AI receptionist with price quoting",
   ],
-  openGraph: { title: `${TITLE} · Missed No More Pro`, description: DESCRIPTION, url: "/ai-phone-assistant" },
-  twitter: { card: "summary_large_image", title: `${TITLE} · Missed No More Pro`, description: DESCRIPTION },
-};
+});
 
 const COMPARISON_ROWS: ComparisonRow[] = [
   { label: "Answers calls 24/7", values: [true, true, false] },
@@ -84,9 +82,8 @@ const STEPS = [
 ];
 
 export default function AiPhoneAssistantPage() {
-  const base = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const base = SITE_URL;
   const jsonLd = {
-    "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebPage",
@@ -94,34 +91,32 @@ export default function AiPhoneAssistantPage() {
         url: `${base}/ai-phone-assistant`,
         name: TITLE,
         description: DESCRIPTION,
+        isPartOf: { "@id": `${base}/#website` },
+        about: { "@id": `${base}/#software` },
       },
       {
         "@type": "Service",
         "@id": `${base}/ai-phone-assistant#service`,
         name: "AI Phone Assistant",
         serviceType: "AI phone answering service",
-        provider: {
-          "@type": "Organization",
-          name: "Missed No More Pro",
-          url: base,
-        },
+        alternateName: ["AI receptionist", "AI answering service", "AI virtual receptionist"],
+        provider: { "@id": `${base}/#org` },
         areaServed: "United States",
         offers: {
           "@type": "AggregateOffer",
           lowPrice: "50",
           highPrice: "200",
           priceCurrency: "USD",
+          offerCount: "3",
         },
       },
+      breadcrumbJsonLd([{ name: "AI Phone Assistant", path: "/ai-phone-assistant" }]),
     ],
   };
 
   return (
     <MarketingShell>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <section className="glow-field border-b border-border/60">
         <div className="mx-auto max-w-5xl px-6 py-16 lg:py-24">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
@@ -159,7 +154,7 @@ export default function AiPhoneAssistantPage() {
           {STEPS.map((step) => (
             <article key={step.title} className="rounded-xl border border-border bg-card/60 p-5">
               <step.icon className="size-5 text-cyan" aria-hidden />
-              <h2 className="mt-4 font-display text-lg font-semibold">{step.title}</h2>
+              <h3 className="mt-4 font-display text-lg font-semibold">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </article>
           ))}
@@ -184,7 +179,7 @@ export default function AiPhoneAssistantPage() {
 
       <section className="mx-auto max-w-4xl px-6 py-16 lg:py-20">
         <h2 className="font-display text-3xl font-bold tracking-tight">
-          Long-tail use cases Missed No More Pro covers
+          Popular AI phone assistant and AI receptionist use cases
         </h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {[

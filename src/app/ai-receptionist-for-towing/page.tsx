@@ -3,18 +3,13 @@ import type { Metadata } from "next";
 import { ComparisonPage } from "@/components/landing/comparison-page";
 import type { ComparisonRow } from "@/components/landing/comparison-table";
 import type { FaqItem } from "@/components/landing/faq";
+import { pageMetadata } from "@/lib/seo";
 
-const TITLE = "AI Receptionist for Towing & Roadside Assistance";
+const TITLE = "AI Receptionist for Towing Companies | Missed No More Pro";
 const DESCRIPTION =
-  "An AI receptionist built for towing and roadside assistance — answers 24/7, quotes the tow by hook fee plus per-mile rate, and books the job while you're on the road.";
+  "AI receptionist for towing and roadside assistance. Answers 24/7, quotes tows by hook fee plus per-mile rate, finds nearby shops, and books the job.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/ai-receptionist-for-towing" },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: "/ai-receptionist-for-towing" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/ai-receptionist-for-towing" });
 
 const COLS = ["Missed No More Pro", "Voicemail", "Answering service"];
 const ROWS: ComparisonRow[] = [
@@ -58,6 +53,8 @@ const FAQS: FaqItem[] = [
 export default function AiReceptionistForTowingPage() {
   return (
     <ComparisonPage
+      path="/ai-receptionist-for-towing"
+      breadcrumb="AI Receptionist for Towing"
       kicker="For Towing & Roadside Assistance"
       h1="AI Receptionist for Towing & Roadside Assistance"
       subhead="Answer every call from the truck, quote the tow to the exact mile, and book the job — without pulling over."

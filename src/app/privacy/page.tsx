@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 
 import { LegalShell } from "@/components/legal-shell";
 import { SUPPORT_EMAIL } from "@/lib/constants";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
+export const metadata: Metadata = pageMetadata({
+  title: "Privacy Policy | Missed No More Pro",
   description:
-    "How Missed No More Pro collects, uses, and protects information across calls, texts, and the dashboard.",
-  alternates: { canonical: "/privacy" },
-};
+    "How Missed No More Pro collects, uses, and protects information from business owners and their callers across AI calls, text messages, and the dashboard.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

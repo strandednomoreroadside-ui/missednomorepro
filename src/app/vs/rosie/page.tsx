@@ -3,18 +3,13 @@ import type { Metadata } from "next";
 import { ComparisonPage } from "@/components/landing/comparison-page";
 import type { ComparisonRow } from "@/components/landing/comparison-table";
 import type { FaqItem } from "@/components/landing/faq";
+import { pageMetadata } from "@/lib/seo";
 
-const TITLE = "Missed No More Pro vs. Rosie";
+const TITLE = "Rosie Alternative: Missed No More Pro vs. Rosie";
 const DESCRIPTION =
-  "How Missed No More Pro compares to Rosie for AI phone answering: entry price, computed quoting, CRM, and what each product actually claims.";
+  "Comparing Missed No More Pro and Rosie as AI answering services for small business: entry price, exact price quoting, built-in CRM, booking, and trial.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/vs/rosie" },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: "/vs/rosie" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/vs/rosie" });
 
 const COLS = ["Missed No More Pro", "Rosie"];
 const ROWS: ComparisonRow[] = [
@@ -65,6 +60,8 @@ const NOTE =
 export default function VsRosiePage() {
   return (
     <ComparisonPage
+      path="/vs/rosie"
+      breadcrumb="vs. Rosie"
       kicker="Missed No More Pro vs. Rosie"
       h1="Missed No More Pro vs. Rosie"
       subhead="Rosie answers the phone. Missed No More Pro answers the phone, quotes the exact price from your own rates, books the job, and keeps the CRM — all in one subscription."

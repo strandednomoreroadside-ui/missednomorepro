@@ -11,7 +11,10 @@ import { redirect } from "next/navigation";
 
 import { createOrganization } from "./actions";
 
-export const metadata: Metadata = { title: "Set up your business" };
+export const metadata: Metadata = {
+  title: "Set up your business",
+  robots: { index: false, follow: false },
+};
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

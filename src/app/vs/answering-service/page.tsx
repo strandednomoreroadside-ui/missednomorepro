@@ -3,18 +3,13 @@ import type { Metadata } from "next";
 import { ComparisonPage } from "@/components/landing/comparison-page";
 import type { ComparisonRow } from "@/components/landing/comparison-table";
 import type { FaqItem } from "@/components/landing/faq";
+import { pageMetadata } from "@/lib/seo";
 
-const TITLE = "Missed No More Pro vs. a Human Answering Service";
+const TITLE = "AI Receptionist vs. Answering Service | Missed No More Pro";
 const DESCRIPTION =
-  "Why local service businesses are replacing $300+/mo answering services with an AI receptionist that quotes, books, and logs every lead automatically.";
+  "Why small service businesses replace $300+/mo human answering services with an AI receptionist that quotes, books, and logs every lead automatically.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/vs/answering-service" },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: "/vs/answering-service" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/vs/answering-service" });
 
 const COLS = ["Missed No More Pro", "Human answering service"];
 const ROWS: ComparisonRow[] = [
@@ -60,6 +55,8 @@ const FAQS: FaqItem[] = [
 export default function VsAnsweringServicePage() {
   return (
     <ComparisonPage
+      path="/vs/answering-service"
+      breadcrumb="vs. Answering Service"
       kicker="Missed No More Pro vs. Answering Services"
       h1="Missed No More Pro vs. a Human Answering Service"
       subhead="A human answering service picks up the phone and takes a message. Missed No More Pro answers, quotes the exact price, books the job, and logs the lead — automatically, for a fraction of the cost."
