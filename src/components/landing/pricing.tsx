@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAN_META } from "@/lib/billing/plans";
 
-import { EARLY_ACCESS_MAILTO, SectionHeading } from "./primitives";
+import { SectionHeading } from "./primitives";
 
 type Plan = {
   id: keyof typeof PLAN_META;
@@ -34,8 +34,8 @@ const PLANS: Plan[] = [
     monthly: PLAN_META.starter.monthly,
     previousMonthly: PLAN_META.starter.previousMonthly,
     blurb: "Solo operators who never want to miss a call",
-    minutes: "250 AI minutes",
-    approxCalls: approxCalls(250),
+    minutes: "200 AI minutes",
+    approxCalls: approxCalls(200),
     extras: [
       "Booking, cancel & reschedule",
       "Human transfer + Google Calendar",
@@ -50,8 +50,8 @@ const PLANS: Plan[] = [
     monthly: PLAN_META.growth.monthly,
     previousMonthly: PLAN_META.growth.previousMonthly,
     blurb: "Teams that want more leads converted",
-    minutes: "500 AI minutes",
-    approxCalls: approxCalls(500),
+    minutes: "400 AI minutes",
+    approxCalls: approxCalls(400),
     extras: ["Lead pipeline + timeline", "AI follow-ups & reminders", "Payment requests + analytics", "3 users"],
   },
   {
@@ -60,28 +60,10 @@ const PLANS: Plan[] = [
     monthly: PLAN_META.professional.monthly,
     previousMonthly: PLAN_META.professional.previousMonthly,
     blurb: "Growing teams that dispatch and need insight",
-    minutes: "900 AI minutes",
-    approxCalls: approxCalls(900),
+    minutes: "800 AI minutes",
+    approxCalls: approxCalls(800),
     extras: ["Dispatch board + team calendar", "Make & Zapier integrations", "10 users"],
     popular: true,
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    monthly: PLAN_META.elite.monthly,
-    previousMonthly: PLAN_META.elite.previousMonthly,
-    blurb: "Higher-volume teams ready for advanced automation",
-    minutes: "1,500 AI minutes",
-    approxCalls: approxCalls(1500),
-    extras: ["Additional business numbers", "Membership management", "API access", "25 users"],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    monthly: null,
-    blurb: "Organizations needing custom volume and support",
-    minutes: "Custom minutes",
-    extras: ["Dedicated onboarding", "Custom integrations", "Priority support"],
   },
 ];
 
@@ -92,18 +74,18 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
     <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 lg:py-28">
       <SectionHeading
         eyebrow="Pricing"
-        title="New lower pricing for small service teams"
-        sub="We cut plan prices by 20% to make an AI phone assistant realistic for owner-operators. Start with a 7-day free trial; annual billing still saves another 20%."
+        title="Simple pricing for small service teams"
+        sub="Choose the call volume that fits your business. Start with a 7-day free trial; annual billing saves 20%."
       />
 
       <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-success/35 bg-success/10 px-6 py-5 text-center">
         <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-success">
-          20% lower public prices now live
+          Straightforward pricing. No surprise overages.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Starter now begins at <span className="font-semibold text-foreground">$79/mo</span>{" "}
-          instead of $99/mo. The founder offer stacks on top: founding customers get paid
-          add-ons included for the lifetime of an active subscription.
+          Plans now begin at <span className="font-semibold text-foreground">$50/mo for 200 AI minutes</span>.{" "}
+          The founder offer stacks on top: founding customers get paid add-ons included for the
+          lifetime of an active subscription.
         </p>
       </div>
 
@@ -172,7 +154,7 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
         average call.
       </p>
 
-      <div id="plans" className="mt-10 scroll-mt-24 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+      <div id="plans" className="mx-auto mt-10 max-w-5xl scroll-mt-24 grid gap-5 md:grid-cols-3">
         {PLANS.map((plan) => {
           const price =
             plan.monthly == null ? "Custom" : `$${annual ? Math.round(plan.monthly * 0.8) : plan.monthly}`;
@@ -220,7 +202,7 @@ export function Pricing({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
               <a
                 href={
                   plan.monthly == null
-                    ? EARLY_ACCESS_MAILTO
+                    ? "mailto:hello@missednomorepro.com"
                     : `/signup?plan=${plan.name.toLowerCase()}`
                 }
                 className={cn(

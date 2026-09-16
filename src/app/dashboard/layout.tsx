@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   BadgeCheck,
   BookOpen,
@@ -26,7 +27,6 @@ import {
 } from "lucide-react";
 
 import { PaymentFailedBanner } from "@/components/billing/payment-failed-banner";
-import { Logo } from "@/components/brand/logo";
 import { MobileNavigation } from "@/components/dashboard/mobile-navigation";
 import { LegalFooter } from "@/components/legal-footer";
 import { Button } from "@/components/ui/button";
@@ -42,12 +42,12 @@ export default async function DashboardLayout({
   const admin = await isPlatformAdmin();
 
   return (
-    <div className="flex min-h-dvh">
+    <div className="tenant-shell flex min-h-dvh">
       {/* ── Sidebar ── */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border/60 bg-navy/20 md:flex">
-        <div className="flex h-16 items-center border-b border-border/60 px-5">
+      <aside className="tenant-sidebar hidden w-64 shrink-0 flex-col border-r border-border/60 md:flex">
+        <div className="flex h-20 items-center border-b border-border/60 px-5">
           <Link href="/dashboard" aria-label="Dashboard home">
-            <Logo />
+            <Image className="tenant-logo" src="/images/mnm-official-logo-2026.png" alt="Missed No More Pro" width={695} height={160} priority />
           </Link>
         </div>
         <nav className="flex-1 space-y-1 p-3">
@@ -216,7 +216,7 @@ export default async function DashboardLayout({
 
       {/* ── Main column ── */}
       <div className="flex min-w-0 flex-1 flex-col pb-[calc(5.25rem+env(safe-area-inset-bottom))] md:pb-0">
-        <header className="flex h-16 items-center justify-between gap-3 border-b border-border/60 bg-night/75 px-4 backdrop-blur-md sm:px-5">
+        <header className="tenant-topbar flex h-16 items-center justify-between gap-3 border-b border-border/60 px-4 backdrop-blur-md sm:px-5">
           <div className="flex items-center gap-3">
             <span className="font-display text-base font-semibold md:hidden">
               {active.organizations.name}
@@ -263,7 +263,7 @@ export default async function DashboardLayout({
           </div>
         </header>
         <PaymentFailedBanner tenantId={active.organization_id} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="tenant-main flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         <LegalFooter />
       </div>
       <MobileNavigation

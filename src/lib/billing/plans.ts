@@ -33,11 +33,10 @@ export type PlanMeta = {
 export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   starter: {
     name: "Starter",
-    monthly: 79,
-    previousMonthly: 99,
-    annualMonthly: 63.2,
+    monthly: 50,
+    annualMonthly: 40,
     blurb: "Solo operators who never want to miss a call",
-    minutes: "250 AI minutes",
+    minutes: "200 AI minutes",
     highlights: [
       "AI receptionist + basic CRM",
       "Booking, cancel & reschedule",
@@ -49,11 +48,10 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   },
   growth: {
     name: "Growth",
-    monthly: 159,
-    previousMonthly: 199,
-    annualMonthly: 127.2,
+    monthly: 100,
+    annualMonthly: 80,
     blurb: "Teams that want more leads converted",
-    minutes: "500 AI minutes",
+    minutes: "400 AI minutes",
     highlights: [
       "Everything in Starter",
       "Lead pipeline + customer timeline",
@@ -64,11 +62,10 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   },
   professional: {
     name: "Professional",
-    monthly: 279,
-    previousMonthly: 349,
-    annualMonthly: 223.2,
+    monthly: 200,
+    annualMonthly: 160,
     blurb: "Growing teams that dispatch and need insight",
-    minutes: "900 AI minutes",
+    minutes: "800 AI minutes",
     highlights: [
       "Everything in Growth",
       "Dispatch board + team calendar",

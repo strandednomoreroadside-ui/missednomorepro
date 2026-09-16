@@ -5,9 +5,9 @@ import { MarketingShell } from "@/components/landing/marketing-shell";
 import { Pricing } from "@/components/landing/pricing";
 import { getFounderSlotsTakenSafe } from "@/lib/billing/founder";
 
-const TITLE = "AI Receptionist Pricing — Plans from $79/mo";
+const TITLE = "AI Receptionist Pricing — Plans from $50/mo";
 const DESCRIPTION =
-  "Plans that pay for themselves, from $79/mo. AI receptionist minutes, a built-in CRM, exact AI price quoting, and add-ons for local service businesses — hard caps, no surprise overage, 7-day free trial on every plan.";
+  "AI receptionist plans from $50/mo for 200 minutes, with 400- and 800-minute options. Built-in CRM, exact AI price quoting, hard caps, and a 7-day free trial.";
 
 export const metadata: Metadata = {
   title: TITLE,

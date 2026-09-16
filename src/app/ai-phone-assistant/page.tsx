@@ -38,7 +38,7 @@ const COMPARISON_ROWS: ComparisonRow[] = [
   { label: "Books jobs on your calendar", values: [true, false, false] },
   { label: "Follows up by compliant text", values: [true, "Maybe", false] },
   { label: "Logs every caller in a CRM", values: [true, false, false] },
-  { label: "Entry price", values: ["from $79/mo", "$300+/mo", "$0"] },
+  { label: "Entry price", values: ["from $50/mo", "$300+/mo", "$0"] },
 ];
 
 const FAQS: FaqItem[] = [
@@ -108,8 +108,8 @@ export default function AiPhoneAssistantPage() {
         areaServed: "United States",
         offers: {
           "@type": "AggregateOffer",
-          lowPrice: "79",
-          highPrice: "479",
+          lowPrice: "50",
+          highPrice: "200",
           priceCurrency: "USD",
         },
       },
@@ -144,7 +144,7 @@ export default function AiPhoneAssistantPage() {
             </ButtonLink>
           </div>
           <p className="mt-5 font-mono text-xs uppercase tracking-wider text-steel">
-            Plans from $79/mo · 7-day free trial · founder offer available
+            Plans from $50/mo · 7-day free trial · founder offer available
           </p>
         </div>
       </section>

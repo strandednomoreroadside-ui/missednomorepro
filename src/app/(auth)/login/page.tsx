@@ -25,13 +25,10 @@ export default async function LoginPage({
   const next = typeof sp.next === "string" ? sp.next : "/dashboard";
 
   return (
-    <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight">
-        Welcome back
-      </h1>
-      <p className="mt-1.5 text-sm text-muted-foreground">
-        Sign in to your front office.
-      </p>
+    <div className="login-panel">
+      <p className="login-eyebrow">SECURE OPERATOR ACCESS</p>
+      <h1 className="font-display text-4xl font-bold tracking-tight">Welcome back.</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Sign in to your revenue command center.</p>
 
       <div className="mt-6">
         {error && <FormBanner kind="error">{error}</FormBanner>}
@@ -67,7 +64,7 @@ export default async function LoginPage({
             />
           </div>
           <Button type="submit" className="w-full" size="lg">
-            Sign in
+            Enter command center
           </Button>
         </form>
         <p className="mt-5 text-center text-sm text-muted-foreground">
