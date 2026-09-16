@@ -17,6 +17,7 @@ import {
   Star,
   TrendingUp,
   Users,
+  Volume2,
   Workflow,
 } from "lucide-react";
 
@@ -293,6 +294,29 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
             <ButtonLink href="#product" variant="outline" large>
               See it in action
             </ButtonLink>
+          </div>
+
+          <div className="mt-5 max-w-xl rounded-xl border border-cyan/25 bg-night/55 p-4 shadow-[0_18px_50px_-30px_rgba(0,229,255,0.4)]">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan/10 text-cyan">
+                <Volume2 className="size-4" aria-hidden />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Hear a real call</p>
+                <p className="text-xs text-muted-foreground">
+                  A 1:43 sample of the AI receptionist handling a live customer call.
+                </p>
+              </div>
+            </div>
+            <audio
+              className="mt-3 h-10 w-full"
+              controls
+              preload="metadata"
+              aria-label="Play a real call handled by the Missed No More Pro AI receptionist"
+            >
+              <source src="/audio/real-call-sample.mp3" type="audio/mpeg" />
+              Your browser does not support audio playback.
+            </audio>
           </div>
 
           {/* The single best trust asset this product has: a real number you
