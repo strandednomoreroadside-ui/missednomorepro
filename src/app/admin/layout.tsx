@@ -17,8 +17,8 @@ export default async function AdminLayout({
   if (!ok) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="flex h-16 items-center justify-between border-b border-border/60 bg-night/75 px-6 backdrop-blur-md">
+    <div className="tenant-shell flex min-h-dvh flex-col">
+      <header className="tenant-topbar flex h-20 items-center justify-between border-b border-border/60 px-6 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Logo />
           <span className="inline-flex items-center gap-1.5 rounded-full border border-alert/40 bg-alert/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-alert">
@@ -48,7 +48,7 @@ export default async function AdminLayout({
           </Link>
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 lg:p-8">{children}</main>
+      <main className="tenant-main mx-auto w-full max-w-5xl flex-1 p-6 lg:p-8">{children}</main>
       <LegalFooter />
     </div>
   );

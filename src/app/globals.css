@@ -3,7 +3,7 @@
 /*
  * Missed No More Pro — dark-first brand theme.
  * Palette source of truth: brand/missed_no_more_pro_brand_colors.txt
- *   Deep Navy #0A1B3D · Electric Cyan #00E5FF · Midnight #020817 · Bright Blue #006BFF
+ *   Deep Navy #0A1B3D · Cobalt Blue #006BFF · Signal Magenta #D946EF · Midnight #020817
  *
  * Two registers, used deliberately rather than one glow-everywhere look:
  *   - Dark (navy/cyan/blue): the product/tech sections — the AI itself.
@@ -15,26 +15,26 @@
  *     time, not build time.
  */
 :root {
-  --background: #020817;
+  --background: #0b1018;
   --foreground: #f8f8f8;
-  --card: #0a1b3d;
+  --card: #121b27;
   --card-foreground: #f8f8f8;
-  --popover: #081530;
+  --popover: #111a26;
   --popover-foreground: #f8f8f8;
-  --primary: #00e5ff;
-  --primary-foreground: #021320;
-  --secondary: #0e2249;
+  --primary: #006bff;
+  --primary-foreground: #ffffff;
+  --secondary: #162235;
   --secondary-foreground: #f8f8f8;
-  --muted: #0b1b38;
-  --muted-foreground: #a7b0c0;
-  --accent: #11305e;
+  --muted: #141e2b;
+  --muted-foreground: #a6afbc;
+  --accent: #1b2c45;
   --accent-foreground: #f8f8f8;
   --destructive: #ff4d5e;
   --destructive-foreground: #f8f8f8;
-  --border: #1b2f55;
-  --input: #1b2f55;
-  --ring: #00e5ff;
-  --radius: 0.75rem;
+  --border: #27374d;
+  --input: #31435d;
+  --ring: #d946ef;
+  --radius: 0.45rem;
 }
 
 /* Warm "trust" register for proof / comparison / pricing / FAQ. Re-scopes
@@ -47,8 +47,8 @@
   --card-foreground: #1a1510;
   --popover: #ffffff;
   --popover-foreground: #1a1510;
-  --primary: #c96a3a;
-  --primary-foreground: #1a1510;
+  --primary: #006bff;
+  --primary-foreground: #ffffff;
   --secondary: #ece2cd;
   --secondary-foreground: #1a1510;
   --muted: #ece2cd;
@@ -57,7 +57,7 @@
   --accent-foreground: #1a1510;
   --border: #e2d5bc;
   --input: #e2d5bc;
-  --ring: #c96a3a;
+  --ring: #d946ef;
 
   background-color: var(--background);
   color: var(--foreground);
@@ -85,12 +85,13 @@
   --color-ring: var(--ring);
 
   /* Brand shortcuts */
-  --color-night: #020817;
-  --color-navy: #0a1b3d;
-  --color-cyan: #00e5ff;
+  --color-night: #0b1018;
+  --color-navy: #111a26;
+  --color-cyan: #006bff;
   --color-blue: #006bff;
-  --color-steel: #a7b0c0;
-  --color-success: #21d07a;
+  --color-magenta: #d946ef;
+  --color-steel: #a6afbc;
+  --color-success: #006bff;
   --color-alert: #ffb020;
 
   /* Warm register shortcuts (paper sections + trust moments anywhere) */
@@ -98,8 +99,8 @@
   --color-paper-card: #ffffff;
   --color-ink: #1a1510;
   --color-ink-muted: #6b6255;
-  --color-copper: #c96a3a;
-  --color-copper-deep: #a8532a;
+  --color-copper: #d946ef;
+  --color-copper-deep: #a21caf;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -181,9 +182,24 @@ body {
 }
 
 ::selection {
-  background: #00e5ff;
-  color: #021320;
+  background: #006bff;
+  color: #ffffff;
 }
+
+/* Revenue Command Center — shared authentication and tenant application shell. */
+.auth-shell{display:grid;grid-template-columns:minmax(360px,1.05fr) minmax(440px,.95fr);background:#0b1018;color:#f7f7f1}
+.auth-story{position:relative;overflow:hidden;display:flex;min-height:100dvh;flex-direction:column;justify-content:space-between;padding:42px 54px;background:radial-gradient(circle at 82% 24%,rgba(47,111,237,.28),transparent 31%),radial-gradient(circle at 15% 86%,rgba(227,75,178,.13),transparent 28%),#0e1723;border-right:1px solid #27374d}
+.auth-story:after{content:"";position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,#000,transparent 90%);pointer-events:none}
+.auth-logo{position:relative;z-index:1;width:min(390px,78%);height:auto}
+.auth-story-copy{position:relative;z-index:1;max-width:650px}
+.auth-kicker,.login-eyebrow{font-family:var(--font-plex-mono),monospace;font-size:11px;font-weight:700;letter-spacing:.2em;color:#d946ef}
+.auth-story h2{margin:20px 0;font-family:Impact,var(--font-sans);font-size:clamp(58px,6.6vw,104px);font-weight:700;line-height:.87;letter-spacing:-.02em}
+.auth-story h2 span{color:#d946ef}.auth-story-copy>p:last-child{max-width:520px;color:#b4bfce;font-size:18px;line-height:1.7}
+.auth-status{position:relative;z-index:1;display:flex;align-items:center;gap:10px;font-family:var(--font-plex-mono),monospace;font-size:11px;letter-spacing:.15em;color:#99a8bb}.auth-status i{width:8px;height:8px;border-radius:50%;background:#006bff;box-shadow:0 0 16px #006bff}.auth-status span{margin-left:auto}
+.auth-entry{display:grid;min-height:100dvh;place-items:center;padding:48px 32px;background:radial-gradient(circle at 100% 0,rgba(47,111,237,.12),transparent 38%),#0b1018}.auth-entry-inner{width:min(460px,100%)}.auth-card{border:1px solid #2b3c53;background:#111a26;padding:40px;box-shadow:0 28px 80px #0008;border-radius:8px}.auth-mobile-brand{display:none}.login-panel input{min-height:48px;background:#0b1018;border-color:#31435d}.login-panel button[type=submit]{min-height:50px;border-radius:4px;font-weight:800}.login-panel label{font-family:var(--font-plex-mono),monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.tenant-shell{background:radial-gradient(circle at 75% -10%,rgba(0,107,255,.18),transparent 28%),radial-gradient(circle at 10% 88%,rgba(217,70,239,.10),transparent 25%),#0b1018}.tenant-sidebar{background:#0e1723;border-color:#26364b;box-shadow:18px 0 50px #0002}.tenant-logo{width:205px;height:auto}.tenant-sidebar nav{scrollbar-width:thin;overflow-y:auto}.tenant-sidebar nav a{border:1px solid transparent;border-radius:4px;letter-spacing:.01em}.tenant-sidebar nav a:hover{border-color:#2c405a;background:#162337;color:#f8fafc}.tenant-sidebar nav a:first-child{border-color:#006bff4a;background:#006bff12}.tenant-topbar{background:#0b1018d9;border-color:#26364b}.tenant-main{background-image:linear-gradient(#ffffff05 1px,transparent 1px),linear-gradient(90deg,#ffffff05 1px,transparent 1px);background-size:56px 56px}.tenant-main [class*="rounded-xl"],.tenant-main [class*="rounded-2xl"]{border-radius:7px}.tenant-main [class*="bg-card"]{box-shadow:0 16px 45px #0002}.tenant-main h1,.tenant-main h2{letter-spacing:-.02em}
+.command-marketing{background:radial-gradient(circle at 78% 0,rgba(0,107,255,.18),transparent 27%),radial-gradient(circle at 8% 96%,rgba(217,70,239,.09),transparent 26%),#0b1018}.command-marketing-header{background:#0b1018e8;border-color:#27374d}.command-marketing-footer{background:#0e1723;border-color:#27374d}.command-marketing main{background-image:linear-gradient(#ffffff04 1px,transparent 1px),linear-gradient(90deg,#ffffff04 1px,transparent 1px);background-size:64px 64px}.command-marketing h1,.command-marketing h2,.command-marketing h3{letter-spacing:-.02em}.command-marketing h1{font-family:Impact,var(--font-sans);text-transform:uppercase;line-height:.96}.command-marketing [class*="rounded-xl"],.command-marketing [class*="rounded-2xl"]{border-radius:7px}.command-marketing [class*="bg-card"]{box-shadow:0 18px 50px #0002}.founder-card{border-left:3px solid #d946ef!important;box-shadow:0 22px 60px #0004!important}.founder-photo:after{content:"";position:absolute;inset:0;box-shadow:inset -20px 0 45px #0b101855;pointer-events:none}.social-icon-link{box-shadow:0 10px 25px #0003}.social-icon-link:hover{box-shadow:0 13px 32px #d946ef27}
+@media(max-width:850px){.auth-shell{grid-template-columns:1fr}.auth-story{display:none}.auth-entry{padding:32px 20px}.auth-mobile-brand{display:block;margin:0 auto 28px;width:280px}.auth-mobile-brand img{width:100%;height:auto}.auth-card{padding:30px 24px}}
 
 /* ── Atmosphere helpers ──────────────────────────────────────── */
 
@@ -197,11 +213,11 @@ body {
     radial-gradient(50rem 32rem at 50% 110%, rgba(0, 107, 255, 0.08), transparent 70%);
 }
 
-/* Warm counterpart glow for the copper finale band. */
+/* Magenta counterpart glow for the closing CTA. */
 .glow-field-copper {
   background:
-    radial-gradient(46rem 28rem at 20% 10%, rgba(201, 106, 58, 0.22), transparent 62%),
-    radial-gradient(40rem 26rem at 88% 20%, rgba(255, 176, 32, 0.12), transparent 65%);
+    radial-gradient(46rem 28rem at 20% 10%, rgba(217, 70, 239, 0.20), transparent 62%),
+    radial-gradient(40rem 26rem at 88% 20%, rgba(0, 107, 255, 0.13), transparent 65%);
 }
 
 /* Faint dispatch-board grid lines */
@@ -213,19 +229,18 @@ body {
   mask-image: radial-gradient(60rem 40rem at 50% 0%, black 30%, transparent 75%);
 }
 
-/* Brand gradient text (bright blue → electric cyan, like the logo M).
+/* Brand gradient text (logo blue → signal magenta).
    Used once, in the hero — not as a page-wide decoration. */
 .text-gradient {
-  background: linear-gradient(100deg, #006bff 0%, #00e5ff 70%);
+  background: linear-gradient(100deg, #006bff 0%, #d946ef 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* Warm counterpart, used once in the closing CTA so the finale reads as a
-   distinct beat rather than a rerun of the hero's cyan glow. */
+/* Accent counterpart, reserved for a single closing CTA. */
 .text-gradient-copper {
-  background: linear-gradient(100deg, #f2b25c 0%, #c96a3a 75%);
+  background: linear-gradient(100deg, #d946ef 0%, #a21caf 75%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -238,7 +253,7 @@ body {
   position: relative;
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
-    linear-gradient(140deg, rgba(0, 229, 255, 0.55), rgba(0, 107, 255, 0.25) 45%, rgba(27, 47, 85, 0.6)) border-box;
+    linear-gradient(140deg, rgba(217, 70, 239, 0.55), rgba(0, 107, 255, 0.4) 45%, rgba(27, 47, 85, 0.6)) border-box;
   border: 1px solid transparent;
 }
 

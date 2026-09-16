@@ -27,13 +27,13 @@ export default function OpengraphImage() {
               width: "52px",
               height: "52px",
               borderRadius: "14px",
-              background: "#00E5FF",
+              background: "#D946EF",
               marginRight: "18px",
             }}
           />
           <div style={{ display: "flex", gap: "10px", fontSize: "30px", fontWeight: 700 }}>
             <span>Missed No More</span>
-            <span style={{ color: "#00E5FF" }}>Pro</span>
+            <span style={{ color: "#D946EF" }}>Pro</span>
           </div>
         </div>
         <div
@@ -55,7 +55,7 @@ export default function OpengraphImage() {
             marginTop: "46px",
             height: "6px",
             width: "190px",
-            background: "#00E5FF",
+            background: "#D946EF",
             borderRadius: "3px",
           }}
         />

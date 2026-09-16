@@ -13,9 +13,9 @@ export function LegalShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh">
-      <header className="border-b border-border/60 bg-night/75 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
+    <div className="command-marketing min-h-dvh">
+      <header className="command-marketing-header border-b border-border/60 backdrop-blur-md">
+        <div className="mx-auto flex h-20 max-w-3xl items-center justify-between px-6">
           <Link href="/" aria-label="Missed No More Pro — home">
             <Logo />
           </Link>
@@ -36,7 +36,7 @@ export function LegalShell({
           {children}
         </div>
       </main>
-      <footer className="border-t border-border/60">
+      <footer className="command-marketing-footer border-t border-border/60">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-6 py-8 text-xs text-steel">
           <span>
             © 2026 Missed No More Pro. All rights reserved. ·{" "}
