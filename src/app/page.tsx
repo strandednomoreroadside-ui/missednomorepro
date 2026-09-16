@@ -5,6 +5,7 @@ import {
   Bot,
   CalendarCheck,
   Check,
+  ClipboardList,
   CreditCard,
   KanbanSquare,
   MessageSquareText,
@@ -217,13 +218,30 @@ function SiteHeader() {
 }
 
 function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
+  const sellingPoints = [
+    {
+      icon: PhoneCall,
+      title: "Full receptionist + CRM",
+      body: "Answers, qualifies, books, texts, and logs every caller in one built-in front office.",
+    },
+    {
+      icon: ClipboardList,
+      title: "Public AI price quoting engine",
+      body: "Quotes are calculated from the rates and rules you approve—never made up on the call.",
+    },
+    {
+      icon: Sparkles,
+      title: "Everything included",
+      body: "Every plan includes the complete front office—no add-ons to piece together later.",
+    },
+  ];
   return (
     <section id="top" className="glow-field relative">
       <div className="grid-lines pointer-events-none absolute inset-0" aria-hidden />
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28 lg:pt-24">
         <div>
-          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.22em] text-steel">
-            <span className="font-semibold text-primary">AI Receptionist</span>
+          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.22em] text-steel [font-family:ui-sans-serif,system-ui,sans-serif]">
+            <span className="font-semibold text-cyan">AI Receptionist</span>
             <span className="text-border" aria-hidden>
               /
             </span>
@@ -234,22 +252,39 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
             <span>AI Business Assistant</span>
           </p>
           {typeof founderSlotsTaken === "number" && (
-            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan/25 bg-cyan/5 px-3 py-1 text-xs font-medium text-cyan">
               {founderSlotsTaken} of 10 founding spots taken
             </p>
           )}
-          <h1 className="mt-6 font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+          <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight [font-family:ui-sans-serif,system-ui,sans-serif] sm:text-5xl lg:text-6xl">
             AI phone assistant that{" "}
             <span className="text-gradient">answers, quotes, books, and sells.</span>
+            <span className="mt-3 block text-2xl font-semibold leading-tight text-muted-foreground sm:text-3xl">
+              A full receptionist and CRM for the jobs you cannot afford to miss.
+            </span>
           </h1>
-          <p className="mt-4 max-w-xl text-xl font-medium leading-snug text-muted-foreground">
-            A full receptionist and CRM for the jobs you cannot afford to miss.
-          </p>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground [font-family:ui-sans-serif,system-ui,sans-serif]">
             Missed No More Pro gives local service businesses a 24/7 AI phone answering
             service, a smart CRM, and the only openly advertised AI price quoting engine we
             know of. Plans start at $50/mo, all inclusive — no add-ons to buy.
           </p>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {sellingPoints.map((point) => (
+              <div
+                key={point.title}
+                className="rounded-xl border border-cyan/25 bg-night/55 p-4 shadow-[0_18px_50px_-30px_rgba(0,229,255,0.55)]"
+              >
+                <point.icon className="size-5 text-cyan" aria-hidden />
+                <h3 className="mt-3 text-sm font-semibold leading-snug text-foreground">
+                  {point.title}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {point.body}
+                </p>
+              </div>
+            ))}
+          </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <ButtonLink href="/signup" large>
@@ -289,7 +324,7 @@ function Hero({ founderSlotsTaken }: { founderSlotsTaken?: number }) {
           <p className="mt-5 font-mono text-xs uppercase tracking-wider text-steel">
             All-inclusive pricing · A2P 10DLC-compliant · STOP/HELP built in · for 1-15 person teams
           </p>
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="mt-8 flex flex-wrap gap-2">
             {NICHES.slice(0, 8).map((niche) => (
               <span
                 key={niche}
