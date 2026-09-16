@@ -28,7 +28,7 @@ export default async function OnboardingPage({
   const error = typeof sp.error === "string" ? sp.error : undefined;
 
   return (
-    <div className="glow-field relative flex min-h-dvh flex-col items-center justify-center px-6 py-12">
+    <div className="auth-entry relative flex min-h-dvh flex-col items-center justify-center px-6 py-12">
       <div className="grid-lines pointer-events-none absolute inset-0" aria-hidden />
       <div className="relative w-full max-w-md">
         <div className="mb-8 flex justify-center">
@@ -36,7 +36,7 @@ export default async function OnboardingPage({
             <Logo />
           </Link>
         </div>
-        <div className="border-glow rounded-2xl p-8">
+        <div className="auth-card p-8">
           <h1 className="font-display text-2xl font-bold tracking-tight">
             Name your business
           </h1>
