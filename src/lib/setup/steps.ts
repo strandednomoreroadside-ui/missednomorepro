@@ -1,5 +1,7 @@
 /** Setup wizard step registry + option lists (master plan Phase 3, §1.3). */
 
+import { NICHE_CATALOG, OTHER_NICHE } from "./niches";
+
 export const STEP_ORDER = [
   "profile",
   "industry",
@@ -35,7 +37,7 @@ export const STEP_META: Record<StepId, StepMeta> = {
   },
   industry: {
     title: "Industry",
-    blurb: "Pick your trade so the AI talks like it knows your work.",
+    blurb: "Pick your category and business type so the AI asks callers the right questions.",
     required: true,
   },
   services: {
@@ -87,93 +89,10 @@ export const STEP_META: Record<StepId, StepMeta> = {
   },
 };
 
-/** Primary niches from master plan §1.3, listed first — they're the core ICP
- *  and the trades the call script is tuned hardest for. The extended list
- *  below covers the rest of the local-service market so an owner never has to
- *  pick a trade that isn't theirs (the industry drives real prompt behavior —
- *  see src/lib/voice/industry.ts — so an accurate pick matters). "Other" is
- *  the catch-all and falls back to the general home-trade call script. */
-export const NICHES = [
-  // Primary (§1.3)
-  "Roadside assistance",
-  "Towing",
-  "HVAC",
-  "Plumbing",
-  "Electrician",
-  "Roofing",
-  "Garage door repair",
-  "Pest control",
-  "Landscaping",
-  "Cleaning",
-  "Locksmith",
-  "Mobile mechanic",
-  "Appliance repair",
-  "Handyman",
-  // Extended local-service trades
-  "Auto detailing",
-  "Auto glass",
-  "Cabinets & countertops",
-  "Carpentry",
-  "Carpet cleaning",
-  "Chimney sweep",
-  "Commercial cleaning",
-  "Computer & IT services",
-  "Concrete & masonry",
-  "Deck & fence",
-  "Dog walking & pet sitting",
-  "Drywall",
-  "Duct cleaning",
-  "Excavation",
-  "Flooring",
-  "Foundation repair",
-  "Glass & mirror",
-  "Gutter services",
-  "Hardscaping",
-  "Home inspection",
-  "Home remodeling",
-  "Insulation",
-  "Irrigation & sprinklers",
-  "Junk removal",
-  "Lawn care",
-  "Mobile car wash",
-  "Mobile pet grooming",
-  "Mold remediation",
-  "Moving services",
-  "Painting",
-  "Paving & asphalt",
-  "Pool & spa service",
-  "Pressure washing",
-  "Property maintenance",
-  "Restoration & water damage",
-  "Security & alarm",
-  "Septic services",
-  "Siding",
-  "Snow removal",
-  "Solar installation",
-  "Tree service",
-  "Water treatment & wells",
-  "Welding & fabrication",
-  "Wildlife removal",
-  "Window cleaning",
-  "Windows & doors",
-  // Storefront & appointment businesses: customers come to them, so the AI
-  // skips the service address and service-area check (see industry.ts).
-  // Medical and dental offices are deliberately absent: patient calls need
-  // HIPAA agreements across the whole call chain, which isn't in place.
-  "Hair salon",
-  "Nail salon",
-  "Barbershop",
-  "Day spa & massage",
-  "Lash & brow studio",
-  "Tattoo & piercing studio",
-  "Pet grooming salon",
-  "Veterinary clinic",
-  "Auto repair shop",
-  "Tire shop",
-  "Phone & computer repair shop",
-  "Fitness studio & gym",
-  "Other",
-] as const;
+/** Every industry a business can pick in setup: the catalog's sub-niches
+ *  (grouped into categories in the UI) plus "Other", which falls back to the
+ *  general on-site call script. See ./niches. */
+export const NICHES: string[] = [...NICHE_CATALOG.map((n) => n.name), OTHER_NICHE];
 
 export const US_TIMEZONES = [
   { value: "America/New_York", label: "Eastern (New York)" },

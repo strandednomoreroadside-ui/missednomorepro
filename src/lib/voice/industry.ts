@@ -10,10 +10,13 @@
  * year, make, and model.
  *
  * These predicates gate the parts of the call script that only make sense
- * for some trades. Matching is substring-based on a normalized string so a
- * free-typed industry ("Auto repair & towing") still resolves correctly, and
- * anything unrecognized falls back to the safe general-trade behavior.
+ * for some trades. A setup catalog niche (or a legacy alias of one) uses its
+ * explicit flags. Anything else, like an older free-typed industry ("Auto
+ * repair & towing"), falls back to substring keywords, and anything
+ * unrecognized gets the safe general-trade behavior.
  */
+
+import { findNiche } from "../setup/niches.ts";
 
 function normalize(industry: string | null | undefined): string {
   return (industry ?? "").toLowerCase().trim();
@@ -44,6 +47,8 @@ const VEHICLE_KEYWORDS = [
  * about their car is a non-sequitur that damages trust on the first call.
  */
 export function capturesVehicle(industry: string | null | undefined): boolean {
+  const niche = findNiche(industry);
+  if (niche) return niche.vehicle === true;
   const v = normalize(industry);
   if (!v) return false;
   return VEHICLE_KEYWORDS.some((k) => v.includes(k));
@@ -79,6 +84,8 @@ const LOCATION_KEYWORDS = [
  * it. Location-based trades invert that, so they're opted out explicitly.
  */
 export function travelsToCustomer(industry: string | null | undefined): boolean {
+  const niche = findNiche(industry);
+  if (niche) return niche.mode !== "office";
   const v = normalize(industry);
   if (!v) return true;
   // "Mobile pet grooming", "Mobile massage": explicitly comes to the customer.

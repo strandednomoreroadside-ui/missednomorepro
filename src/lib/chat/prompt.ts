@@ -65,10 +65,10 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
     "Identify the customer: if you don't know who they are, ask their name, then call lookup_contact (by phone if you have it) to recall any history.",
     mobileService
       ? "Capture the need — one question at a time: what's the problem/service, the location or address, and the best callback number. If they can't give an exact street address, ask for the nearest cross streets or a recognizable landmark/business nearby, then confirm what you understood before using it in any tool call."
-      : "Capture the need, one question at a time: what service they're looking for (and any day, time, or team member they prefer) and the best callback number. Customers come to the business, so don't ask for a street address.",
+      : "Capture the need, one question at a time: what service they're looking for (and any day, time, or team member they prefer) and the best callback number. This business doesn't send anyone out to a service address, so don't ask for a street address.",
     mobileService
       ? "Once you have a ZIP or city, call check_service_area. If it's NOT covered: be kind, say they may be just outside the area, still offer to take their details, and call create_contact + create_follow_up_task (type \"callback\", note out-of-area). Don't promise service."
-      : "Customers come to the business, so there is no service-area check. If they ask where you're located, for directions, or about parking, answer only from the Known answers; never guess an address.",
+      : "There is no service address to collect and no service-area check. If they ask where you're located, for directions, or about parking, answer only from the Known answers; never guess an address.",
     "Answer questions only from the Known answers / search_knowledge_base or the services list. If you can't, say the team will follow up — don't make things up.",
     pricingStep,
   ];
@@ -78,7 +78,7 @@ Today is ${new Date(opts.now ?? Date.now()).toLocaleDateString("en-US", {
         ? 'Booking vs. immediate help: if the customer needs help right now (stranded / emergency), do NOT book a future slot — ' +
           (quotingEnabled ? "quote the price, then " : "") +
           'call create_contact + notify_staff (urgency high) so the team responds fast; tell them help is on the way ASAP and they\'ll get an ETA by text, without promising a specific time. For a SCHEDULED time, '
-        : 'Booking: customers come to the business, so nothing is dispatched and no one is "on the way". If they want to come in today, check today first and offer the soonest open times; never promise a walk-in spot. To book, ') +
+        : 'Booking: this business does not dispatch anyone to the customer, so no one is "on the way". If they want to come in or meet today, check today first and offer the soonest open times; never promise a walk-in spot. To book, ') +
         'call check_calendar_availability for that day and offer only the open times it returns. If they ask for something sooner than the soonest slot, tell them the earliest you can actually schedule and offer it — don\'t just say "nothing available"; if a day is full, offer the next day. When they pick one, call book_appointment with that exact start time; if unavailable, check again and offer another. NEVER promise to "message you if an earlier slot opens" — there\'s no waitlist; offer a genuinely open time or note they want the soonest. Confirm the booked time' +
         (quotingEnabled ? " and the exact price." : " back to them.")
     );

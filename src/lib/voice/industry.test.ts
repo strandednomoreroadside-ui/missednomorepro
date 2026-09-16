@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { CATEGORIES, NICHE_CATALOG } from "../setup/niches.ts";
 import { capturesVehicle, travelsToCustomer } from "./industry.ts";
 
 // The bug this guards: roadside-specific intake ("what's the year, make, and
@@ -89,5 +90,47 @@ test("mobile trades drive to the customer; storefronts do not", () => {
     "Spa",
   ]) {
     assert.equal(travelsToCustomer(industry), false, industry);
+  }
+});
+
+test("catalog niches use their explicit flags", () => {
+  for (const n of NICHE_CATALOG) {
+    assert.equal(capturesVehicle(n.name), n.vehicle === true, n.name);
+    assert.equal(travelsToCustomer(n.name), n.mode !== "office", n.name);
+  }
+  // Keyword matching alone would have gotten these wrong.
+  assert.equal(capturesVehicle("Black car services"), false);
+  assert.equal(capturesVehicle("Carpet & upholstery cleaning"), false);
+  assert.equal(travelsToCustomer("Funeral homes"), false);
+  assert.equal(travelsToCustomer("Freight brokers"), false);
+});
+
+test("legacy industry values keep their call-script behavior", () => {
+  assert.equal(capturesVehicle("Roadside assistance"), true);
+  assert.equal(travelsToCustomer("Roadside assistance"), true);
+  assert.equal(capturesVehicle("HVAC"), false);
+  assert.equal(travelsToCustomer("HVAC"), true);
+  assert.equal(travelsToCustomer("Pool & spa service"), true);
+});
+
+test("catalog is internally consistent", () => {
+  const names = new Set<string>();
+  const slugs = new Set<string>();
+  const categories = new Set(CATEGORIES.map((c) => c.id));
+  for (const n of NICHE_CATALOG) {
+    for (const label of [n.name, ...(n.aliases ?? [])]) {
+      assert.ok(!names.has(label.toLowerCase()), `duplicate name/alias ${label}`);
+      names.add(label.toLowerCase());
+    }
+    assert.ok(!slugs.has(n.slug), `duplicate slug ${n.slug}`);
+    slugs.add(n.slug);
+    assert.ok(categories.has(n.category), n.name);
+    assert.ok(!(n.page && n.partOf), `${n.name} has both page and partOf`);
+    assert.ok(!(n.setupOnly && (n.page || n.partOf)), `${n.name} is setupOnly but has a page`);
+    if (n.partOf) {
+      const parent = NICHE_CATALOG.find((p) => p.slug === n.partOf);
+      assert.ok(parent && !parent.partOf && !parent.setupOnly, `${n.name} partOf ${n.partOf}`);
+      assert.equal(parent.category, n.category, `${n.name} partOf another category`);
+    }
   }
 });
