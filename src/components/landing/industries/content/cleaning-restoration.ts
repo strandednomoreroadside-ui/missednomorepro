@@ -154,6 +154,107 @@ export const cleaningRestoration: CategoryFile = {
         },
       ],
     },
+    "fire-restoration": {
+      hook: "After a fire, families and business owners need someone to secure the property and start cleanup fast. Answer every call, day or night, and get your crew moving.",
+      why: "Fire restoration calls come in the hours after a kitchen fire, an electrical fire, or a house fire, often while the fire department is still leaving. Owners need the property boarded up, water removed, and smoke damage assessed, and they're usually starting an insurance claim at the same time. The AI answers every call calmly in your company's name, captures the address and what happened, and texts your on-call crew right away.",
+      calls: [
+        "Board-up and securing after a fire",
+        "Smoke and soot damage cleanup",
+        "Water removal after firefighting",
+        "Contents cleaning and pack-out questions",
+        "Insurance claim and adjuster coordination questions",
+        "Kitchen and small fire cleanups",
+      ],
+      quotes: "emergency board-ups and service calls you price up front",
+      estimates: "smoke cleaning, contents work, and rebuilds documented for the insurance claim",
+      urgent: "fire or smoke damage and a property that needs to be secured",
+      booking: "damage assessments",
+      faqs: [
+        {
+          q: "Does the AI handle fire damage calls at night?",
+          a: "Yes. It answers every call around the clock, treats fire damage as urgent, texts your on-call crew right away, and can warm-transfer an upset caller to someone on your team.",
+        },
+        {
+          q: "Can it help with the insurance claim?",
+          a: "It doesn't give insurance advice. It notes the caller's carrier and claim details in the call summary and answers questions about how you work with insurance from your FAQs.",
+        },
+      ],
+    },
+    "lead-asbestos-remediation": {
+      hook: "Lead and asbestos calls usually come right before a renovation or sale. Answer every one, capture the project, and book the inspection.",
+      why: "Lead and asbestos remediation leads come from homeowners who found suspect materials during a remodel, contractors who need testing before demolition, and buyers or landlords with a report in hand. Callers want to know what testing involves and how quickly you can come out. The AI answers in your company's name, captures the property and project, answers process questions from your FAQs, and books the inspection.",
+      calls: [
+        "Asbestos testing before renovation or demolition",
+        "Lead paint inspections for older homes",
+        "Popcorn ceiling and flooring material testing",
+        "Abatement and removal projects",
+        "Landlord and property manager compliance questions",
+        "Contractors scheduling pre-demolition surveys",
+      ],
+      quotes: "inspections and sample testing visits",
+      estimates: "abatement and removal projects",
+      booking: "inspections",
+      faqs: [
+        {
+          q: "Will the AI tell callers whether a material is dangerous?",
+          a: "No. It never gives health or safety conclusions. It answers only from the guidance you approve in your FAQs and books an inspection with your certified team.",
+        },
+        {
+          q: "Can contractors schedule testing before a job?",
+          a: "Yes. The AI captures the property, the contractor's company, and their timeline, quotes your inspection fee, and books the earliest open time.",
+        },
+      ],
+    },
+    "radon-mitigation": {
+      hook: "Radon calls follow a home inspection or a test kit result. Answer every one, quote your testing, and book the mitigation estimate.",
+      why: "Radon testing and mitigation companies hear from buyers whose home inspection flagged radon, sellers who need a test before listing, and homeowners with a high test kit reading. Many are working against a closing date. The AI answers in your company's name, quotes your radon tests, captures the result the caller mentions, answers questions from your FAQs, and books the test or mitigation visit.",
+      calls: [
+        "Radon tests for home sales",
+        "High readings from home test kits",
+        "Mitigation system installs",
+        "Retesting after mitigation",
+        "Fan replacements and system service",
+        "Real estate agents coordinating tests",
+      ],
+      quotes: "radon tests, retests, and fan replacements",
+      estimates: "new mitigation systems",
+      booking: "tests and site visits",
+      faqs: [
+        {
+          q: "Will the AI interpret a radon test result?",
+          a: "No. It notes the result the caller shares in the call summary and answers from the guidance you've approved in your FAQs, then books a visit with your team.",
+        },
+        {
+          q: "Can it schedule a test before closing?",
+          a: "Yes. It captures the property address and the closing date the caller mentions, quotes your test, and books the earliest open time.",
+        },
+      ],
+    },
+    "commercial-hood-cleaning": {
+      hook: "Restaurants need hood cleanings on schedule and after a failed inspection. Answer every call and keep kitchens compliant.",
+      why: "Commercial kitchen exhaust cleaning calls come from restaurant owners and managers who need a scheduled cleaning, a certificate for the fire marshal, or a fast visit after an inspection. Cleanings often happen overnight after service, and managers call between rushes. The AI answers in your company's name, captures the restaurant and system details, quotes cleanings you price by phone, and books the visit.",
+      calls: [
+        "Scheduled kitchen exhaust hood cleanings",
+        "Cleanings needed after a fire inspection",
+        "Certificate and service sticker questions",
+        "Exhaust fan and duct access issues",
+        "New restaurant accounts and multi-location groups",
+        "Grease buildup and odor concerns",
+      ],
+      quotes: "hood cleanings by system size and fan service calls",
+      estimates: "large kitchens and multi-location accounts",
+      booking: "cleanings",
+      faqs: [
+        {
+          q: "Can the AI book overnight cleanings?",
+          a: "It books into the hours you set as available on your calendar, so if you clean overnight, set those hours and the AI offers only those times.",
+        },
+        {
+          q: "Does it recognize repeat restaurant accounts?",
+          a: "Yes. Returning callers are matched to their record in the CRM and greeted by name, and every cleaning request is logged with a transcript.",
+        },
+      ],
+    },
   },
   variants: {
     "dryer-vent-cleaning": {

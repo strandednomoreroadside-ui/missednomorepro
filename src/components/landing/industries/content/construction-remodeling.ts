@@ -127,8 +127,37 @@ export const constructionRemodeling: CategoryFile = {
         },
       ],
     },
+    "insulation-contractors": {
+      hook: "Insulation leads call when the energy bill spikes or a room won't stay warm. Answer every call, capture the project, and book the assessment.",
+      why: "Insulation contractors hear from homeowners with high energy bills, cold rooms, or ice dams, plus remodelers and builders who need insulation installed, and homeowners who need old insulation removed after pests or water damage. The AI answers in your company's name, captures what the caller describes, answers questions about materials and rebates from your FAQs, and books the assessment.",
+      calls: [
+        "Attic insulation top-ups and blown-in insulation",
+        "Spray foam insulation projects",
+        "Cold rooms, drafts, and ice dams",
+        "Old or contaminated insulation removal",
+        "New construction and remodel insulation",
+        "Energy rebate and material questions",
+      ],
+      quotes: "attic assessments and standard attic top-up packages",
+      estimates: "spray foam and whole-home projects",
+      booking: "assessments",
+      faqs: [
+        {
+          q: "Can the AI answer rebate questions?",
+          a: "It answers from the FAQs you write, like the programs you work with. It never makes up rebate amounts or eligibility.",
+        },
+        {
+          q: "Can it quote attic insulation?",
+          a: "Yes, for packages you price up front, with your travel zones added. Larger projects are captured and booked as assessments.",
+        },
+      ],
+    },
   },
   variants: {
+    "insulation-removal": {
+      title: "Insulation removal",
+      body: "Insulation removal calls often follow rodent infestations, water damage, or a remodel. The AI captures what the homeowner describes, answers questions about your removal process from your FAQs, and books the assessment into an open slot.",
+    },
     "crawlspace-encapsulation": {
       title: "Crawlspace encapsulation",
       body: "Crawlspace calls usually mention moisture, musty smells, sagging floors, or pests. The AI captures what the homeowner describes, answers questions about vapor barriers and dehumidifiers from your FAQs, and books the crawlspace inspection into an open slot.",

@@ -180,6 +180,55 @@ export const lawnLandscapeOutdoor: CategoryFile = {
         },
       ],
     },
+    "pool-installation": {
+      hook: "A new pool is one of the biggest projects a homeowner buys. Answer every inquiry, capture the vision, and book the design consultation.",
+      why: "Pool installation leads call in winter and early spring with plans for summer: inground or above-ground, fiberglass, vinyl, or concrete, plus decking, fencing, and financing questions. These are high-value leads that expect a fast, professional response. The AI answers in your company's name, captures what the homeowner is planning, answers questions from your FAQs, and books the in-home or backyard consultation.",
+      calls: [
+        "Inground pool consultations",
+        "Fiberglass, vinyl, and concrete pool questions",
+        "Above-ground pool installs",
+        "Financing and timeline questions",
+        "Pool decks, fencing, and landscaping add-ons",
+        "Permit and HOA questions",
+      ],
+      estimates: "new pool builds you design and price on site",
+      booking: "design consultations",
+      faqs: [
+        {
+          q: "Can the AI quote a new pool?",
+          a: "No. New pools are priced after a site visit, so the AI captures what the homeowner wants and books a consultation. It never guesses a price.",
+        },
+        {
+          q: "Can it answer financing questions?",
+          a: "Yes, from the FAQs you write. Add your financing options and typical timelines, and the AI answers in your words without inventing terms.",
+        },
+      ],
+    },
+    "holiday-light-installation": {
+      hook: "Holiday lighting books up by early November. Answer every call, quote your packages, and lock in install dates.",
+      why: "Holiday light installation calls start in the fall from homeowners who don't want to climb a ladder and businesses that want their storefront lit. Customers want a price, an install date, and to know whether takedown is included. The AI answers in your company's name, quotes your lighting packages by home size, and books installs into open slots before your calendar fills.",
+      calls: [
+        "Roofline and gutter light installs",
+        "Tree and shrub wrapping",
+        "Commercial storefront and property lighting",
+        "Takedown and storage questions",
+        "Repeat customers booking again this year",
+        "Lights out or malfunction service calls",
+      ],
+      quotes: "installation packages by home size, takedowns, and service calls",
+      estimates: "large commercial and custom displays",
+      booking: "installs",
+      faqs: [
+        {
+          q: "Can the AI quote holiday light packages?",
+          a: "Yes. Set up packages by home size and add-ons, plus travel zones, and the AI reads back one exact total, including more than one service at once.",
+        },
+        {
+          q: "Can it book takedown dates too?",
+          a: "Yes. It books takedowns into open slots on your calendar like any other visit and texts a reminder beforehand.",
+        },
+      ],
+    },
   },
   variants: {
     "pool-opening-closing": {

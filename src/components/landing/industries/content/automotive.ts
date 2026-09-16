@@ -258,6 +258,105 @@ export const automotive: CategoryFile = {
         },
       ],
     },
+    "auto-body-collision": {
+      hook: "After an accident, drivers call body shops looking for someone who answers and explains the process. Pick up every call and book the estimate.",
+      why: "Collision shop calls come from drivers right after an accident, often shaken and unsure how insurance works, plus people with hail damage, scratches, or dents. They want to know whether you work with their insurance, how estimates work, and how long repairs take. The AI answers in your shop's name, captures the vehicle and damage, answers process questions from your FAQs, and books the estimate appointment.",
+      calls: [
+        "Collision damage estimates after an accident",
+        "Insurance claim and direct repair questions",
+        "Hail damage and dent repairs",
+        "Bumper, scratch, and paint repairs",
+        "Rental car and repair timeline questions",
+        "Customers checking on repair status",
+      ],
+      estimates: "collision repairs you price after inspecting the damage",
+      booking: "estimate appointments",
+      faqs: [
+        {
+          q: "Can the AI answer insurance questions?",
+          a: "It answers questions about how your shop works with insurance from your FAQs, like whether you're a direct repair shop for certain carriers, and notes the caller's carrier in the call summary. It doesn't give coverage advice.",
+        },
+        {
+          q: "Can drivers send photos of the damage?",
+          a: "Yes. Photos texted to your Missed No More Pro number are saved to the customer's record in the CRM next to the call summary.",
+        },
+      ],
+    },
+    "paintless-dent-repair": {
+      hook: "Dent and hail repair customers want a quick price and an appointment. Answer every call, capture the vehicle and damage, and book it.",
+      why: "Paintless dent repair calls come from drivers with door dings, a dent from a shopping cart, or hail damage after a storm, plus dealerships that need reconditioning. After a hailstorm, calls spike for weeks. The AI answers in your company's name, captures the vehicle and the damage the caller describes, quotes the dent services you price by phone, and books the appointment.",
+      calls: [
+        "Door dings and small dents",
+        "Hail damage repairs after storms",
+        "Crease and larger dent questions",
+        "Dealership and fleet reconditioning",
+        "Insurance hail claim questions",
+        "Mobile service at home or work",
+      ],
+      quotes: "small dent repairs you price per dent",
+      estimates: "hail damage and larger dents you assess in person",
+      booking: "appointments",
+      faqs: [
+        {
+          q: "Can the AI quote hail damage?",
+          a: "Hail repairs depend on the count and size of dents, so the AI captures the vehicle and books an assessment. It quotes only services you've priced, like a single small dent.",
+        },
+        {
+          q: "Can customers text photos of the dent?",
+          a: "Yes. Photos texted to your Missed No More Pro number are saved to the customer's record in the CRM so you can review them before the appointment.",
+        },
+      ],
+    },
+    "motorcycle-repair": {
+      hook: "Riding season doesn't wait. Answer every call, capture the bike and the problem, and book the service before riders go elsewhere.",
+      why: "Motorcycle shops get a rush of calls every spring for tune-ups, tires, and bikes that won't start after winter, plus accident repairs and custom work all season. Riders want to know how soon you can take their bike and whether you work on their make. The AI answers in your shop's name, captures the bike's year, make, and model and the problem, answers questions from your FAQs, and books the drop-off.",
+      calls: [
+        "Spring tune-ups and bikes that won't start",
+        "Tire replacements and brake service",
+        "Carburetor and fuel system problems",
+        "Accident and insurance repairs",
+        "Performance parts and custom work",
+        "Winter storage and battery tender questions",
+      ],
+      estimates: "repairs that depend on a diagnosis",
+      booking: "service appointments",
+      faqs: [
+        {
+          q: "Does the AI ask which bike it is?",
+          a: "Yes. It captures the year, make, and model along with the problem, and it never asks for a street address since the rider brings the bike to your shop.",
+        },
+        {
+          q: "Can it tell riders whether we work on their brand?",
+          a: "Yes, if you list the makes you service in your FAQs. The AI answers from that list and takes a message for anything you haven't covered.",
+        },
+      ],
+    },
+    "boat-repair-marine": {
+      hook: "Boat owners want their time on the water, not on hold. Answer every call, capture the boat and where it's docked, and book the service.",
+      why: "Marine mechanics hear from boat owners with engines that won't start, spring commissioning and fall winterization requests, and outboard and inboard repairs. Many boats are at a marina, a dock, or on a trailer in a driveway. The AI answers in your company's name, captures the boat's year, make, and model and its location, quotes your seasonal services, and books the visit.",
+      calls: [
+        "Engines that won't start or run rough",
+        "Spring commissioning and de-winterization",
+        "Fall winterization and shrink wrap",
+        "Outboard and inboard repairs",
+        "Trailer and electrical problems",
+        "Boats at marinas, docks, and driveways",
+      ],
+      quotes: "winterizations, commissioning, shrink wrap, and mobile service calls",
+      estimates: "engine rebuilds and major repairs",
+      urgent: "a boat that won't start at the dock",
+      booking: "service visits",
+      faqs: [
+        {
+          q: "Can the AI find a boat at a marina?",
+          a: "It captures the marina name, slip number, or nearest landmark the caller gives, reads it back, and checks the location against your service radius.",
+        },
+        {
+          q: "Can it quote a winterization?",
+          a: "Yes. Set your winterization and shrink wrap prices with travel zones, and the AI reads back one exact total and books the visit.",
+        },
+      ],
+    },
   },
   variants: {
     "mobile-battery-replacement": {

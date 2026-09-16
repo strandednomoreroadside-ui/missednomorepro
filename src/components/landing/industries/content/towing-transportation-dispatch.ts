@@ -52,8 +52,61 @@ export const towingTransportationDispatch: CategoryFile = {
         },
       ],
     },
+    "piano-movers": {
+      hook: "Piano owners want a specialist who answers and gives a straight price. Pick up every call, quote your local piano moves, and book the date.",
+      why: "Piano moving calls come from families moving house, churches and schools relocating instruments, and buyers bringing home a new piano. Callers want to know if you move their type of piano, what stairs cost, and when you can do it. The AI answers in your company's name, captures the piano type, stairs, and addresses the caller shares, quotes the local moves you price by piano type, and books the move.",
+      calls: [
+        "Upright and spinet piano moves",
+        "Grand and baby grand piano moves",
+        "Stairs, tight turns, and access questions",
+        "Piano storage and delivery after purchase",
+        "Churches, schools, and venues",
+        "Pool table and heavy item moves",
+      ],
+      quotes: "local piano moves by piano type, with stairs as a possible extra",
+      estimates: "long-distance piano moves",
+      booking: "moves",
+      faqs: [
+        {
+          q: "Can the AI quote a piano move?",
+          a: "Yes, for moves you price by piano type, like an upright or a grand, with travel zones from your base. Charges that depend on the job, like flights of stairs, are mentioned instead of added silently.",
+        },
+        {
+          q: "Does it ask about stairs and access?",
+          a: "It captures what the caller describes about stairs and access in the call summary, and you can set stairs as a possible extra charge so callers hear about it up front.",
+        },
+      ],
+    },
+    "equipment-hauling": {
+      hook: "Contractors need equipment moved on their schedule, not whenever you call back. Answer every call and capture the haul.",
+      why: "Equipment hauling calls come from contractors moving machines between job sites, farmers moving tractors, and buyers who need a purchase picked up. Callers need to know if you can handle the size and weight and when you're available. The AI answers in your company's name, captures the equipment, pickup, and drop-off details the caller shares, answers capability questions from your FAQs, and texts your team.",
+      calls: [
+        "Excavators, skid steers, and loaders between job sites",
+        "Tractors and farm equipment",
+        "Equipment bought at auction or from a dealer",
+        "Oversize load and permit questions",
+        "Scheduled recurring hauls for contractors",
+        "Storage container and shed moves",
+      ],
+      estimates: "hauls you price by distance, size, and weight",
+      booking: "pickups",
+      faqs: [
+        {
+          q: "Can the AI quote an equipment haul?",
+          a: "Hauls usually depend on the distance, the machine, and the weight, so the AI captures those details and your team follows up with the price. It never guesses.",
+        },
+        {
+          q: "Can it tell contractors what we can haul?",
+          a: "Yes, from your FAQs. Add your trailer capacities and the equipment you move, and the AI answers in your words.",
+        },
+      ],
+    },
   },
   variants: {
+    "pool-table-movers": {
+      title: "Pool table movers",
+      body: "Pool table moves need disassembly, slate handling, and releveling. The AI captures the table size and both locations, quotes the moves you price by table size, and books the date.",
+    },
     "heavy-duty-towing": {
       title: "Heavy-duty towing and recovery",
       body: "Heavy-duty towing calls come from truckers, fleet managers, and police for semis, buses, and equipment. The AI captures the unit, the location (an exit or mile marker works), and what happened, treats a disabled commercial vehicle as urgent, texts your on-call operator right away, and logs fleet accounts in the CRM.",
