@@ -66,6 +66,15 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             >
               For Towing
             </Link>
+            <Link className="transition-colors hover:text-foreground" href="/ai-receptionist-for-hvac">
+              For HVAC
+            </Link>
+            <Link className="transition-colors hover:text-foreground" href="/ai-receptionist-for-plumbers">
+              For Plumbers
+            </Link>
+            <Link className="transition-colors hover:text-foreground" href="/ai-receptionist-for-electricians">
+              For Electricians
+            </Link>
             <Link className="transition-colors hover:text-foreground" href="/changelog">
               Changelog
             </Link>

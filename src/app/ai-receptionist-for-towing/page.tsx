@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-import { ComparisonPage } from "@/components/landing/comparison-page";
 import type { ComparisonRow } from "@/components/landing/comparison-table";
 import type { FaqItem } from "@/components/landing/faq";
+import { TradePage } from "@/components/landing/trade-page";
 import { pageMetadata } from "@/lib/seo";
 
 const TITLE = "AI Receptionist for Towing Companies | Missed No More Pro";
@@ -11,13 +11,22 @@ const DESCRIPTION =
 
 export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: "/ai-receptionist-for-towing" });
 
-const COLS = ["Missed No More Pro", "Voicemail", "Answering service"];
+const CALL_TYPES = [
+  "Tows quoted by dispatch zone, hook fee, and per-mile rate",
+  "Jump starts, lockouts, and fuel delivery",
+  "Flat tire changes, with or without a spare",
+  "Callers with no drop-off in mind, matched to nearby shops",
+  "Stranded callers without a street address: cross streets, exits, landmarks",
+  "Vehicle year, make, and model captured on every call",
+];
+
+const COLS = ["Missed No More Pro", "Answering service", "Voicemail"];
 const ROWS: ComparisonRow[] = [
-  { label: "Answers 24/7, including 2am breakdowns", values: [true, false, true] },
+  { label: "Answers 24/7, including 2am breakdowns", values: [true, true, false] },
   { label: "Computes the tow price — hook fee + per-mile", values: [true, false, false] },
   { label: "Finds the nearest shop when the caller has no drop-off in mind", values: [true, false, false] },
   { label: "Books the dispatch and texts staff instantly", values: [true, false, false] },
-  { label: "Monthly cost", values: ["from $50", "$0", "$300+"] },
+  { label: "Monthly cost", values: ["from $50", "$300+", "$0"] },
 ];
 
 const SECTIONS = [
@@ -52,12 +61,14 @@ const FAQS: FaqItem[] = [
 
 export default function AiReceptionistForTowingPage() {
   return (
-    <ComparisonPage
+    <TradePage
       path="/ai-receptionist-for-towing"
-      breadcrumb="AI Receptionist for Towing"
+      trade="towing"
+      audience="Towing companies and roadside assistance providers"
       kicker="For Towing & Roadside Assistance"
       h1="AI Receptionist for Towing & Roadside Assistance"
       subhead="Answer every call from the truck, quote the tow to the exact mile, and book the job — without pulling over."
+      callTypes={CALL_TYPES}
       comparisonCols={COLS}
       comparisonRows={ROWS}
       sections={SECTIONS}

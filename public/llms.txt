@@ -50,6 +50,9 @@ Local service businesses where a missed call means a lost job: towing and roadsi
 - [Pricing](https://missednomorepro.com/pricing): Plans, what each includes, and the founder offer
 - [Pricing for AI agents](https://missednomorepro.com/pricing.md): Plain-text plan limits, prices, and features
 - [AI Phone Assistant guide](https://missednomorepro.com/ai-phone-assistant): What an AI phone assistant does and how it compares to an answering service and voicemail
+- [AI Receptionist for HVAC](https://missednomorepro.com/ai-receptionist-for-hvac): No-heat and no-AC dispatch, repair and tune-up quoting, after-hours fees, tune-up booking
+- [AI Receptionist for Plumbers](https://missednomorepro.com/ai-receptionist-for-plumbers): Emergency dispatch with arrival-estimate texts, flat-rate and parts-plus-labor quoting, customer photo intake
+- [AI Receptionist for Electricians](https://missednomorepro.com/ai-receptionist-for-electricians): Small-job quoting, panel upgrade estimate capture, approved safety guidance
 - [AI Receptionist for Towing](https://missednomorepro.com/ai-receptionist-for-towing): Tow quoting by hook fee and per-mile rate, 24/7 dispatch intake
 - [AI receptionist vs. answering service](https://missednomorepro.com/vs/answering-service): Compared with a human answering service
 - [vs. Hexnut](https://missednomorepro.com/vs/hexnut): Hexnut alternative comparison
