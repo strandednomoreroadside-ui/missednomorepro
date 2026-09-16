@@ -72,6 +72,9 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             <Link className="transition-colors hover:text-foreground" href="/vs/virtual-receptionist">
               vs. Virtual Receptionist
             </Link>
+            <Link className="transition-colors hover:text-foreground" href="/industries">
+              All Industries
+            </Link>
             <Link className="transition-colors hover:text-foreground" href="/changelog">
               Changelog
             </Link>

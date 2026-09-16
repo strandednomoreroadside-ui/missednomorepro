@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 
+import { generatedNiches } from "@/components/landing/industries/links";
 import { env } from "@/lib/env";
+import { CATEGORIES } from "@/lib/setup/niches";
 
 /** Sitemap of the public pages (marketing + entry points + legal). */
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -45,5 +47,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${base}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${base}/sms-terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${base}/industries`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    ...CATEGORIES.map((c) => ({
+      url: `${base}/industries/${c.id}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    ...generatedNiches().map((n) => ({
+      url: `${base}/industries/${n.category}/${n.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
   ];
 }

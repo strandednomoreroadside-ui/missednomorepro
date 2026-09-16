@@ -3,11 +3,14 @@ import { ArrowRight, Check, PhoneCall } from "lucide-react";
 
 import { PLAN_META, SELF_SERVE_PLAN_ORDER } from "@/lib/billing/plans";
 import { DEMO_PHONE_DISPLAY, DEMO_PHONE_E164 } from "@/lib/constants";
+import { NICHE_CATALOG } from "@/lib/setup/niches";
 import { JsonLd, SITE_URL, breadcrumbJsonLd } from "@/lib/seo";
 
 import { ComparisonTable, type ComparisonRow } from "./comparison-table";
 import type { ComparisonSection } from "./comparison-page";
 import { Faq, type FaqItem } from "./faq";
+import { VARIANT_CONTENT } from "./industries/content";
+import { categoryById } from "./industries/links";
 import { MarketingShell } from "./marketing-shell";
 import { ButtonLink, SectionHeading } from "./primitives";
 import { TRADE_PAGES } from "./trade-links";
@@ -64,6 +67,13 @@ export function TradePage({
   const prices = SELF_SERVE_PLAN_ORDER.map((id) => PLAN_META[id].monthly);
   const related = TRADE_PAGES.filter((t) => t.href !== path);
   const Trade = trade.charAt(0).toUpperCase() + trade.slice(1);
+  // Catalog niches this hand-built page stands for, and the close variants
+  // (emergency, commercial, ...) folded into it as extra sections.
+  const pageNiches = NICHE_CATALOG.filter((n) => n.page === path);
+  const category = pageNiches[0] ? categoryById(pageNiches[0].category) : undefined;
+  const variants = NICHE_CATALOG.filter(
+    (n) => n.partOf && pageNiches.some((p) => p.slug === n.partOf) && VARIANT_CONTENT[n.slug]
+  );
 
   return (
     <MarketingShell>
@@ -87,7 +97,10 @@ export function TradePage({
               alternateName: [`${Trade} answering service`, `${Trade} virtual receptionist`],
               provider: { "@id": `${SITE_URL}/#org` },
               areaServed: { "@type": "Country", name: "United States" },
-              audience: { "@type": "BusinessAudience", audienceType: audience },
+              audience: {
+                "@type": "BusinessAudience",
+                audienceType: [audience, ...variants.map((v) => v.name)].join(", "),
+              },
               description: subhead,
               offers: {
                 "@type": "AggregateOffer",
@@ -97,12 +110,31 @@ export function TradePage({
                 offerCount: String(prices.length),
               },
             },
-            breadcrumbJsonLd([{ name: breadcrumb, path }]),
+            breadcrumbJsonLd([
+              ...(category
+                ? [
+                    { name: "Industries", path: "/industries" },
+                    { name: category.name, path: `/industries/${category.id}` },
+                  ]
+                : []),
+              { name: breadcrumb, path },
+            ]),
           ],
         }}
       />
 
       <section className="mx-auto max-w-4xl px-6 py-16 lg:py-24">
+        {category && (
+          <nav aria-label="Breadcrumb" className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-steel">
+            <Link href="/industries" className="hover:text-foreground">
+              Industries
+            </Link>
+            <span aria-hidden> / </span>
+            <Link href={`/industries/${category.id}`} className="hover:text-foreground">
+              {category.name}
+            </Link>
+          </nav>
+        )}
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-cyan">
           {kicker}
         </p>
@@ -149,6 +181,16 @@ export function TradePage({
           <div key={s.title}>
             <h2 className="font-display text-xl font-semibold text-foreground">{s.title}</h2>
             <p className="mt-3 text-base leading-relaxed text-muted-foreground">{s.body}</p>
+          </div>
+        ))}
+        {variants.map((v) => (
+          <div key={v.slug} id={v.slug} className="scroll-mt-28">
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              {VARIANT_CONTENT[v.slug].title}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+              {VARIANT_CONTENT[v.slug].body}
+            </p>
           </div>
         ))}
       </section>
