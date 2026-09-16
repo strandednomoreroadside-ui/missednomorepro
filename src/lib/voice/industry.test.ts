@@ -53,10 +53,41 @@ test("matching is case- and whitespace-insensitive", () => {
 });
 
 test("mobile trades drive to the customer; storefronts do not", () => {
-  for (const industry of ["HVAC", "Plumbing", "Roadside assistance", "Cleaning", "Other", null]) {
+  for (const industry of [
+    "HVAC",
+    "Plumbing",
+    "Roadside assistance",
+    "Cleaning",
+    "Other",
+    null,
+    "Pool & spa service",
+    "Landscaping",
+    "Hardscaping",
+    "Mobile pet grooming",
+    "Mobile car wash",
+    "Computer & IT services",
+    "Dog walking & pet sitting",
+  ]) {
     assert.equal(travelsToCustomer(industry), true, String(industry));
   }
-  for (const industry of ["Hair salon", "Barber shop", "Day spa", "Dental clinic"]) {
+  for (const industry of [
+    "Hair salon",
+    "Barber shop",
+    "Barbershop",
+    "Day spa",
+    "Day spa & massage",
+    "Nail salon",
+    "Lash & brow studio",
+    "Tattoo & piercing studio",
+    "Pet grooming salon",
+    "Veterinary clinic",
+    "Auto repair shop",
+    "Tire shop",
+    "Phone & computer repair shop",
+    "Fitness studio & gym",
+    "Dental clinic",
+    "Spa",
+  ]) {
     assert.equal(travelsToCustomer(industry), false, industry);
   }
 });

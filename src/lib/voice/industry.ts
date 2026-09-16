@@ -54,7 +54,12 @@ export function capturesVehicle(industry: string | null | undefined): boolean {
 const LOCATION_KEYWORDS = [
   "salon",
   "barber",
-  "spa",
+  // Not bare "spa": "Pool & spa service" is a mobile trade.
+  "day spa",
+  "massage",
+  "nail",
+  "lash",
+  "tattoo",
   "studio",
   "clinic",
   "dental",
@@ -63,6 +68,7 @@ const LOCATION_KEYWORDS = [
   "retail",
   "gym",
   "repair shop",
+  "tire shop",
 ];
 
 /**
@@ -75,5 +81,8 @@ const LOCATION_KEYWORDS = [
 export function travelsToCustomer(industry: string | null | undefined): boolean {
   const v = normalize(industry);
   if (!v) return true;
+  // "Mobile pet grooming", "Mobile massage": explicitly comes to the customer.
+  if (v.includes("mobile")) return true;
+  if (v === "spa") return false;
   return !LOCATION_KEYWORDS.some((k) => v.includes(k));
 }

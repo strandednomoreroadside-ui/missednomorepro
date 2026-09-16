@@ -42,6 +42,7 @@ import { bundleQuotingEnabled, loadPricing } from "@/lib/pricing/loader";
 import { sendCustomerSms, sendStaffSms } from "@/lib/sms/outbound";
 
 import { recordHumanEscalation } from "../escalation";
+import { travelsToCustomer } from "../industry";
 import { startVoiceHandoff } from "../handoff";
 import type { VoiceToolName } from "./registry";
 
@@ -1916,6 +1917,17 @@ async function dispatchEtaToCustomer(
   const business = await resolveBusiness(ctx);
   if (!business) return { skipped: "no_business" };
   const tz = business.timezone;
+
+  // Storefronts (salons, shops) have customers come in; there is no truck
+  // to dispatch or arrival time to text.
+  const { data: biz } = await ctx.admin
+    .from("businesses")
+    .select("industry")
+    .eq("id", business.id)
+    .maybeSingle();
+  if (!travelsToCustomer(biz?.industry as string | null | undefined)) {
+    return { skipped: "storefront_business" };
+  }
 
   const { data: settings } = await ctx.admin
     .from("sms_settings")

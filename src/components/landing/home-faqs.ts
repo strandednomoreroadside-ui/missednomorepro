@@ -38,7 +38,7 @@ export const HOME_FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What kinds of businesses use an AI receptionist?",
-    a: "Local service businesses where a missed call means a lost job: towing and roadside assistance, HVAC, plumbing, electrical, roofing, garage doors, locksmiths, pest control, cleaning, landscaping, appliance repair, and handyman services.",
+    a: "Local service businesses where a missed call means a lost job: towing and roadside assistance, HVAC, plumbing, electrical, roofing, garage doors, locksmiths, pest control, cleaning, landscaping, appliance repair, and handyman services, plus businesses customers visit, like hair and nail salons, barbershops, spas, pet groomers, and auto repair shops.",
   },
   {
     q: "How long does setup take?",

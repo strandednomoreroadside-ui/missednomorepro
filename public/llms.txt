@@ -16,7 +16,7 @@
 
 ## Who it is for
 
-Local service businesses where a missed call means a lost job: towing and roadside assistance, locksmiths, HVAC, plumbing, electrical, roofing, garage doors, pest control, landscaping, cleaning, mobile mechanics, appliance repair, and handyman services.
+Local service businesses where a missed call means a lost job. Businesses that go out to the customer: towing and roadside assistance, locksmiths, HVAC, plumbing, electrical, roofing, garage doors, pest control, landscaping, cleaning, restoration, mobile mechanics, appliance repair, and handyman services. Businesses customers visit: hair and nail salons, barbershops, spas, lash and tattoo studios, pet groomers, veterinary clinics, and auto repair and tire shops. For businesses customers visit, the AI books appointments and never asks for the caller's address.
 
 ## Pricing
 
@@ -49,12 +49,18 @@ Local service businesses where a missed call means a lost job: towing and roadsi
 - [Home](https://missednomorepro.com/): Product overview, live demo line, missed-call revenue calculator, pricing, FAQ
 - [Pricing](https://missednomorepro.com/pricing): Plans, what each includes, and the founder offer
 - [Pricing for AI agents](https://missednomorepro.com/pricing.md): Plain-text plan limits, prices, and features
+- [AI Answering Service](https://missednomorepro.com/ai-answering-service): What an AI answering service is, how it works, what it costs, and who it's for
 - [AI Phone Assistant guide](https://missednomorepro.com/ai-phone-assistant): What an AI phone assistant does and how it compares to an answering service and voicemail
 - [AI Receptionist for HVAC](https://missednomorepro.com/ai-receptionist-for-hvac): No-heat and no-AC dispatch, repair and tune-up quoting, after-hours fees, tune-up booking
 - [AI Receptionist for Plumbers](https://missednomorepro.com/ai-receptionist-for-plumbers): Emergency dispatch with arrival-estimate texts, flat-rate and parts-plus-labor quoting, customer photo intake
 - [AI Receptionist for Electricians](https://missednomorepro.com/ai-receptionist-for-electricians): Small-job quoting, panel upgrade estimate capture, approved safety guidance
+- [AI Receptionist for Roofers](https://missednomorepro.com/ai-receptionist-for-roofers): Storm and leak calls, inspection booking, replacement lead capture, damage photos
+- [AI Receptionist for Garage Door Repair](https://missednomorepro.com/ai-receptionist-for-garage-door-repair): Broken springs and stuck cars, spring and opener quoting, estimate booking
+- [AI Receptionist for Locksmiths](https://missednomorepro.com/ai-receptionist-for-locksmiths): Lockout dispatch with arrival-estimate texts, exact totals with after-hours fees
+- [AI Receptionist for Salons](https://missednomorepro.com/ai-receptionist-for-salons): Hair and nail salons, barbershops, spas: appointment booking, reminders, cancellations
 - [AI Receptionist for Towing](https://missednomorepro.com/ai-receptionist-for-towing): Tow quoting by hook fee and per-mile rate, 24/7 dispatch intake
 - [AI receptionist vs. answering service](https://missednomorepro.com/vs/answering-service): Compared with a human answering service
+- [AI receptionist vs. virtual receptionist](https://missednomorepro.com/vs/virtual-receptionist): Compared with a live virtual receptionist service
 - [vs. Hexnut](https://missednomorepro.com/vs/hexnut): Hexnut alternative comparison
 - [vs. Rosie](https://missednomorepro.com/vs/rosie): Rosie alternative comparison
 - [vs. Sameday AI](https://missednomorepro.com/vs/sameday): Sameday AI alternative comparison

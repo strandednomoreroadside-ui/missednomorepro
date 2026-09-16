@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 
 import { ButtonLink } from "./primitives";
+import { TRADE_PAGES } from "./trade-links";
 
 /**
  * Lightweight header/footer for standalone marketing pages that live off the
@@ -60,20 +61,16 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             <Link className="transition-colors hover:text-foreground" href="/vs/sameday">
               vs. Sameday AI
             </Link>
-            <Link
-              className="transition-colors hover:text-foreground"
-              href="/ai-receptionist-for-towing"
-            >
-              For Towing
+            {TRADE_PAGES.map((t) => (
+              <Link key={t.href} className="transition-colors hover:text-foreground" href={t.href}>
+                For {t.label}
+              </Link>
+            ))}
+            <Link className="transition-colors hover:text-foreground" href="/ai-answering-service">
+              AI Answering Service
             </Link>
-            <Link className="transition-colors hover:text-foreground" href="/ai-receptionist-for-hvac">
-              For HVAC
-            </Link>
-            <Link className="transition-colors hover:text-foreground" href="/ai-receptionist-for-plumbers">
-              For Plumbers
-            </Link>
-            <Link className="transition-colors hover:text-foreground" href="/ai-receptionist-for-electricians">
-              For Electricians
+            <Link className="transition-colors hover:text-foreground" href="/vs/virtual-receptionist">
+              vs. Virtual Receptionist
             </Link>
             <Link className="transition-colors hover:text-foreground" href="/changelog">
               Changelog
