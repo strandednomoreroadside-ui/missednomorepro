@@ -407,6 +407,18 @@ export async function finishFaqs() {
   await advance(business.id, "faqs");
 }
 
+// ── Step 10: phone number ────────────────────────────────────────
+// Claiming/searching a number reuses dashboard/numbers/actions.ts's
+// searchNumbers + claimNumber directly (imported straight into the step's
+// component) rather than duplicating that logic here. This action is just
+// the "mark done, move on" advance, same shape as every other step's —
+// consistent with the wizard letting people move on without forcing
+// completion; the launch step's checklist is the enforcement point.
+export async function finishPhone() {
+  const { business } = await requireBusiness();
+  await advance(business.id, "phone");
+}
+
 // ── Step 10: approvals + launch ──────────────────────────────────
 // Both RPCs validate the caller's role (owner/admin) and audit-log
 // inside the database; the launch gate trigger re-checks completeness.

@@ -15,6 +15,7 @@ import {
   PricingStep,
   ServicesStep,
 } from "../_components/lists";
+import { PhoneStep } from "../_components/phone";
 import { HoursStep, SmsStep } from "../_components/schedule";
 import { WizardShell } from "../_components/shell";
 
@@ -51,6 +52,7 @@ export default async function SetupStepPage({
     notifications: <NotificationsStep data={data} />,
     sms: <SmsStep data={data} />,
     faqs: <FaqsStep data={data} />,
+    phone: <PhoneStep data={data} />,
     launch: <LaunchStep data={data} canApprove={canApprove} />,
   };
 

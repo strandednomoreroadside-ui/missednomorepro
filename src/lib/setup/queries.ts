@@ -69,6 +69,11 @@ export type PricingSettings = {
   approved_at: string | null;
 };
 
+export type PhoneNumber = {
+  id: string;
+  phone_number: string;
+};
+
 export type SetupState = {
   id: string;
   business_id: string;
@@ -93,6 +98,7 @@ export type SetupData = {
   sms: SmsSettings | null;
   faqs: Faq[];
   pricingSettings: PricingSettings | null;
+  phoneNumbers: PhoneNumber[];
 };
 
 /**
@@ -131,7 +137,7 @@ export async function getSetupData(
   const business = await getOrCreateBusiness(tenantId, orgName);
   const supabase = await createClient();
 
-  const [state, services, priced, areas, hours, staff, sms, faqs, pricingSettings] =
+  const [state, services, priced, areas, hours, staff, sms, faqs, pricingSettings, phoneNumbers] =
     await Promise.all([
       supabase
         .from("setup_states")
@@ -179,11 +185,20 @@ export async function getSetupData(
         .select("base_address, base_lat, base_lng, max_service_miles, approved_at")
         .eq("business_id", business.id)
         .maybeSingle(),
+      // Keyed by tenant_id, not business_id — a self-provisioned number can
+      // have a null business_id (best-effort lookup at claim time), so
+      // tenant_id is the reliable key (mirrors dashboard/numbers/actions.ts).
+      supabase
+        .from("phone_numbers")
+        .select("id, phone_number")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: true }),
     ]);
 
   const firstError =
     state.error ?? services.error ?? priced.error ?? areas.error ??
-    hours.error ?? staff.error ?? sms.error ?? faqs.error ?? pricingSettings.error;
+    hours.error ?? staff.error ?? sms.error ?? faqs.error ?? pricingSettings.error ??
+    phoneNumbers.error;
   if (firstError) throw new Error(`Failed to load setup data: ${firstError.message}`);
 
   // The full service list the AI speaks = wizard `services` ∪ priced services
@@ -208,6 +223,7 @@ export async function getSetupData(
     sms: (sms.data ?? null) as SmsSettings | null,
     faqs: (faqs.data ?? []) as Faq[],
     pricingSettings: (pricingSettings.data ?? null) as PricingSettings | null,
+    phoneNumbers: (phoneNumbers.data ?? []) as PhoneNumber[],
   };
 }
 
@@ -235,6 +251,7 @@ export function stepCompletion(data: SetupData): Record<StepId, boolean> {
     notifications: data.staff.some((c) => c.notify_on_lead),
     sms: data.sms !== null,
     faqs: true, // optional step
+    phone: data.phoneNumbers.length > 0,
     launch: data.business.status === "live",
   };
 }
@@ -263,6 +280,7 @@ export function readyToLaunch(data: SetupData): boolean {
     steps.hours &&
     steps.notifications &&
     steps.sms &&
+    steps.phone &&
     ok.hours &&
     ok.area
   );

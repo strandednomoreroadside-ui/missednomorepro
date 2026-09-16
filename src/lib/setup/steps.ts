@@ -10,6 +10,7 @@ export const STEP_ORDER = [
   "notifications",
   "sms",
   "faqs",
+  "phone",
   "launch",
 ] as const;
 
@@ -73,6 +74,11 @@ export const STEP_META: Record<StepId, StepMeta> = {
     title: "FAQs",
     blurb: "Questions callers ask and the answers the AI may give. Optional but recommended.",
     required: false,
+  },
+  phone: {
+    title: "Phone number",
+    blurb: "Get a business number — a new one, or forwarding for the one you already use.",
+    required: true,
   },
   launch: {
     title: "Review & launch",
