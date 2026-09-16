@@ -1,10 +1,23 @@
-/** Plan catalog — the public pricing tiers (vision pricing, June 2026).
+/** Plan catalog — the public pricing tiers.
  *
- *  Margin note: voice minutes are the only material COGS (~$0.10–0.13/min).
- *  Included minutes are set to the 70%-safe level; usage past them bills as
- *  metered overage (built in Phase 4). See the approved vision plan. */
+ *  Sept 2026 (3-tier simplification, operator decision): traded margin per
+ *  account for signup volume while the product is still building its first
+ *  case studies. Voice minutes are the only material COGS — the blended
+ *  rate this app actually models is $0.15/min (cost-controls.ts
+ *  COST_PER_MINUTE, finalize.ts), not the older ~$0.10-0.13 estimate this
+ *  comment used to cite. There's no metered overage (reversed to a hard
+ *  cap — see the plan-picker copy in dashboard/billing/page.tsx): once a
+ *  plan's minutes run out, calls forward to the owner's phone. That makes
+ *  included minutes a hard ceiling on monthly voice cost per tenant, not
+ *  just a soft average, so minutes below are sized to stay gross-margin-
+ *  positive even at 100% utilization — thinner than the old 70%-safe
+ *  target, deliberately, in exchange for lower prices and more signups. */
 
-// Self-serve tiers (drive Stripe price creation + the pricing cards).
+// Every plan id we've ever sold, including retired ones (PlanMeta.retired).
+// SELF_SERVE_PLAN_ORDER below is what's actually offered to new signups —
+// never remove a plan id from here, or an existing subscriber still on it
+// resolves to "none" via effectivePlan()'s stale-id guard (subscription.ts)
+// and loses their entitlements outright.
 export const PLAN_ORDER = ["starter", "growth", "professional", "elite"] as const;
 export type PlanId = (typeof PLAN_ORDER)[number];
 // Enterprise is custom (contact sales) — no self-serve Stripe price, but it is
@@ -21,13 +34,16 @@ export function isKnownPlan(value: string | null | undefined): value is Exclude<
 export type PlanMeta = {
   name: string;
   monthly: number; // dollars (0 for custom/enterprise)
-  previousMonthly?: number; // dollars, shown publicly during the 20% price cut
   annualMonthly: number; // effective $/mo when billed annually
   blurb: string;
   minutes: string;
   highlights: string[];
   popular?: boolean;
   custom?: boolean; // enterprise: "contact sales", no self-serve checkout
+  /** No longer offered to new signups (Sept 2026 3-tier simplification).
+   *  Kept in PLAN_META + plan_limits so an existing subscriber's plan still
+   *  resolves correctly — never delete a retired plan id outright. */
+  retired?: boolean;
 };
 
 export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
@@ -59,6 +75,7 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
       "Payment requests + analytics dashboard",
       "3 users",
     ],
+    popular: true,
   },
   professional: {
     name: "Professional",
@@ -72,12 +89,10 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
       "Make & Zapier integrations",
       "10 users",
     ],
-    popular: true,
   },
   elite: {
     name: "Elite",
     monthly: 479,
-    previousMonthly: 599,
     annualMonthly: 383.2,
     blurb: "Higher-volume teams ready for advanced automation",
     minutes: "1,500 AI minutes",
@@ -88,6 +103,11 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
       "API access + advanced automations",
       "25 users",
     ],
+    // Retired from self-serve (Sept 2026) — Professional is now the top
+    // self-serve tier; anyone who needs more goes to Enterprise. Left fully
+    // intact so an existing Elite subscriber's plan, Stripe price, and
+    // entitlements keep working untouched.
+    retired: true,
   },
   enterprise: {
     name: "Enterprise",
@@ -105,11 +125,16 @@ export const PLAN_META: Record<PlanId | "enterprise", PlanMeta> = {
   },
 };
 
+/** Tiers actually offered to new/switching customers — every checkout
+ *  button, Stripe price sync, and plan-deep-link check should read this,
+ *  not PLAN_ORDER, so a retired plan can never be (re)selected. */
+export const SELF_SERVE_PLAN_ORDER = PLAN_ORDER.filter((p) => !PLAN_META[p].retired);
+
 export function lookupKey(plan: PlanId, interval: "month" | "year") {
   return `plan_${plan}_${interval === "year" ? "annual" : "monthly"}`;
 }
 
-export const ALL_LOOKUP_KEYS = PLAN_ORDER.flatMap((p) => [
+export const ALL_LOOKUP_KEYS = SELF_SERVE_PLAN_ORDER.flatMap((p) => [
   lookupKey(p, "month"),
   lookupKey(p, "year"),
 ]);

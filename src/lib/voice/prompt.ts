@@ -16,9 +16,12 @@ import { capturesVehicle, travelsToCustomer } from "./industry";
 import { VOICE_TOOLS } from "./tools/registry";
 import type { VoiceAgentConfig } from "./types";
 
-/** Retell voice id — "Grace" (operator's chosen voice, June 2026). Stored
- *  per-agent on agents.voice_id; this is the fallback for new agents. */
-const DEFAULT_VOICE_ID = "11labs-Grace";
+/** Retell voice id — "Maya", a custom ElevenLabs voice imported via Retell's
+ *  community-voice workflow (operator's chosen voice, Sept 2026; replaces
+ *  "Grace"). Stored per-agent on agents.voice_id; this is the fallback for
+ *  new agents only — existing agent rows need their voice_id updated
+ *  directly (see scripts/register-elevenlabs-voice.mjs history). */
+const DEFAULT_VOICE_ID = "custom_voice_dcbd8d9363ac966e0a3b904496";
 const DEFAULT_LANGUAGE = "en-US";
 const DEFAULT_MAX_CALL_SECONDS = 600;
 /** Bump to force a one-time re-sync of all agents when we change voice tuning
@@ -107,8 +110,23 @@ const DEFAULT_MAX_CALL_SECONDS = 600;
  *  placeholder names are now banned, and the voice route ignores them when
  *  building the opening line. (4) A caller who said "reschedule" but had
  *  nothing booked sent the agent into a failed reschedule_appointment and an
- *  awkward recovery; it now books new instead. */
-const TUNING_VERSION = 16;
+ *  awkward recovery; it now books new instead.
+ *  v17 (Sept 2026): voice-naturalness pass. enable_backchannel turned on
+ *  (retell.ts) so the agent interjects "mm-hmm"/"right" instead of just
+ *  waiting its turn, and a low-volume "call-center" ambient sound added so
+ *  the line doesn't sound like a synthetic void. Both are pure Retell
+ *  agent-level tuning with no prompt-text change, so this version bump is
+ *  what actually pushes them to already-provisioned agents on their next
+ *  call — see syncAgent's promptHash short-circuit in retell.ts.
+ *  v18 (Sept 2026): voice switched to "Maya" (see DEFAULT_VOICE_ID above), a
+ *  custom ElevenLabs voice imported via Retell's community-voice workflow.
+ *  Also turned on handbook_config's natural_filler_words (occasional "um"/
+ *  "you know") alongside v17's backchannel — another lever that was left off
+ *  pending a real call corpus. Watch the first few live calls for fillers
+ *  landing somewhere awkward (e.g. mid-address); if so, the fix is flipping
+ *  that one flag back off, not touching interruption sensitivity or
+ *  denoising (those solve a different, already-tuned problem). */
+const TUNING_VERSION = 18;
 /** Inlined FAQ cap so the prompt stays lean; search_knowledge_base covers the rest. */
 const MAX_INLINE_FAQS = 20;
 

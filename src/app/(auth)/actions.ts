@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { PLAN_ORDER } from "@/lib/billing/plans";
+import { SELF_SERVE_PLAN_ORDER } from "@/lib/billing/plans";
 import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 
@@ -67,7 +67,7 @@ export async function signUp(formData: FormData) {
   // email-confirm + onboarding hops in a short-lived cookie, so the billing
   // page can pre-highlight it. Only known self-serve plans are honored.
   const plan = String(formData.get("plan") ?? "");
-  if ((PLAN_ORDER as readonly string[]).includes(plan)) {
+  if ((SELF_SERVE_PLAN_ORDER as readonly string[]).includes(plan)) {
     const cookieStore = await cookies();
     cookieStore.set("signup_plan", plan, {
       httpOnly: true,

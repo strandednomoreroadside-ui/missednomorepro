@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormBanner } from "@/components/form-banner";
-import { PLAN_META, PLAN_ORDER } from "@/lib/billing/plans";
+import { PLAN_META, SELF_SERVE_PLAN_ORDER } from "@/lib/billing/plans";
 import { signUp } from "../actions";
 
 export const metadata: Metadata = {
@@ -28,10 +28,10 @@ export default async function SignupPage({
   // Plan deep-linked from the landing pricing (?plan=growth) — only a known
   // self-serve plan is carried through to checkout.
   const plan =
-    typeof sp.plan === "string" && (PLAN_ORDER as readonly string[]).includes(sp.plan)
+    typeof sp.plan === "string" && (SELF_SERVE_PLAN_ORDER as readonly string[]).includes(sp.plan)
       ? sp.plan
       : undefined;
-  const planName = plan ? PLAN_META[plan as (typeof PLAN_ORDER)[number]].name : null;
+  const planName = plan ? PLAN_META[plan as (typeof SELF_SERVE_PLAN_ORDER)[number]].name : null;
 
   return (
     <div>

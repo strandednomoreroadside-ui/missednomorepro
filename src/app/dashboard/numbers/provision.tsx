@@ -13,7 +13,7 @@ import { claimNumber, searchNumbers } from "./actions";
 
 const ERRORS: Record<string, string> = {
   no_subscription: "Start a plan or free trial first — that puts a card on file so we can claim a number for you.",
-  limit_reached: "Your plan includes one number. Upgrade to Elite for additional numbers or locations.",
+  limit_reached: "Your plan includes one number. Contact us about Enterprise for additional numbers or locations.",
   twilio_not_configured: "Number provisioning isn't available right now. Please contact support.",
   bad_area_code: "Enter a 3-digit US area code (e.g. 440).",
   none_found: "No numbers available in that area code — try a nearby one.",

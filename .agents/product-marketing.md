@@ -1,6 +1,6 @@
 # Product Marketing Context
 
-*Last updated: 2026-07-22*
+*Last updated: 2026-09-16*
 
 ## Product Overview
 
@@ -12,7 +12,7 @@
 
 **Product type:** Multi-tenant B2B SaaS with usage-sensitive voice and messaging costs.
 
-**Business model:** Standard self-serve plan pricing (Starter $99 → Elite $599) for everyone, no special launch price. The first five businesses to become paying customers (trial converted to a real charge, tracked automatically) get every current and future paid add-on included free for as long as they stay continuously subscribed — a full cancellation ends the benefit even if they resubscribe later.
+**Business model:** Standard self-serve plan pricing (Starter $50 → Professional $200), all-inclusive — every AI add-on is free on every plan, no upsells. Enterprise is available above Professional for custom volume (Elite was retired from self-serve in Sept 2026). The first ten businesses to become paying customers (trial converted to a real charge, tracked automatically) lock in their price for as long as they stay continuously subscribed — a full cancellation ends the benefit even if they resubscribe later.
 
 ## Target Audience
 
@@ -132,7 +132,7 @@ The following phrases are hypotheses from the operating problem and must be repl
 | Business Line | The company number used for inbound and outbound calls/texts |
 | AI receptionist | The voice workflow that answers, qualifies, and takes approved actions |
 | Recovered job | A lead or booking that would likely have been lost without immediate coverage; only claim when supported by data |
-| Founding customer | One of the first ten businesses to become a paying customer; gets every current and future paid add-on free for as long as their subscription stays continuously active |
+| Founding customer | One of the first ten businesses to become a paying customer; keeps their price for as long as their subscription stays continuously active, even if list prices rise later |
 
 ## Brand Voice
 
@@ -161,7 +161,7 @@ The following phrases are hypotheses from the operating problem and must be repl
 
 ## Goals
 
-**Business goal:** Acquire ten paying founding customers at standard plan pricing (won over by the free-add-ons-for-life perk, not a discount), learn why they buy and stay, then use evidence-based messaging beyond the founder cohort.
+**Business goal:** Acquire ten paying founding customers at standard plan pricing (won over by the price-lock-for-life perk, not a discount), learn why they buy and stay, then use evidence-based messaging beyond the founder cohort.
 
 **Conversion action:** Self-serve signup at standard plan pricing is now the primary path — the founder perk is automatic on first payment, no manual approval needed. The high-touch "request founding access" email path stays available alongside it for prospects who want a conversation first.
 

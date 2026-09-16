@@ -14,7 +14,7 @@ import { FormBanner } from "@/components/form-banner";
 import { requireActiveOrg } from "@/lib/auth";
 import { getBusinessTimezone } from "@/lib/business/timezone";
 import { formatDateInZone } from "@/lib/calendar/timezone";
-import { PLAN_META, PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
+import { PLAN_META, SELF_SERVE_PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
 import {
   ADDON_META,
   ADDON_ORDER,
@@ -96,8 +96,8 @@ export default async function BillingPage({
     (await cookies()).get("signup_plan")?.value ||
     "";
   const highlightPlan =
-    plan === "none" && (PLAN_ORDER as readonly string[]).includes(chosenRaw)
-      ? (chosenRaw as (typeof PLAN_ORDER)[number])
+    plan === "none" && (SELF_SERVE_PLAN_ORDER as readonly string[]).includes(chosenRaw)
+      ? (chosenRaw as (typeof SELF_SERVE_PLAN_ORDER)[number])
       : null;
 
   // Monthly/annual picker state (mirrors the landing), URL-driven so this stays
@@ -188,8 +188,8 @@ export default async function BillingPage({
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {founderActive
-                  ? "Every paid add-on — right now, that's AI Outbound Assistant, plus anything we add later — is included free for you, for the lifetime of your subscription as long as it stays continuously active. No discount code, nothing to redeem."
-                  : "Your founder add-ons benefit ended when your subscription lapsed. Resubscribing starts fresh at normal pricing."}
+                  ? "Your price is locked for the lifetime of your subscription, as long as it stays continuously active — even if we raise prices later. Any paid add-on we ever ship is included free too. No discount code, nothing to redeem."
+                  : "Your founder benefits ended when your subscription lapsed. Resubscribing starts fresh at normal pricing."}
               </p>
             </div>
           </CardContent>
@@ -277,7 +277,7 @@ export default async function BillingPage({
           </span>
         )}
         {interval === "year"
-          ? "Annual billing saves another 20% off the new lower prices."
+          ? "Annual billing saves another 20%."
           : "Switch to annual to save another 20%."}
         {testMode && (
           <>
@@ -288,8 +288,8 @@ export default async function BillingPage({
         )}
       </p>
 
-      <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-        {PLAN_ORDER.map((id) => {
+      <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {SELF_SERVE_PLAN_ORDER.map((id) => {
           const meta = PLAN_META[id];
           const isCurrent = plan === id;
           const isHighlight = id === highlightPlan;
@@ -462,75 +462,81 @@ export default async function BillingPage({
         </div>
       )}
 
-      {/* ── Add-ons still sold ── */}
-      <h2 className="mt-10 font-display text-lg font-semibold">Add-ons</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Optional extra automation, billed monthly on top of your plan, prorated
-        from the day you add it.
-        {plan === "none" && " Choose a plan first to enable add-ons."}
-      </p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {PURCHASABLE_ADDON_ORDER.map((key) => {
-          const meta = ADDON_META[key];
-          const isPurchased = purchased.has(key);
-          const includedViaFounder = !isPurchased && founderActive;
-          const includedViaBundle = !isPurchased && !includedViaFounder && effectiveAddons.has(key);
-          const isActive = isPurchased || includedViaFounder || includedViaBundle;
-          return (
-            <div
-              key={key}
-              className={`flex flex-col rounded-xl p-5 ${
-                isActive ? "border border-cyan/50 bg-cyan/5" : "border border-border bg-card/60"
-              }`}
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="font-display text-base font-semibold">{meta.name}</h3>
-                <span className="font-mono text-sm text-cyan">+${meta.monthly}/mo</span>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{meta.blurb}</p>
-              <ul className="mt-3 flex-1 space-y-1.5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
-                {meta.highlights.map((h) => (
-                  <li key={h} className="flex items-center gap-1.5">
-                    <Check className="size-3 shrink-0 text-cyan/70" strokeWidth={3} aria-hidden />
-                    {h}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4">
-                {includedViaFounder ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 px-2 py-1 text-[10px] font-medium uppercase text-amber-400">
-                    <Sparkles className="size-3" aria-hidden />
-                    Included — founding customer
-                  </span>
-                ) : includedViaBundle ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-cyan/30 px-2 py-1 text-[10px] font-medium uppercase text-cyan">
-                    <Check className="size-3" strokeWidth={3} aria-hidden />
-                    Included in Growth Suite
-                  </span>
-                ) : !canToggleAddons ? (
-                  <span className="text-[11px] text-steel">
-                    {plan === "none" ? "Requires a plan" : isActive ? "Active" : ""}
-                  </span>
-                ) : isPurchased ? (
-                  <form action={removeAddon}>
-                    <input type="hidden" name="addon_key" value={key} />
-                    <Button type="submit" variant="outline" size="sm" className="w-full">
-                      Remove
-                    </Button>
-                  </form>
-                ) : (
-                  <form action={addAddon}>
-                    <input type="hidden" name="addon_key" value={key} />
-                    <Button type="submit" size="sm" className="w-full">
-                      Add — ${meta.monthly}/mo
-                    </Button>
-                  </form>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* ── Add-ons still sold (none currently — every add-on is folded
+          into every plan for free; this section reappears automatically if
+          a new paid add-on is ever added to ADDON_META) ── */}
+      {PURCHASABLE_ADDON_ORDER.length > 0 && (
+        <>
+          <h2 className="mt-10 font-display text-lg font-semibold">Add-ons</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Optional extra automation, billed monthly on top of your plan, prorated
+            from the day you add it.
+            {plan === "none" && " Choose a plan first to enable add-ons."}
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {PURCHASABLE_ADDON_ORDER.map((key) => {
+              const meta = ADDON_META[key];
+              const isPurchased = purchased.has(key);
+              const includedViaFounder = !isPurchased && founderActive;
+              const includedViaBundle = !isPurchased && !includedViaFounder && effectiveAddons.has(key);
+              const isActive = isPurchased || includedViaFounder || includedViaBundle;
+              return (
+                <div
+                  key={key}
+                  className={`flex flex-col rounded-xl p-5 ${
+                    isActive ? "border border-cyan/50 bg-cyan/5" : "border border-border bg-card/60"
+                  }`}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h3 className="font-display text-base font-semibold">{meta.name}</h3>
+                    <span className="font-mono text-sm text-cyan">+${meta.monthly}/mo</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{meta.blurb}</p>
+                  <ul className="mt-3 flex-1 space-y-1.5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
+                    {meta.highlights.map((h) => (
+                      <li key={h} className="flex items-center gap-1.5">
+                        <Check className="size-3 shrink-0 text-cyan/70" strokeWidth={3} aria-hidden />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4">
+                    {includedViaFounder ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 px-2 py-1 text-[10px] font-medium uppercase text-amber-400">
+                        <Sparkles className="size-3" aria-hidden />
+                        Included — founding customer
+                      </span>
+                    ) : includedViaBundle ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-cyan/30 px-2 py-1 text-[10px] font-medium uppercase text-cyan">
+                        <Check className="size-3" strokeWidth={3} aria-hidden />
+                        Included in Growth Suite
+                      </span>
+                    ) : !canToggleAddons ? (
+                      <span className="text-[11px] text-steel">
+                        {plan === "none" ? "Requires a plan" : isActive ? "Active" : ""}
+                      </span>
+                    ) : isPurchased ? (
+                      <form action={removeAddon}>
+                        <input type="hidden" name="addon_key" value={key} />
+                        <Button type="submit" variant="outline" size="sm" className="w-full">
+                          Remove
+                        </Button>
+                      </form>
+                    ) : (
+                      <form action={addAddon}>
+                        <input type="hidden" name="addon_key" value={key} />
+                        <Button type="submit" size="sm" className="w-full">
+                          Add — ${meta.monthly}/mo
+                        </Button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

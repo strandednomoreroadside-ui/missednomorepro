@@ -239,7 +239,7 @@ export default async function NumbersPage() {
                   <>
                     Additional numbers and locations are available on{" "}
                     <Link href="/dashboard/billing" className="text-cyan hover:underline">
-                      Elite
+                      Enterprise
                     </Link>
                     .
                   </>

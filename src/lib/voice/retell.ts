@@ -141,9 +141,27 @@ const VOICE_TEMPERATURE = 0.85;
 const DYNAMIC_VOICE_SPEED = true;
 const DYNAMIC_RESPONSIVENESS = true;
 const RESPONSIVENESS = 1;
-// Backchannels stay off until they pass a representative call corpus; false
-// is intentional, not an omitted provider default.
-const ENABLE_BACKCHANNEL = false;
+// Backchannels ("mm-hmm", "right") make the agent sound like it's actively
+// listening instead of just waiting its turn to talk — the biggest lever
+// for call naturalness that wasn't already tuned. Turning on for the first
+// live-call test (v17, see TUNING_VERSION in prompt.ts). backchannel_frequency
+// and backchannel_words are left unset (Retell's own defaults, 0.8 and a
+// built-in word list) — no live-call data yet to justify picking different
+// values; tune those only after a real test shows this needs adjusting.
+const ENABLE_BACKCHANNEL = true;
+
+/** Ambient office sound so the line doesn't sound like a synthetic void.
+ *  "call-center" (generic desk/office background) is the least out-of-place
+ *  of Retell's options across every industry this product serves — the
+ *  alternatives (coffee-shop, outdoor, static-noise, convention-hall) read
+ *  as unprofessional or bizarre for an indoor receptionist. Volume kept low
+ *  (0.3 of Retell's [0,2] range; their default is 1) so it never competes
+ *  with a caller's voice or the denoising tuned for noisy roadside callers
+ *  above — raise it only after a live test confirms it's present but not
+ *  distracting, not the reverse. Set to null to remove it if a live test
+ *  finds it distracting instead. */
+const AMBIENT_SOUND = "call-center" as const;
+const AMBIENT_SOUND_VOLUME = 0.3;
 /** Curated pronunciation fixes applied to every agent. Backstops the prompt's
  *  "never write a.m./p.m." rule — a stray abbreviation still reads as
  *  "AM"/"PM" rather than the spurious trailing "k" we were hearing — and
@@ -286,7 +304,13 @@ export class RetellVoiceProvider implements VoiceProvider {
         enable_dynamic_responsiveness: DYNAMIC_RESPONSIVENESS,
         enable_dynamic_voice_speed: DYNAMIC_VOICE_SPEED,
         enable_backchannel: ENABLE_BACKCHANNEL,
-        handbook_config: { speech_normalization: true, smart_matching: true },
+        ambient_sound: AMBIENT_SOUND,
+        ambient_sound_volume: AMBIENT_SOUND_VOLUME,
+        handbook_config: {
+          speech_normalization: true,
+          smart_matching: true,
+          natural_filler_words: true,
+        },
         voice_model: VOICE_MODEL,
         voice_speed: VOICE_SPEED,
         voice_temperature: VOICE_TEMPERATURE,
@@ -322,7 +346,13 @@ export class RetellVoiceProvider implements VoiceProvider {
       enable_dynamic_responsiveness: DYNAMIC_RESPONSIVENESS,
       enable_dynamic_voice_speed: DYNAMIC_VOICE_SPEED,
       enable_backchannel: ENABLE_BACKCHANNEL,
-      handbook_config: { speech_normalization: true, smart_matching: true },
+      ambient_sound: AMBIENT_SOUND,
+      ambient_sound_volume: AMBIENT_SOUND_VOLUME,
+      handbook_config: {
+        speech_normalization: true,
+        smart_matching: true,
+        natural_filler_words: true,
+      },
       voice_model: VOICE_MODEL,
       voice_speed: VOICE_SPEED,
       voice_temperature: VOICE_TEMPERATURE,

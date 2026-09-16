@@ -57,14 +57,14 @@ export default async function MembershipPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display text-base text-amber-500">
               <TriangleAlert className="size-4" aria-hidden />
-              Elite plan required
+              Enterprise plan required
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             <strong>Customer memberships</strong> let you sell your own customers a recurring
             maintenance or membership plan (a comfort club, a road club) — steady monthly revenue on
             top of one-off jobs. It&rsquo;s included on the{" "}
-            <strong className="text-foreground">Elite</strong> plan. Upgrade from the{" "}
+            <strong className="text-foreground">Enterprise</strong> plan. Contact us from the{" "}
             <Link href="/dashboard/billing" className="text-cyan hover:underline">
               billing page
             </Link>

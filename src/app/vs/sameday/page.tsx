@@ -43,7 +43,7 @@ const SECTIONS = [
 const FAQS: FaqItem[] = [
   {
     q: "Is Missed No More Pro a Sameday AI alternative?",
-    a: "For solo operators and small crews, yes — both answer calls for home-service trades, but Missed No More Pro starts at roughly a fifth of Sameday AI's stated Pro price, with a 7-day free trial and a hard usage cap instead of an enterprise-scale commitment.",
+    a: "For solo operators and small crews, yes — both answer calls for home-service trades, but Missed No More Pro starts at $50/mo against Sameday AI's stated $449/mo Pro price, with a 7-day free trial and a hard usage cap instead of an enterprise-scale commitment.",
   },
   {
     q: "Is Missed No More Pro cheaper than Sameday AI?",

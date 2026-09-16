@@ -6,7 +6,7 @@ import type Stripe from "stripe";
 
 import { isPlatformAdmin } from "@/lib/auth";
 import { getStripe } from "@/lib/billing/stripe";
-import { ALL_LOOKUP_KEYS, PLAN_META, PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
+import { ALL_LOOKUP_KEYS, PLAN_META, SELF_SERVE_PLAN_ORDER, lookupKey } from "@/lib/billing/plans";
 import {
   ADDON_META,
   ADDON_ORDER,
@@ -19,7 +19,7 @@ import { getOrigin } from "@/lib/request";
 import { SETUP_RESULT_COOKIE } from "./shared";
 
 /** §6.1 amounts in cents, derived from the plan catalog. Annual = 12 × 80%. */
-function amounts(plan: (typeof PLAN_ORDER)[number]) {
+function amounts(plan: (typeof SELF_SERVE_PLAN_ORDER)[number]) {
   const monthly = Math.round(PLAN_META[plan].monthly * 100);
   return { monthly, annual: Math.round(monthly * 12 * 0.8) };
 }
@@ -51,7 +51,7 @@ export async function runStripeSetup() {
   const existing = await stripe.prices.list({ limit: 100 });
   const have = new Set(existing.data.map((p) => p.lookup_key));
 
-  for (const plan of PLAN_ORDER) {
+  for (const plan of SELF_SERVE_PLAN_ORDER) {
     const meta = PLAN_META[plan];
     const { monthly, annual } = amounts(plan);
     const monthlyKey = lookupKey(plan, "month");
