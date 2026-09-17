@@ -57,4 +57,4 @@ Call the live AI receptionist demo at (440) 644-2423 (no signup). It answers as 
 
 ## Product category
 
-AI receptionist; AI answering service; AI phone answering service; AI virtual receptionist; AI phone assistant; AI receptionist for small business; AI receptionist with CRM; AI receptionist with price quoting.
+AI receptionist; AI answering service; AI phone answering service; AI business phone service; AI phone system for small business; AI call answering service; AI virtual receptionist; AI phone assistant; AI receptionist for small business; AI receptionist with CRM; AI receptionist with price quoting.
