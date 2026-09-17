@@ -23,6 +23,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.85,
     },
+    {
+      url: `${base}/ai-receptionist-pricing`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
     { url: `${base}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/vs/hexnut`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     {

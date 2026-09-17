@@ -49,6 +49,7 @@ Local service businesses where a missed call means a lost job. Businesses that g
 
 - [Home](https://missednomorepro.com/): Product overview, live demo line, missed-call revenue calculator, pricing, FAQ
 - [Pricing](https://missednomorepro.com/pricing): Plans, what each includes, and the founder offer
+- [AI Receptionist Pricing Guide](https://missednomorepro.com/ai-receptionist-pricing): How AI receptionist pricing works, what to compare, hard-cap policy, and current plan prices
 - [Pricing for AI agents](https://missednomorepro.com/pricing.md): Plain-text plan limits, prices, and features
 - [Industries](https://missednomorepro.com/industries): Every trade the AI receptionist is set up for, in 12 categories
 - [AI receptionist for HVAC, Plumbing & Electrical](https://missednomorepro.com/industries/hvac-plumbing-electrical)
