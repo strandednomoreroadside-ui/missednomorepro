@@ -49,6 +49,5 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: AI_CRAWLERS, allow: "/", disallow: PRIVATE_PATHS },
     ],
     sitemap: `${base}/sitemap.xml`,
-    host: base,
   };
 }

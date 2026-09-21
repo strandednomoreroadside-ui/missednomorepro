@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+
+// Account entry pages are conversion flows, not search landing pages. Keeping
+// them out of the sitemap and explicitly noindexing them prevents thin auth
+// URLs from competing with the public product pages.
+export const metadata: Metadata = { robots: { index: false, follow: true } };
 
 export default function AuthLayout({
   children,
